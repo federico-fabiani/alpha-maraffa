@@ -31,17 +31,19 @@ class Card:
         rank (int): The rank of the card.
     """
 
-    def __init__(self, suit: Suit = None, rank: int = None) -> None:
+    def __init__(self, suit: Optional[Suit] = None, rank: Optional[int] = None) -> None:
         if suit is None:
             self.suit = random.choice(list(Suit))
         else:
-            self.suit: Suit = suit
+            self.suit = suit
 
         if rank is None:
             self.rank = random.randint(CARD_MIN_RANK, CARD_MAX_RANK)
         else:
             self._validate_rank(rank)
-            self.rank: int = rank
+            self.rank = rank
+
+        self.name = f"{_rank_to_name[self.rank]} di {self.suit.value}"
         logger.debug(f"Created a new card: {self}")
 
     def _validate_rank(self, rank: int) -> None:
@@ -51,7 +53,13 @@ class Card:
             )
 
     def __str__(self) -> str:
-        return f"{_rank_to_name[self.rank]} di {self.suit.value}"
+        return self.name
+
+    def __eq__(self, other) -> bool:
+        if self.suit == other.suit and self.rank == other.rank:
+            return True
+        else:
+            return False
 
     @staticmethod
     def generate_cards(n: Optional[int]):

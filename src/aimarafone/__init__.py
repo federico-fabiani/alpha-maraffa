@@ -2,7 +2,7 @@ import logging
 import os
 
 # Initialize logger
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get the package directory

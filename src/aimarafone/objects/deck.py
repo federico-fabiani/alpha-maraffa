@@ -18,7 +18,7 @@ class Deck:
         """Restore all cards into the deck"""
         suits = list(Suit)
         ranks = list(range(CARD_MIN_RANK, CARD_MAX_RANK + 1))
-        self.cards = [Card(suit, rank) for suit in suits for rank in ranks]
+        self.cards = [Card(suit=suit, rank=rank) for suit in suits for rank in ranks]
 
     def shuffle(self) -> None:
         """Shuffle the cards in the deck."""

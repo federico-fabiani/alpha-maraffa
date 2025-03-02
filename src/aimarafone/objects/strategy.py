@@ -43,9 +43,7 @@ class RandomStrategy(Strategy):
         possible_actions = []
         if any(cards_on_table):
             dominant_suit = cards_on_table[0].suit
-            possible_actions = [
-                card for card in hand if card.suit in (dominant_suit, briscola)
-            ]
+            possible_actions = [card for card in hand if card.suit == dominant_suit]
         if not any(possible_actions):
             possible_actions = hand
         return random.choice(possible_actions)

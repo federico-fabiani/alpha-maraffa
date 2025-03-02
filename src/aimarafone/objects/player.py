@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 
 from aimarafone.objects.card import Card
 from aimarafone.objects.suit import Suit
-from aimarafone.simulation.strategy import RandomStrategy, Strategy
+from aimarafone.objects.strategy import RandomStrategy, Strategy
 from aimarafone.utils.names import Genre, pick_a_name
 
 logger = logging.getLogger(__name__)
@@ -61,13 +61,18 @@ class Player:
         return self.play_card_from_hand(best_choice)
 
     def select_briscola(self) -> Suit:
-        return self.strategy.select_briscola(self.hand)
+        briscola = self.strategy.select_briscola(self.hand)
+        logger.info(f"{self.name} fa le briscole in {briscola.name}")
+        return briscola
 
     def __str__(self):
         if len(self.hand) > 0:
             return f"{self.name} gioca con strategia {self.strategy}. Ha {len(self.hand)} carte in mano: {[str(card) for card in self.hand]}."
         else:
             return f"{self.name} gioca con strategia {self.strategy}. Non ha carte in mano."
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 if __name__ == "__main__":

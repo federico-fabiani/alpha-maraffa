@@ -10,17 +10,25 @@ CARD_MIN_RANK = 1
 CARD_MAX_RANK = 10
 
 _rank_to_name = {
-    1: "Asso",
-    2: "Due",
-    3: "Tre",
-    4: "Quattro",
-    5: "Cinque",
-    6: "Sei",
-    7: "Sette",
-    8: "Fante",
-    9: "Cavallo",
-    10: "Re",
+    1: "Asso 1️⃣ ",
+    2: "Due 2️⃣ ",
+    3: "Tre 3️⃣ ",
+    4: "Quattro 4️⃣ ",
+    5: "Cinque 5️⃣ ",
+    6: "Sei 6️⃣ ",
+    7: "Sette 7️⃣ ",
+    8: "Fante 🛡️",
+    9: "Cavallo 🐎",
+    10: "Re 👑",
 }
+
+
+def _select_suit():
+    return random.choice(list(Suit))
+
+
+def _select_rank():
+    return random.choice(list(_rank_to_name.keys()))
 
 
 class Card:
@@ -31,29 +39,23 @@ class Card:
         rank (int): The rank of the card.
     """
 
-    def __init__(self, suit: Optional[Suit] = None, rank: Optional[int] = None) -> None:
-        if suit is None:
-            self.suit = random.choice(list(Suit))
-        else:
-            self.suit = suit
-
-        if rank is None:
-            self.rank = random.randint(CARD_MIN_RANK, CARD_MAX_RANK)
-        else:
-            self._validate_rank(rank)
-            self.rank = rank
-
-        self.name = f"{_rank_to_name[self.rank]} di {self.suit.value}"
+    def __init__(self, suit: Suit = _select_suit(), rank: int = _select_rank()):
+        self.suit = suit
+        self.rank = self._validate_rank(rank)
         logger.debug(f"Created a new card: {self}")
 
     def _validate_rank(self, rank: int) -> None:
-        if not CARD_MIN_RANK <= rank <= CARD_MAX_RANK:
+        if rank not in _rank_to_name.keys():
             raise ValueError(
                 f"Invalid rank. Rank must be between {CARD_MIN_RANK} and {CARD_MAX_RANK}."
             )
+        return rank
+
+    def get_name(self) -> str:
+        return f"{_rank_to_name[self.rank]} di {self.suit.value}"
 
     def __str__(self) -> str:
-        return self.name
+        return self.get_name()
 
     def __eq__(self, other) -> bool:
         if self.suit == other.suit and self.rank == other.rank:

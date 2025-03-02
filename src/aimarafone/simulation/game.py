@@ -1,6 +1,9 @@
 import logging
+import uuid
 from math import floor
+from typing import List, Optional, Tuple, Union
 
+from aimarafone import constants
 from aimarafone.objects.card import CARD_MAX_RANK, CARD_MIN_RANK, Card
 from aimarafone.objects.deck import Deck
 from aimarafone.objects.player import Player
@@ -8,7 +11,33 @@ from aimarafone.objects.suit import Suit
 
 logger = logging.getLogger(__name__)
 
-N_PLAYERS = 4
+_key_card = Card(Suit.DENARA, 4)
+
+_rank_to_value = {
+    1: 11,
+    2: 12,
+    3: 13,
+    4: 4,
+    5: 5,
+    6: 6,
+    7: 7,
+    8: 8,
+    9: 9,
+    10: 10,
+}
+
+_rank_to_points = {
+    1: 1,
+    2: 0.34,
+    3: 0.34,
+    4: 0,
+    5: 0,
+    6: 0,
+    7: 0,
+    8: 0.34,
+    9: 0.34,
+    10: 0.34,
+}
 
 
 def rotate(l, n):
@@ -19,87 +48,168 @@ def argmax(l):
     return l.index(max(l))
 
 
-marafone_values = {
-    i: i + CARD_MAX_RANK if i in [1, 2, 3] else i
-    for i in range(CARD_MIN_RANK, CARD_MAX_RANK + 1)
-}
-marafone_points = {
-    i: 1 if i == 1 else 0.34 if i in [2, 3, 8, 9, 10] else 0
-    for i in range(CARD_MIN_RANK, CARD_MAX_RANK + 1)
-}
+suit_index = {Suit.BASTONI: 0, Suit.DENARA: 10, Suit.SPADE: 20, Suit.COPPE: 30}
 
-# Setup players
-players = [Player() for i in range(N_PLAYERS)]
-teams = {
-    1: (players[0], players[2]),
-    2: (players[1], players[3]),
-}
-playerid2team = {players[0].id: 1, players[2].id: 1, players[1].id: 2, players[3].id: 2}
-scores = {1: 0, 2: 0}
-print([[t.name for t in team] for team in teams.values()])
 
-# Setup deck
-logger.info("Unboxing new deck of carte da briscola")
-deck = Deck()
-deck.shuffle()
+def hand_to_vector(hand):
+    vector = [0] * 40
+    for card in hand:
+        vector[suit_index[card.suit] + card.rank - 1] = 1
+    return vector
 
-# Start game
-logger.info("Starting game")
-key_card = Card(Suit.DENARA, 4)
-first_player_id = None
 
-logger.info("Dealing cards")
-for i, player in enumerate(players):
-    player.add_to_hand(deck.deal(10))
-    if first_player_id is None and key_card in player.hand:
-        first_player_id = i
+def turn_to_vector(turn):
+    vector = [0] * 40
+    for card in turn:
+        vector[suit_index[card.suit] + card.rank - 1] = 1
+    return vector
 
-briscola = players[first_player_id].select_briscola()
-logger.info(f"{players[first_player_id].name} sceglie le briscole: {briscola.name}")
 
-history = []
-training_dataset = []
-for turn in range(10):
-    logger.info(f"### TURN {turn+1}")
-    players = rotate(players, first_player_id)
-    cards_on_table = []
-    for playing_order, player in enumerate(players):
-        log = [turn, playing_order, players.index(player), briscola.name]
-        log += [card.name for card in cards_on_table]
-        log += [card.name for card in player.hand]
-        # log += history
-        cards_on_table.append(player.play_card(briscola, cards_on_table, history))
-        log.append(cards_on_table[-1].name)
+class Round:
+    """Class representing a round of the game"""
 
-        training_dataset.append(log)
-    dominant_suit = cards_on_table[0].suit
+    def __init__(
+        self,
+        players: Tuple[Player, Player, Player, Player],
+        player_id_to_team: dict,
+        first_player: Optional[Player] = None,
+    ) -> None:
+        self.id = hash(uuid.uuid4())
+        self.players = players
+        self.player_id_to_team = player_id_to_team
+        self.teams_scores = {
+            1: 0,
+            2: 0,
+        }
+        self.first_player = first_player
+        self.last_winner = None
+        self.history = []
+        self.game_summary = []
+        if first_player is not None:
+            logger.info(f"Nuovo round: inizia {first_player.name}")
+        else:
+            logger.info(
+                f"Primo round della partita tra {[p.name for p in self.players]}"
+            )
 
-    cards_on_table_values = []
-    for card in cards_on_table:
-        if card.suit == briscola:
-            cards_on_table_values.append(marafone_values[card.rank] + 100)
-            continue
-        if card.suit == dominant_suit:
-            cards_on_table_values.append(marafone_values[card.rank])
-            continue
-        cards_on_table_values.append(-1)
+    def deal_cards(self):
+        deck = Deck()
+        deck.shuffle()
+        for player in self.players:
+            player.add_to_hand(deck.deal(constants["INITIAL_HAND"]))
 
-    first_player_id = argmax(cards_on_table_values)
+    def set_briscola(self):
+        if self.first_player is None:
+            for player in self.players:
+                if _key_card in player.hand:
+                    self.first_player = player
+                    logger.info(f"{self.first_player.name} ha il {_key_card}")
+                    break
 
-    winning_team = playerid2team[players[first_player_id].id]
-    scores[winning_team] += sum([marafone_points[card.rank] for card in cards_on_table])
-    history.append(list(zip(players, cards_on_table)))
-    print(
-        f"\t {[([p.name for p in teams[team_id]], round(score, 2)) for team_id, score in scores.items()]}"
-    )
+        self.briscola = self.first_player.select_briscola()
 
-print("\nFine partita!")
-scores[winning_team] += 1
-_ = [
-    print(
-        f"Team {team_id} {[p.name for p in teams[team_id]]}: {floor(team_score)} punti"
-    )
-    for team_id, team_score in scores.items()
-]
+    def play_turn(self):
+        owner = self.last_winner if self.last_winner is not None else self.first_player
+        cards_on_table = []
+        playing_order = rotate(self.players, self.players.index(owner))
+        for player in playing_order:
+            cards_on_table.append(
+                player.play_card(self.briscola, cards_on_table, self.history)
+            )
+            self.game_summary.append(
+                ([player.id] + hand_to_vector(player.hand) + [cards_on_table[-1]])
+            )
 
-# print(history)
+        dominant_suit = cards_on_table[0].suit
+        highest_card = argmax(
+            [
+                (
+                    _rank_to_value[card.rank] + 100
+                    if card.suit == self.briscola
+                    else _rank_to_value[card.rank] if card.suit == dominant_suit else 0
+                )
+                for card in cards_on_table
+            ]
+        )
+
+        self.last_winner = playing_order[highest_card]
+        earned_points = sum([_rank_to_points[card.rank] for card in cards_on_table])
+
+        logger.info(
+            f"Prende {self.last_winner.name} con {cards_on_table[highest_card]} [+ {round(earned_points, 2)} punti]"
+        )
+
+        self.teams_scores[self.player_id_to_team[self.last_winner.id]] += earned_points
+
+        self.history.append((playing_order, cards_on_table))
+
+    def play_round(self):
+        self.deal_cards()
+        self.set_briscola()
+
+        for i in range(10):
+            self.play_turn()
+
+        self.teams_scores[self.player_id_to_team[self.last_winner.id]] += 1
+
+        self.teams_scores[1] = floor(self.teams_scores[1])
+        self.teams_scores[2] = floor(self.teams_scores[2])
+
+        if sum(self.teams_scores.values()) != 11:
+            raise ValueError
+
+        logger.info(f"Round finito {self.teams_scores[1]} a {self.teams_scores[2]}")
+
+
+class Game:
+    """Class representing a game of 4 players."""
+
+    def __init__(self) -> None:
+        self.id = hash(uuid.uuid4())
+        self.players = [Player() for i in range(constants["NUMBER_OF_PLAYERS"])]
+        self.player_id_to_team = {
+            self.players[0].id: 1,
+            self.players[1].id: 2,
+            self.players[2].id: 1,
+            self.players[3].id: 2,
+        }
+        self.teams_scores = {
+            1: 0,
+            2: 0,
+        }
+        self.last_first_player = None
+        self.winning_team = None
+
+    def _check_winner(self):
+        if any([v > 41 for v in self.teams_scores.values()]):
+            self.winning_team = argmax(list(self.teams_scores.values())) + 1
+
+    def play_round(self) -> None:
+        if self.last_first_player is None:
+            first_player = None
+        else:
+            first_player_index = self.players.index(self.last_first_player) + 1
+            if first_player_index > 3:
+                first_player_index -= 4
+            first_player = self.players[first_player_index]
+
+        round = Round(self.players, self.player_id_to_team, first_player)
+        round.play_round()
+        self.last_first_player = round.first_player
+        for i in self.teams_scores.keys():
+            self.teams_scores[i] += round.teams_scores[i]
+
+        logger.info(
+            f"Punteggio attuale {self.teams_scores[1]} a {self.teams_scores[2]}"
+        )
+
+    def play_game(self):
+        while self.winning_team is None:
+            self.play_round()
+            self._check_winner()
+        logger.info(f"Vince il team {self.winning_team}")
+
+
+if __name__ == "__main__":
+    test_game = Game()
+    test_game.play_game()

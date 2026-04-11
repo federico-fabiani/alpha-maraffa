@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "rooms": {
+      ".read": "auth != null",
+      "$roomId": {
+        ".write": "auth != null"
+      }
+    },
+    "gameStates": {
+      "$roomId": {
+        ".read": "auth != null && data.child('players').child(auth.uid).exists()",
+        ".write": "auth != null && (data.child('players').child(auth.uid).exists() || !data.exists())"
+      }
+    },
+    "privateHands": {
+      "$roomId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && (auth.uid == $uid || root.child('gameStates').child($roomId).child('players').child(auth.uid).child('seatIndex').val() == 0)"
+        }
+      }
+    }
+  }
+}

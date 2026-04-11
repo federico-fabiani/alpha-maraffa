@@ -17,7 +17,7 @@ _rank_to_name = {
     5: "Cinque 5️⃣ ",
     6: "Sei 6️⃣ ",
     7: "Sette 7️⃣ ",
-    8: "Fante 🛡️",
+    8: "Fante 🛡️ ",
     9: "Cavallo 🐎",
     10: "Re 👑",
 }
@@ -39,9 +39,9 @@ class Card:
         rank (int): The rank of the card.
     """
 
-    def __init__(self, suit: Suit = _select_suit(), rank: int = _select_rank()):
-        self.suit = suit
-        self.rank = self._validate_rank(rank)
+    def __init__(self, suit: Optional[Suit] = None, rank: Optional[int] = None):
+        self.suit = suit if suit is not None else _select_suit()
+        self.rank = self._validate_rank(rank if rank is not None else _select_rank())
         logger.debug(f"Created a new card: {self}")
 
     def _validate_rank(self, rank: int) -> None:
@@ -74,4 +74,4 @@ class Card:
 
 
 if __name__ == "__main__":
-    print(Card())
+    [print(c) for c in Card.generate_cards(5)]

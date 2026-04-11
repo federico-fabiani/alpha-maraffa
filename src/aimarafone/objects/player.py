@@ -4,30 +4,33 @@ import uuid
 from typing import List, Optional, Union
 
 from aimarafone.objects.card import Card
-from aimarafone.objects.suit import Suit
 from aimarafone.objects.strategy import RandomStrategy, Strategy
+from aimarafone.objects.suit import Suit
 from aimarafone.utils.names import Genre, pick_a_name
 
 logger = logging.getLogger(__name__)
+
+
+def _select_name() -> str:
+    genre = random.choice(list(Genre))
+    suffix = "o" if genre == Genre.MASCULINE else "a"
+    name = f"Nonn{suffix} " + pick_a_name(genre)
+    return name
 
 
 class Player:
     """Class representing a player."""
 
     def __init__(
-        self, name: Optional[str] = None, strategy: Optional[Strategy] = None
+        self,
+        name: Optional[str] = None,
+        strategy: Strategy = RandomStrategy(),
+        hand: List[Card] = [],
     ) -> None:
         self.id = hash(uuid.uuid4())
-        self.hand = []
-        if name is None:
-            genre = random.choice(list(Genre))
-            suffix = "o" if genre == Genre.MASCULINE else "a"
-            name = f"Nonn{suffix} " + pick_a_name(genre)
-        self.name = name
-
-        if strategy is None:
-            strategy = RandomStrategy()
+        self.name = name if name is not None else _select_name()
         self.strategy = strategy
+        self.hand = hand
 
     def add_to_hand(self, cards: Union[List[Card], Card]):
         if isinstance(cards, list):

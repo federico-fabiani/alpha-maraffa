@@ -196,11 +196,11 @@ async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Gi
         ]
         await websocket.send_text(json.dumps({
             "type": "joined",
-            "data": {"seat": seat, "room_id": room.room_id, "players": player_list},
+            "data": {"seat": seat, "room_id": room.room_id, "players": player_list, "owner_seat": room.creator_slot.seat},
         }))
         await room.broadcast({
             "type": "player_joined",
-            "data": {"seat": seat, "name": player_name, "players": player_list},
+            "data": {"seat": seat, "name": player_name, "players": player_list, "owner_seat": room.creator_slot.seat},
         })
         logger.info("%s joined %s seat %s", player_name, room_id, seat)
 
@@ -223,13 +223,27 @@ async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Gi
         my_slot.websocket = None
         if room.status == "waiting":
             room.slots.pop(my_slot.seat, None)
+            if not room.slots:
+                rooms.delete(room.room_id)
+                logger.info("Room %s deleted (empty)", room_id)
+                return
+            # Promote the most recently joined human to owner if the owner left
+            if my_slot is room.creator_slot:
+                humans = [sl for sl in room.slots.values() if not sl.is_bot]
+                if humans:
+                    room.creator_slot = max(humans, key=lambda sl: sl.seat)
             player_list = [
                 {"seat": s, "name": sl.name, "is_bot": sl.is_bot, "team": sl.team}
                 for s, sl in sorted(room.slots.items())
             ]
             await room.broadcast({
                 "type": "player_left",
-                "data": {"seat": my_slot.seat, "name": my_slot.name, "players": player_list},
+                "data": {
+                    "seat": my_slot.seat,
+                    "name": my_slot.name,
+                    "players": player_list,
+                    "owner_seat": room.creator_slot.seat if room.creator_slot else None,
+                },
             })
         else:
             await room.broadcast({"type": "player_disconnected", "data": {"seat": my_slot.seat, "name": my_slot.name}})
@@ -290,6 +304,26 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
             ]
             await room.broadcast({"type": "player_left", "data": {"seat": target_seat, "name": target.name, "players": player_list}})
             logger.info("%s kicked %s (uuid %s) from %s", slot.name, target.name, target.uuid, room.room_id)
+
+    elif t == "promote":
+        if room.status == "waiting" and slot is room.creator_slot:
+            try:
+                target_seat = int(data.get("seat", -1))
+            except (TypeError, ValueError):
+                return
+            target = room.slots.get(target_seat)
+            if target is None or target.is_bot or target is room.creator_slot:
+                return
+            room.creator_slot = target
+            player_list = [
+                {"seat": s, "name": sl.name, "is_bot": sl.is_bot, "team": sl.team}
+                for s, sl in sorted(room.slots.items())
+            ]
+            await room.broadcast({
+                "type": "owner_changed",
+                "data": {"owner_seat": target_seat, "players": player_list},
+            })
+            logger.info("%s promoted %s to owner in %s", slot.name, target.name, room.room_id)
 
     elif t == "ping":
         await room._send(slot.seat, {"type": "pong"})

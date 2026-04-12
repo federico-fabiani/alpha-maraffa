@@ -28,6 +28,7 @@ interface State {
   playerName: string
   uuid: string
   isOwner: boolean
+  ownerSeat: number | null
   // Navigation
   screen: Screen
   // Lobby
@@ -62,6 +63,7 @@ interface Actions {
   startGame: () => void
   swapSeats: (seatA: number, seatB: number) => void
   kickPlayer: (seat: number) => void
+  promotePlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card) => void
   dismissNotification: () => void
@@ -81,6 +83,7 @@ export const initialState: State = {
   playerName: '',
   uuid: '',
   isOwner: false,
+  ownerSeat: null,
   screen: 'home',
   lobbyPlayers: [],
   phase: 'waiting',
@@ -190,6 +193,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'kick', data: { seat } }))
   },
 
+  promotePlayer: (seat) => {
+    get().ws?.send(JSON.stringify({ type: 'promote', data: { seat } }))
+  },
+
   selectBriscola: (suit) => {
     get().ws?.send(JSON.stringify({ type: 'select_briscola', data: { suit } }))
   },
@@ -216,7 +223,8 @@ const useGameStore = create<State & Actions>((set, get) => ({
           mySeat: data.seat as number,
           lobbyPlayers: data.players as LobbyPlayer[],
           screen: 'lobby',
-          isOwner: (data.seat as number) === 0,
+          ownerSeat: data.owner_seat as number,
+          isOwner: (data.seat as number) === (data.owner_seat as number),
         })
         break
 
@@ -224,9 +232,11 @@ const useGameStore = create<State & Actions>((set, get) => ({
         set({ mySeat: data.seat as number, screen: 'game' })
         break
 
-      case 'player_joined':
-        set({ lobbyPlayers: data.players as LobbyPlayer[] })
+      case 'player_joined': {
+        const pj = data as { players: LobbyPlayer[]; owner_seat: number }
+        set({ lobbyPlayers: pj.players, ownerSeat: pj.owner_seat })
         break
+      }
 
       case 'game_started':
         set({ screen: 'game', lobbyPlayers: data.players as LobbyPlayer[] })
@@ -318,7 +328,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
         break
 
       case 'seats_swapped': {
-        const { seat_a, seat_b } = data as { seat_a: number; seat_b: number; players: LobbyPlayer[] }
+        const { seat_a, seat_b, owner_seat } = data as { seat_a: number; seat_b: number; players: LobbyPlayer[]; owner_seat: number }
         set(state => {
           const newMySeat =
             state.mySeat === seat_a ? seat_b :
@@ -327,14 +337,32 @@ const useGameStore = create<State & Actions>((set, get) => ({
           return {
             lobbyPlayers: (data as { players: LobbyPlayer[] }).players,
             mySeat: newMySeat,
+            ownerSeat: owner_seat,
+            isOwner: newMySeat === owner_seat,
           }
         })
         break
       }
 
-      case 'player_left':
-        set({ lobbyPlayers: (data as { players: LobbyPlayer[] }).players })
+      case 'player_left': {
+        const pl = data as { players: LobbyPlayer[]; owner_seat: number }
+        set(state => ({
+          lobbyPlayers: pl.players,
+          ownerSeat: pl.owner_seat,
+          isOwner: state.mySeat === pl.owner_seat,
+        }))
         break
+      }
+
+      case 'owner_changed': {
+        const oc = data as { owner_seat: number; players: LobbyPlayer[] }
+        set(state => ({
+          lobbyPlayers: oc.players,
+          ownerSeat: oc.owner_seat,
+          isOwner: state.mySeat === oc.owner_seat,
+        }))
+        break
+      }
 
       case 'pong': {
         const latency = Date.now() - _lastPingTime

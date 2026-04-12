@@ -13,9 +13,11 @@ export default function LobbyScreen() {
   const isOwner      = useGameStore(s => s.isOwner)
   const lobbyPlayers = useGameStore(s => s.lobbyPlayers)
   const startGame    = useGameStore(s => s.startGame)
-  const swapSeats    = useGameStore(s => s.swapSeats)
-  const kickPlayer   = useGameStore(s => s.kickPlayer)
-  const reset        = useGameStore(s => s.reset)
+  const swapSeats     = useGameStore(s => s.swapSeats)
+  const kickPlayer    = useGameStore(s => s.kickPlayer)
+  const promotePlayer = useGameStore(s => s.promotePlayer)
+  const ownerSeat     = useGameStore(s => s.ownerSeat)
+  const reset         = useGameStore(s => s.reset)
 
   const [swapPending, setSwapPending] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
@@ -117,17 +119,27 @@ export default function LobbyScreen() {
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${player.is_bot ? 'bg-felt-500' : 'bg-green-400'}`} />
                     <span className="text-amber-100 text-sm font-medium truncate flex-1">
+                      {seat === ownerSeat && <span className="text-amber-400 text-xs mr-1">👑</span>}
                       {player.name}
                       {isMe && <span className="text-amber-500 text-xs ml-1">(tu)</span>}
                     </span>
                     {isOwner && !isMe && !player.is_bot && (
-                      <button
-                        onClick={e => { e.stopPropagation(); kickPlayer(seat) }}
-                        title="Espelli giocatore"
-                        className="text-red-500/70 hover:text-red-400 text-xs leading-none px-1 transition-colors"
-                      >
-                        ✕
-                      </button>
+                      <>
+                        <button
+                          onClick={e => { e.stopPropagation(); promotePlayer(seat) }}
+                          title="Promuovi a owner"
+                          className="text-amber-500/70 hover:text-amber-400 text-xs leading-none px-1 transition-colors"
+                        >
+                          👑
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); kickPlayer(seat) }}
+                          title="Espelli giocatore"
+                          className="text-red-500/70 hover:text-red-400 text-xs leading-none px-1 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </>
                     )}
                   </div>
                 ) : (

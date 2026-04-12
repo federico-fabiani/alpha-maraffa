@@ -270,7 +270,12 @@ class GameRoom:
         ]
         await self.broadcast({
             "type": "seats_swapped",
-            "data": {"seat_a": seat_a, "seat_b": seat_b, "players": player_list},
+            "data": {
+                "seat_a": seat_a,
+                "seat_b": seat_b,
+                "players": player_list,
+                "owner_seat": self.creator_slot.seat if self.creator_slot else None,
+            },
         })
 
     # ── Networking ─────────────────────────────────────────────────────────────
@@ -509,3 +514,7 @@ class RoomManager:
         """Remove all rooms whose status is 'game_over'."""
         for k in [k for k, v in self.rooms.items() if v.status == "game_over"]:
             del self.rooms[k]
+
+    def delete(self, room_id: str) -> None:
+        """Remove a room by ID."""
+        self.rooms.pop(room_id, None)

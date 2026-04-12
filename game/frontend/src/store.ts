@@ -7,12 +7,16 @@ import type {
   LobbyPlayer,
   Notification,
   Phase,
+  PingStatus,
   Player,
   Screen,
   Suit,
   TableCard,
 } from './types'
+// ── Module-level ping state (not in Zustand to avoid extra renders) ──────────
 
+let _pingIntervalId: ReturnType<typeof setInterval> | null = null
+let _lastPingTime = 0
 // ── Types ───────────────────────────────────────────────────────────────────��──
 
 interface State {
@@ -22,6 +26,7 @@ interface State {
   roomId: string
   mySeat: number | null
   playerName: string
+  isOwner: boolean
   // Navigation
   screen: Screen
   // Lobby
@@ -43,6 +48,9 @@ interface State {
   notification: Notification | null
   gameOverData: GameOverData | null
   error: string | null
+  // Connection quality
+  pingMs: number | null
+  pingStatus: PingStatus
 }
 
 interface Actions {
@@ -50,6 +58,7 @@ interface Actions {
   createRoom: () => Promise<void>
   joinRoom: (roomId: string) => void
   startGame: () => void
+  swapSeats: (seatA: number, seatB: number) => void
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card) => void
   dismissNotification: () => void
@@ -67,6 +76,7 @@ export const initialState: State = {
   roomId: '',
   mySeat: null,
   playerName: '',
+  isOwner: false,
   screen: 'home',
   lobbyPlayers: [],
   phase: 'waiting',
@@ -84,6 +94,8 @@ export const initialState: State = {
   notification: null,
   gameOverData: null,
   error: null,
+  pingMs: null,
+  pingStatus: 'offline',
 }
 
 // ── Store ──────────────────────────────────────────────────────────────────────
@@ -120,9 +132,25 @@ const useGameStore = create<State & Actions>((set, get) => ({
     const url = `${proto}//${window.location.host}/ws/${roomId}?player_name=${encodeURIComponent(playerName)}`
     const ws = new WebSocket(url)
 
-    ws.onopen = () => set({ connected: true })
+    ws.onopen = () => {
+      set({ connected: true, pingStatus: 'offline', pingMs: null })
+      if (_pingIntervalId) clearInterval(_pingIntervalId)
+      _pingIntervalId = setInterval(() => {
+        const { ws: currentWs } = get()
+        if (currentWs?.readyState === WebSocket.OPEN) {
+          _lastPingTime = Date.now()
+          currentWs.send(JSON.stringify({ type: 'ping' }))
+        }
+      }, 5000)
+    }
     ws.onmessage = (e) => get()._processMessage(JSON.parse(e.data as string) as { type: string; data?: unknown })
-    ws.onclose = () => set({ connected: false })
+    ws.onclose = () => {
+      set({ connected: false, pingStatus: 'offline' })
+      if (_pingIntervalId) {
+        clearInterval(_pingIntervalId)
+        _pingIntervalId = null
+      }
+    }
     ws.onerror = () => set({ error: 'Errore di connessione' })
 
     set({ ws })
@@ -130,6 +158,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
   startGame: () => {
     get().ws?.send(JSON.stringify({ type: 'start_game' }))
+  },
+
+  swapSeats: (seatA, seatB) => {
+    get().ws?.send(JSON.stringify({ type: 'swap_seats', data: { seat_a: seatA, seat_b: seatB } }))
   },
 
   selectBriscola: (suit) => {
@@ -157,6 +189,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           mySeat: data.seat as number,
           lobbyPlayers: data.players as LobbyPlayer[],
           screen: 'lobby',
+          isOwner: (data.seat as number) === 0,
         })
         break
 
@@ -246,6 +279,46 @@ const useGameStore = create<State & Actions>((set, get) => ({
           screen: 'gameover',
         })
         break
+
+      case 'seats_swapped': {
+        const { seat_a, seat_b } = data as { seat_a: number; seat_b: number; players: LobbyPlayer[] }
+        set(state => {
+          const newMySeat =
+            state.mySeat === seat_a ? seat_b :
+            state.mySeat === seat_b ? seat_a :
+            state.mySeat
+          return {
+            lobbyPlayers: (data as { players: LobbyPlayer[] }).players,
+            mySeat: newMySeat,
+          }
+        })
+        break
+      }
+
+      case 'player_left':
+        set({ lobbyPlayers: (data as { players: LobbyPlayer[] }).players })
+        break
+
+      case 'pong': {
+        const latency = Date.now() - _lastPingTime
+        const pingStatus: PingStatus = latency < 150 ? 'good' : latency < 500 ? 'ok' : 'bad'
+        set({ pingMs: latency, pingStatus })
+        break
+      }
+
+      case 'card_played':
+        set({ tableCards: data.table as TableCard[] })
+        break
+
+      case 'player_disconnected': {
+        const disconnectedSeat = data.seat as number
+        set(state => ({
+          players: state.players.map(p =>
+            p.seat === disconnectedSeat ? { ...p, is_connected: false } : p
+          ),
+        }))
+        break
+      }
 
       case 'error':
         set({ error: data.message as string })

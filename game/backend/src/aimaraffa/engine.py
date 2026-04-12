@@ -176,6 +176,7 @@ class GameRoom:
         self.slots: Dict[int, PlayerSlot] = {}
         self.status = "waiting"
         self.game_task: Optional[asyncio.Task] = None
+        self.creator_slot: Optional["PlayerSlot"] = None  # first human to join
 
         self.total_scores: Dict[int, int] = {1: 0, 2: 0}
         self.round_scores: Dict[int, float] = {1: 0.0, 2: 0.0}
@@ -238,6 +239,38 @@ class GameRoom:
                 "last_turn_winner": self.last_turn_winner_seat,
             },
         }
+
+    # ── Seat management ────────────────────────────────────────────────────────
+
+    async def swap_seats(self, seat_a: int, seat_b: int) -> None:
+        """Swap or move slots between two seats (waiting phase only). Either seat may be empty."""
+        if self.status != "waiting" or seat_a == seat_b:
+            return
+        slot_a = self.slots.get(seat_a)
+        slot_b = self.slots.get(seat_b)
+        if slot_a is None and slot_b is None:
+            return
+
+        # Update .seat on each slot, then update the dict
+        if slot_a is not None:
+            slot_a.seat = seat_b
+            self.slots[seat_b] = slot_a
+        else:
+            del self.slots[seat_b]   # seat_b player moved away, vacate
+
+        if slot_b is not None:
+            slot_b.seat = seat_a
+            self.slots[seat_a] = slot_b
+        else:
+            del self.slots[seat_a]   # seat_a player moved away, vacate
+        player_list = [
+            {"seat": s, "name": sl.name, "is_bot": sl.is_bot, "team": sl.team}
+            for s, sl in sorted(self.slots.items())
+        ]
+        await self.broadcast({
+            "type": "seats_swapped",
+            "data": {"seat_a": seat_a, "seat_b": seat_b, "players": player_list},
+        })
 
     # ── Networking ─────────────────────────────────────────────────────────────
 

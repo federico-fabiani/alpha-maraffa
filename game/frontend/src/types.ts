@@ -2,6 +2,8 @@
 
 export type Suit = 'bastoni' | 'denara' | 'spade' | 'coppe'
 
+export type PingStatus = 'good' | 'ok' | 'bad' | 'offline'
+
 export type Phase =
   | 'waiting'
   | 'briscola_selection'

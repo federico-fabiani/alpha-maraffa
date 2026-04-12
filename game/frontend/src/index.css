@@ -1,106 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
-/* ── Custom theme tokens ──────────────────────────────────────────────────────── */
+/* ── Custom theme tokens ─────────────────────────────────────────────────────── */
 
 @theme {
-  /* Felt green palette */
-  --color-felt-950: #0d1f16;
-  --color-felt-900: #152d20;
-  --color-felt-800: #1a3a28;
-  --color-felt-700: #1f4730;
-  --color-felt-600: #275c3d;
-  --color-felt-500: #2f7a4f;
+  /* Felt + brass palette */
+  --color-felt-950: #09140f;
+  --color-felt-900: #0f2419;
+  --color-felt-800: #153526;
+  --color-felt-700: #1d4a35;
+  --color-felt-600: #246046;
+  --color-felt-500: #2c7d58;
 
   /* Suit colours */
   --color-bastoni: #d97706;
-  --color-denara:  #16a34a;
-  --color-spade:   #3b82f6;
-  --color-coppe:   #ef4444;
+  --color-denara: #16a34a;
+  --color-spade: #3b82f6;
+  --color-coppe: #ef4444;
 
   /* Animations */
-  --animate-slide-up:    slide-up 0.25s ease-out;
-  --animate-fade-in:     fade-in  0.3s  ease-out;
-  --animate-pulse-ring:  pulse-ring 1.5s ease-out infinite;
-  --animate-float:       float 3s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.25s ease-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-pulse-ring: pulse-ring 1.5s ease-out infinite;
+  --animate-float: float 3.2s ease-in-out infinite;
   --animate-card-appear: card-appear 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-card-breathe: card-breathe 2.8s ease-in-out infinite;
 
   /* Fonts */
   --font-cinzel: 'Cinzel', serif;
+  --font-outfit: 'Outfit', sans-serif;
 }
 
 @keyframes slide-up {
   from { transform: translateY(14px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0    rgba(251, 191, 36, 0.7); }
-  70%  { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);   }
-  100% { box-shadow: 0 0 0 0    rgba(251, 191, 36, 0);   }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-6px); }
-}
-@keyframes card-appear {
-  from { transform: scale(0.75) translateY(10px); opacity: 0; }
-  to   { transform: scale(1)    translateY(0);    opacity: 1; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-/* ── Global ───────────────────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes card-appear {
+  from { transform: scale(0.75) translateY(10px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes card-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.01); }
+}
+
+@keyframes ambient-pan {
+  0% { transform: translate3d(-2%, -1%, 0); }
+  50% { transform: translate3d(2%, 2%, 0); }
+  100% { transform: translate3d(-2%, -1%, 0); }
+}
+
+@keyframes opponent-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ── Global ──────────────────────────────────────────────────────────────────── */
 
 html, body, #root {
   height: 100%;
 }
 
 body {
-  background: radial-gradient(ellipse at 50% 30%, #1a3a28 0%, #0d1f16 100%);
-  font-family: 'Inter', sans-serif;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(249, 180, 48, 0.08), transparent 32%),
+    radial-gradient(circle at 82% 78%, rgba(45, 145, 102, 0.14), transparent 44%),
+    linear-gradient(165deg, #09140f 0%, #10261b 52%, #0b1711 100%);
+  font-family: 'Outfit', sans-serif;
   overflow: hidden;
-  color: #f0e8d8;
+  color: #f3ead5;
 }
 
-/* ── Card face ────────────────────────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: ambient-pan 18s ease-in-out infinite;
+}
+
+.game-stage-ambient {
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(22, 77, 55, 0.55), transparent 55%),
+    radial-gradient(circle at 30% 70%, rgba(19, 119, 78, 0.28), transparent 42%);
+  filter: blur(18px);
+  animation: ambient-pan 14s ease-in-out infinite;
+}
+
+.game-stage-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 36%, rgba(2, 7, 6, 0.66) 100%);
+}
+
+/* ── Card face ───────────────────────────────────────────────────────────────── */
 
 .card-face {
-  background: linear-gradient(145deg, #f8f4ec, #e8e0d0);
+  background: linear-gradient(150deg, #f5efdf, #ddd0ba);
   border-radius: 0.5rem;
-  border: 1.5px solid rgba(0, 0, 0, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1.5px solid rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 1px 0 rgba(255, 255, 255, 0.45) inset;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
   position: relative;
+  overflow: hidden;
   user-select: none;
+}
+
+.card-sprite .card-art {
+  position: absolute;
+  inset: 3px;
+  border-radius: 0.42rem;
+  background-image: url('./assets/cards.png');
+  background-repeat: no-repeat;
+  background-size: 1000% 400%;
+  background-position: var(--card-sprite-x) var(--card-sprite-y);
+  filter: saturate(1.05) contrast(1.02);
+}
+
+.card-sprite::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), transparent 48%, rgba(0, 0, 0, 0.14));
+  pointer-events: none;
 }
 
 .card-face.playable {
   cursor: pointer;
+  animation: var(--animate-card-breathe);
+  animation-delay: calc(var(--hand-index, 0) * 120ms);
 }
 
 .card-face.playable:hover {
-  transform: translateY(-10px) scale(1.04);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5), 0 0 0 2px currentColor, 0 0 18px color-mix(in srgb, currentColor 50%, transparent);
+  transform: translateY(-5px) scale(1.025);
+  box-shadow:
+    0 15px 28px rgba(0, 0, 0, 0.54),
+    0 0 0 2px rgba(248, 198, 96, 0.84),
+    0 0 18px rgba(248, 198, 96, 0.34);
+  filter: saturate(1.1);
 }
 
 .card-face.selected {
   transform: translateY(-12px) scale(1.04);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 0 2.5px currentColor, 0 0 22px color-mix(in srgb, currentColor 60%, transparent);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.6),
+    0 0 0 2.5px rgba(248, 198, 96, 0.9),
+    0 0 22px rgba(248, 198, 96, 0.42);
 }
 
-/* ── Card back ────────────────────────────────────────────────────────────────── */
+/* ── Hand layout ────────────────────────────────────────────────────────────── */
+
+.player-hand {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  z-index: 15;
+}
+
+.hand-card-slot {
+  position: relative;
+  margin-left: -10px;
+  transform-origin: bottom center;
+  transform:
+    translateY(calc(8px + (var(--hand-offset, 0) * 1px)))
+    rotate(calc(var(--hand-offset, 0) * 5deg));
+  transition: transform 0.18s ease, margin 0.18s ease;
+}
+
+.hand-card-slot:first-child {
+  margin-left: 0;
+}
+
+.hand-card-slot:hover {
+  transform:
+    translateY(-16px)
+    rotate(calc(var(--hand-offset, 0) * 2deg))
+    scale(1.04);
+  z-index: 25;
+}
+
+/* ── Table area ─────────────────────────────────────────────────────────────── */
+
+.table-area {
+  background: radial-gradient(circle at 50% 50%, rgba(30, 98, 67, 0.44), rgba(11, 30, 21, 0.8));
+  border: 1px solid rgba(194, 149, 73, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(255, 216, 154, 0.08) inset,
+    0 25px 40px rgba(0, 0, 0, 0.46),
+    0 0 30px rgba(34, 140, 93, 0.15);
+}
+
+.table-area-inner {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(38, 125, 85, 0.22), rgba(17, 56, 38, 0.25)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.028) 0, rgba(255, 255, 255, 0.028) 4px, transparent 4px, transparent 14px);
+  border: 1px solid rgba(255, 236, 190, 0.11);
+}
+
+.table-card-slot {
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.45));
+}
+
+/* ── Card back ──────────────────────────────────────────────────────────────── */
 
 .card-back {
   border-radius: 0.5rem;
-  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  border: 1.5px solid rgba(232, 185, 102, 0.36);
   background:
-    repeating-linear-gradient(45deg, rgba(99,102,241,.06) 0, rgba(99,102,241,.06) 2px, transparent 2px, transparent 9px),
-    linear-gradient(135deg, #1e1b4b, #312e81);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    repeating-linear-gradient(45deg, rgba(232, 185, 102, 0.1) 0, rgba(232, 185, 102, 0.1) 2px, transparent 2px, transparent 10px),
+    radial-gradient(circle at 50% 50%, rgba(173, 25, 57, 0.4), transparent 65%),
+    linear-gradient(135deg, #201125, #5a1431);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.46);
 }
 
-/* ── Text glows ───────────────────────────────────────────────────────────────── */
+.opponent-card-back {
+  animation: opponent-float 4.2s ease-in-out infinite;
+  animation-delay: calc(var(--hand-index, 0) * 70ms);
+}
 
-.glow-gold  { text-shadow: 0 0 14px rgba(251, 191, 36, 0.8), 0 0 28px rgba(251, 191, 36, 0.35); }
-.glow-green { text-shadow: 0 0 14px rgba(34, 197, 94, 0.8),  0 0 28px rgba(34, 197, 94, 0.35);  }
+/* ── Text glows ─────────────────────────────────────────────────────────────── */
+
+.glow-gold { text-shadow: 0 0 14px rgba(251, 191, 36, 0.8), 0 0 28px rgba(251, 191, 36, 0.35); }
+.glow-green { text-shadow: 0 0 14px rgba(34, 197, 94, 0.8), 0 0 28px rgba(34, 197, 94, 0.35); }
+
+/* ── Responsive tuning ──────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .player-hand {
+    transform: scale(0.92);
+    transform-origin: bottom center;
+  }
+
+  .table-area {
+    width: 14.5rem;
+    height: 11rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .player-hand {
+    bottom: 0;
+    transform: scale(0.84);
+  }
+
+  .hand-card-slot {
+    margin-left: -14px;
+  }
+}

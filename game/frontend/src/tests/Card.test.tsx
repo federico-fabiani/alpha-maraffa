@@ -6,15 +6,14 @@ import userEvent from '@testing-library/user-event'
 import { Card, CardBack, RANK_FULL, SUIT_META } from '../components/Card'
 
 describe('Card', () => {
-  it('renders the short rank label', () => {
-    render(<Card card={{ suit: 'bastoni', rank: 1 }} />)
-    // 'A' appears twice (top-left and bottom-right rotated)
-    expect(screen.getAllByText('A')).toHaveLength(2)
+  it('renders sprite coordinates on the element data attributes', () => {
+    const { container } = render(<Card card={{ suit: 'coppe', rank: 10 }} />)
+    expect(container.firstChild).toHaveAttribute('data-sprite-coords', '9,1')
   })
 
-  it('renders the suit symbol', () => {
-    render(<Card card={{ suit: 'coppe', rank: 10 }} />)
-    expect(screen.getByText(SUIT_META.coppe.symbol)).toBeInTheDocument()
+  it('renders artwork layer', () => {
+    const { container } = render(<Card card={{ suit: 'bastoni', rank: 1 }} />)
+    expect(container.querySelector('.card-art')).toBeInTheDocument()
   })
 
   it('has the correct accessible title', () => {

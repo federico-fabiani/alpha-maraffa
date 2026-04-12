@@ -9,21 +9,38 @@ export const SUIT_META: Record<string, { symbol: string; label: string; color: s
   coppe:   { symbol: '🍷', label: 'Coppe',   color: '#ef4444' },
 }
 
-export const RANK_SHORT: Record<number, string> = {
-  1: 'A', 2: '2', 3: '3', 4: '4', 5: '5',
-  6: '6', 7: '7', 8: 'F', 9: 'C', 10: 'R',
-}
-
 export const RANK_FULL: Record<number, string> = {
   1: 'Asso', 2: 'Due', 3: 'Tre', 4: 'Quattro', 5: 'Cinque',
   6: 'Sei',  7: 'Sette', 8: 'Fante', 9: 'Cavallo', 10: 'Re',
 }
 
-const SIZE: Record<string, { width: string; height: string; text: string; symbol: string }> = {
-  sm:    { width: 'w-10',  height: 'h-14',  text: 'text-xs', symbol: 'text-base' },
-  md:    { width: 'w-16',  height: 'h-24',  text: 'text-sm', symbol: 'text-xl'  },
-  lg:    { width: 'w-20',  height: 'h-28',  text: 'text-base', symbol: 'text-2xl' },
-  table: { width: 'w-12',  height: 'h-[72px]', text: 'text-xs', symbol: 'text-sm' },
+const SUIT_ROW: Record<string, number> = {
+  bastoni: 0,
+  coppe: 1,
+  denara: 2,
+  spade: 3,
+}
+
+export interface CardSpriteCoords {
+  col: number
+  row: number
+  xPct: number
+  yPct: number
+}
+
+export function getCardSpriteCoords(card: Pick<CardType, 'suit' | 'rank'>): CardSpriteCoords {
+  const col = Math.max(0, Math.min(9, card.rank - 1))
+  const row = SUIT_ROW[card.suit] ?? 0
+  const xPct = (col / 9) * 100
+  const yPct = (row / 3) * 100
+  return { col, row, xPct, yPct }
+}
+
+const SIZE: Record<string, { width: string; height: string }> = {
+  sm:    { width: 'w-10',  height: 'h-14' },
+  md:    { width: 'w-16',  height: 'h-24' },
+  lg:    { width: 'w-20',  height: 'h-28' },
+  table: { width: 'w-12',  height: 'h-[72px]' },
 }
 
 // ── Card face ──────────────────────────────────────────────────────────────────
@@ -39,6 +56,7 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
   const meta = SUIT_META[card.suit]
   const sz   = SIZE[size]
   const isPlayable = card.playable === true
+  const coords = getCardSpriteCoords(card)
 
   return (
     <div
@@ -47,21 +65,20 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
       onClick={isPlayable ? onClick : undefined}
       onKeyDown={isPlayable ? (e) => e.key === 'Enter' && onClick?.() : undefined}
       title={`${RANK_FULL[card.rank]} di ${meta.label}`}
-      style={{ color: meta.color }}
+      data-sprite-coords={`${coords.col},${coords.row}`}
+      style={{
+        color: meta.color,
+        '--card-sprite-x': `${coords.xPct}%`,
+        '--card-sprite-y': `${coords.yPct}%`,
+        '--card-accent': meta.color,
+      } as React.CSSProperties}
       className={`
-        card-face ${sz.width} ${sz.height}
-        flex flex-col items-center justify-between p-1
+        card-face card-sprite ${sz.width} ${sz.height}
         ${isPlayable ? 'playable' : 'opacity-80'}
         ${className}
       `}
     >
-      <span className={`self-start font-bold leading-none ${sz.text}`}>
-        {RANK_SHORT[card.rank]}
-      </span>
-      <span className={`leading-none ${sz.symbol}`}>{meta.symbol}</span>
-      <span className={`self-end font-bold leading-none rotate-180 ${sz.text}`}>
-        {RANK_SHORT[card.rank]}
-      </span>
+      <div className="card-art" />
     </div>
   )
 }
@@ -71,11 +88,12 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
 interface CardBackProps {
   size?: 'sm' | 'md' | 'lg' | 'table'
   className?: string
+  style?: React.CSSProperties
 }
 
-export function CardBack({ size = 'md', className = '' }: CardBackProps) {
+export function CardBack({ size = 'md', className = '', style }: CardBackProps) {
   const sz = SIZE[size]
   return (
-    <div className={`card-back ${sz.width} ${sz.height} ${className}`} />
+    <div className={`card-back ${sz.width} ${sz.height} ${className}`} style={style} />
   )
 }

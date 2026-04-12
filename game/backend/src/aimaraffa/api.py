@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from aimaraffa.config import settings
 from aimaraffa.engine import GameRoom, PlayerSlot, RoomManager
 from aimaraffa.names import Genre, pick_a_name
-
+ 
 logging.basicConfig(
     level=settings.log_level,
     format="%(asctime)s %(levelname)s %(message)s",

@@ -49,7 +49,8 @@ export default function PlayerArea({ player, isActive, position }: PlayerAreaPro
             <CardBack
               key={i}
               size={position === 'top' ? 'sm' : 'sm'}
-              className={`${offsetClass} ${i === 0 ? '' : offsetClass}`}
+              className={`${i === 0 ? '' : offsetClass} opponent-card-back`}
+              style={{ '--hand-index': i } as React.CSSProperties}
             />
           ))}
         </div>

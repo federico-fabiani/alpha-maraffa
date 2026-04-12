@@ -52,7 +52,9 @@ export default function GameScreen() {
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden select-none">
+    <div className="game-stage relative w-full h-full overflow-hidden select-none">
+      <div className="game-stage-ambient" />
+      <div className="game-stage-vignette" />
 
       {/* ── HUD ── */}
       <div className="absolute top-3 left-3 z-10">
@@ -118,14 +120,22 @@ export default function GameScreen() {
       </div>
 
       {/* ── My hand ── */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+      <div className="player-hand absolute bottom-2 left-1/2 -translate-x-1/2">
         {myHand.map((card, i) => (
-          <CardComponent
+          <div
             key={`${card.suit}-${card.rank}-${i}`}
-            card={card}
-            size="md"
-            onClick={() => handleCardClick(card)}
-          />
+            className="hand-card-slot"
+            style={{
+              '--hand-index': i,
+              '--hand-offset': i - (myHand.length - 1) / 2,
+            } as React.CSSProperties}
+          >
+            <CardComponent
+              card={card}
+              size="md"
+              onClick={() => handleCardClick(card)}
+            />
+          </div>
         ))}
       </div>
 

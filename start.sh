@@ -6,15 +6,15 @@ echo "=== Marafone Digital ==="
 
 # Backend
 echo "[1/2] Avvio backend..."
-cd "$ROOT/backend"
+cd "$ROOT/game/backend"
 uv sync
-uv run uvicorn main:app --reload --port 8000 &
+uv run uvicorn aimaraffa.api:app --reload --port 8000 &
 BACKEND_PID=$!
 echo "Backend avviato (PID $BACKEND_PID)"
 
 # Frontend
 echo "[2/2] Avvio frontend..."
-cd "$ROOT/frontend"
+cd "$ROOT/game/frontend"
 
 if [ ! -d "node_modules" ]; then
     echo "Installo dipendenze npm..."

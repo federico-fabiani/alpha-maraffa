@@ -1,0 +1,55 @@
+/** Component tests for the Card and CardBack components. */
+
+import { describe, expect, it, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { Card, CardBack, RANK_FULL, SUIT_META } from '../components/Card'
+
+describe('Card', () => {
+  it('renders the short rank label', () => {
+    render(<Card card={{ suit: 'bastoni', rank: 1 }} />)
+    // 'A' appears twice (top-left and bottom-right rotated)
+    expect(screen.getAllByText('A')).toHaveLength(2)
+  })
+
+  it('renders the suit symbol', () => {
+    render(<Card card={{ suit: 'coppe', rank: 10 }} />)
+    expect(screen.getByText(SUIT_META.coppe.symbol)).toBeInTheDocument()
+  })
+
+  it('has the correct accessible title', () => {
+    render(<Card card={{ suit: 'spade', rank: 3 }} />)
+    expect(screen.getByTitle(`${RANK_FULL[3]} di ${SUIT_META.spade.label}`)).toBeInTheDocument()
+  })
+
+  it('calls onClick when playable and clicked', async () => {
+    const onClick = vi.fn()
+    render(<Card card={{ suit: 'bastoni', rank: 7, playable: true }} onClick={onClick} />)
+    await userEvent.click(screen.getByRole('button'))
+    expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  it('does not call onClick when not playable', async () => {
+    const onClick = vi.fn()
+    render(<Card card={{ suit: 'bastoni', rank: 7, playable: false }} onClick={onClick} />)
+    // Not playable → no role="button"
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('applies playable class when playable', () => {
+    const { container } = render(<Card card={{ suit: 'denara', rank: 2, playable: true }} onClick={vi.fn()} />)
+    expect(container.firstChild).toHaveClass('playable')
+  })
+})
+
+describe('CardBack', () => {
+  it('renders without crashing', () => {
+    const { container } = render(<CardBack />)
+    expect(container.firstChild).toHaveClass('card-back')
+  })
+
+  it('applies size classes', () => {
+    const { container } = render(<CardBack size="lg" />)
+    expect(container.firstChild).toHaveClass('w-20')
+  })
+})

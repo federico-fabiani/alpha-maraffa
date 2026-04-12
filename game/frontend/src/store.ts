@@ -202,9 +202,6 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
   reset: () => {
     const { uuid, playerName } = get()
-    if (uuid) {
-      navigator.sendBeacon('/api/logout', new Blob([JSON.stringify({ uuid })], { type: 'application/json' }))
-    }
     get().ws?.close()
     set({ ...initialState, uuid, playerName })
   },

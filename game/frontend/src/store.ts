@@ -26,6 +26,7 @@ interface State {
   roomId: string
   mySeat: number | null
   playerName: string
+  uuid: string
   isOwner: boolean
   // Navigation
   screen: Screen
@@ -55,10 +56,12 @@ interface State {
 
 interface Actions {
   setPlayerName: (name: string) => void
+  login: () => Promise<void>
   createRoom: () => Promise<void>
   joinRoom: (roomId: string) => void
   startGame: () => void
   swapSeats: (seatA: number, seatB: number) => void
+  kickPlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card) => void
   dismissNotification: () => void
@@ -76,6 +79,7 @@ export const initialState: State = {
   roomId: '',
   mySeat: null,
   playerName: '',
+  uuid: '',
   isOwner: false,
   screen: 'home',
   lobbyPlayers: [],
@@ -105,6 +109,24 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
   setPlayerName: (name) => set({ playerName: name }),
 
+  login: async () => {
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player_name: get().playerName }),
+      })
+      if (!res.ok) {
+        set({ error: 'Server pieno, riprova pi\u00f9 tardi' })
+        return
+      }
+      const { uuid, player_name } = (await res.json()) as { uuid: string; player_name: string }
+      set({ uuid, playerName: player_name })
+    } catch {
+      set({ error: 'Impossibile raggiungere il server' })
+    }
+  },
+
   createRoom: async () => {
     const { playerName } = get()
     try {
@@ -127,9 +149,9 @@ const useGameStore = create<State & Actions>((set, get) => ({
   },
 
   _connect: (roomId) => {
-    const { playerName } = get()
+    const { playerName, uuid } = get()
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${proto}//${window.location.host}/ws/${roomId}?player_name=${encodeURIComponent(playerName)}`
+    const url = `${proto}//${window.location.host}/ws/${roomId}?player_name=${encodeURIComponent(playerName)}&uuid=${encodeURIComponent(uuid)}`
     const ws = new WebSocket(url)
 
     ws.onopen = () => {
@@ -164,6 +186,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'swap_seats', data: { seat_a: seatA, seat_b: seatB } }))
   },
 
+  kickPlayer: (seat) => {
+    get().ws?.send(JSON.stringify({ type: 'kick', data: { seat } }))
+  },
+
   selectBriscola: (suit) => {
     get().ws?.send(JSON.stringify({ type: 'select_briscola', data: { suit } }))
   },
@@ -175,8 +201,12 @@ const useGameStore = create<State & Actions>((set, get) => ({
   dismissNotification: () => set({ notification: null }),
 
   reset: () => {
+    const { uuid, playerName } = get()
+    if (uuid) {
+      navigator.sendBeacon('/api/logout', new Blob([JSON.stringify({ uuid })], { type: 'application/json' }))
+    }
     get().ws?.close()
-    set(initialState)
+    set({ ...initialState, uuid, playerName })
   },
 
   _processMessage: (msg) => {
@@ -277,6 +307,16 @@ const useGameStore = create<State & Actions>((set, get) => ({
             scores: data.scores as Record<string, number>,
           },
           screen: 'gameover',
+        })
+        break
+
+      case 'kicked':
+        get().ws?.close()
+        set({
+          ...initialState,
+          uuid: get().uuid,
+          playerName: get().playerName,
+          error: (data.message as string) ?? 'Sei stato espulso dalla stanza',
         })
         break
 

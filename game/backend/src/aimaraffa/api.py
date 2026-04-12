@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import uuid as uuid_module
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 
 from aimaraffa.config import settings
 from aimaraffa.engine import GameRoom, PlayerSlot, RoomManager
+from aimaraffa.names import Genre, pick_a_name
 
 logging.basicConfig(
     level=settings.log_level,
@@ -30,12 +32,78 @@ app.add_middleware(
 rooms = RoomManager()
 
 
+# ── User registry ──────────────────────────────────────────────────────────────
+
+class UserRegistry:
+    """Tracks active sessions and banned UUIDs."""
+
+    def __init__(self, max_users: int):
+        self.max_users = max_users
+        self._active: dict[str, str] = {}   # uuid → display name
+        self._banned: set[str] = set()
+
+    def login(self, requested_name: str) -> tuple[str, str]:
+        """Create a new session. Raises ValueError when the server is full."""
+        if len(self._active) >= self.max_users:
+            raise ValueError("Server pieno")
+        uid = str(uuid_module.uuid4())
+        name = requested_name.strip() or pick_a_name(Genre.MASCULINE)
+        self._active[uid] = name
+        return uid, name
+
+    def logout(self, uid: str) -> None:
+        self._active.pop(uid, None)
+
+    def is_active(self, uid: str) -> bool:
+        return uid in self._active
+
+    def is_banned(self, uid: str) -> bool:
+        return uid in self._banned
+
+    def ban(self, uid: str) -> None:
+        self._active.pop(uid, None)
+        self._banned.add(uid)
+
+
+registry = UserRegistry(max_users=settings.max_users)
+
+
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 
 class CreateRoomBody(BaseModel):
     """Request body for POST /api/rooms."""
 
     player_name: str = "Giocatore"
+
+
+class LoginBody(BaseModel):
+    """Request body for POST /api/login."""
+
+    player_name: str = ""
+
+
+class LogoutBody(BaseModel):
+    """Request body for POST /api/logout."""
+
+    uuid: str
+
+
+@app.post("/api/login")
+async def login(body: LoginBody):
+    """Register a new session. Returns uuid + assigned player name."""
+    try:
+        uid, name = registry.login(body.player_name)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    logger.info("Login: %s (%s)", name, uid)
+    return {"uuid": uid, "player_name": name}
+
+
+@app.post("/api/logout")
+async def logout(body: LogoutBody):
+    """Invalidate a session UUID."""
+    registry.logout(body.uuid)
+    return {"ok": True}
 
 
 @app.post("/api/rooms")
@@ -65,9 +133,15 @@ async def get_room(room_id: str):
 # ── WebSocket endpoint ─────────────────────────────────────────────────────────
 
 @app.websocket("/ws/{room_id}")
-async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Giocatore"):
+async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Giocatore", uuid: str = ""):
     """Handle WebSocket connections: join a waiting room or reconnect to an in-game room."""
     await websocket.accept()
+
+    # ── Auth checks ────────────────────────────────────────────────────────────
+    if registry.is_banned(uuid):
+        await websocket.send_text(json.dumps({"type": "error", "data": {"message": "Sei stato bandito da questa partita"}}))
+        await websocket.close()
+        return
 
     room = rooms.get(room_id)
     if not room:
@@ -94,6 +168,11 @@ async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Gi
         logger.info("%s reconnected to %s seat %s", player_name, room_id, my_slot.seat)
 
     else:
+        if not registry.is_active(uuid):
+            await websocket.send_text(json.dumps({"type": "error", "data": {"message": "Sessione non valida, ricarica la pagina"}}))
+            await websocket.close()
+            return
+
         taken = set(room.slots.keys())
         seat = next((s for s in range(4) if s not in taken), None)
         if seat is None:
@@ -102,6 +181,7 @@ async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Gi
             return
 
         my_slot = PlayerSlot(seat=seat, name=player_name, is_bot=False)
+        my_slot.uuid = uuid
         my_slot.websocket = websocket
         room.slots[seat] = my_slot
 
@@ -180,6 +260,34 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
                 return
             if seat_a in (0, 1, 2, 3) and seat_b in (0, 1, 2, 3):
                 await room.swap_seats(seat_a, seat_b)
+
+    elif t == "kick":
+        if room.status == "waiting" and slot is room.creator_slot:
+            try:
+                target_seat = int(data.get("seat", -1))
+            except (TypeError, ValueError):
+                return
+            target = room.slots.get(target_seat)
+            if target is None or target.is_bot or target is room.creator_slot:
+                return
+            # Ban UUID, then clean up before closing WS to prevent double-cleanup
+            registry.ban(target.uuid)
+            target.is_connected = False
+            target_ws = target.websocket
+            target.websocket = None
+            room.slots.pop(target_seat, None)
+            if target_ws:
+                try:
+                    await target_ws.send_text(json.dumps({"type": "kicked", "data": {"message": "Sei stato espulso dalla stanza"}}))
+                    await target_ws.close()
+                except Exception:
+                    pass
+            player_list = [
+                {"seat": s, "name": sl.name, "is_bot": sl.is_bot, "team": sl.team}
+                for s, sl in sorted(room.slots.items())
+            ]
+            await room.broadcast({"type": "player_left", "data": {"seat": target_seat, "name": target.name, "players": player_list}})
+            logger.info("%s kicked %s (uuid %s) from %s", slot.name, target.name, target.uuid, room_id)
 
     elif t == "ping":
         await room._send(slot.seat, {"type": "pong"})

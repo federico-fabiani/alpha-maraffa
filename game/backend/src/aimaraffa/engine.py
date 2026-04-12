@@ -156,6 +156,7 @@ class PlayerSlot:
         self.seat = seat
         self.name = name
         self.is_bot = is_bot
+        self.uuid: str = ""
         self.is_connected: bool = not is_bot
         self.hand: List[Card] = []
         self.websocket = None

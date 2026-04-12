@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     cors_origins: list[str] = ["*"]
+    max_users: int = 50
 
 
 settings = Settings()

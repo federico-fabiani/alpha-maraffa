@@ -14,11 +14,20 @@ export default function LobbyScreen() {
   const lobbyPlayers = useGameStore(s => s.lobbyPlayers)
   const startGame    = useGameStore(s => s.startGame)
   const swapSeats    = useGameStore(s => s.swapSeats)
+  const kickPlayer   = useGameStore(s => s.kickPlayer)
   const reset        = useGameStore(s => s.reset)
 
   const [swapPending, setSwapPending] = useState<number | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const playerBySeat = Object.fromEntries(lobbyPlayers.map(p => [p.seat, p]))
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(roomId).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const handleSeatClick = (seat: number) => {
     if (!isOwner) return
@@ -44,10 +53,20 @@ export default function LobbyScreen() {
         </div>
 
         {/* Room code */}
-        <div className="bg-felt-900 border border-amber-800/40 rounded-xl px-8 py-4 text-center">
-          <p className="text-felt-500 text-xs tracking-widest mb-1">CODICE STANZA</p>
-          <p className="font-cinzel text-xl text-amber-300 tracking-wider">{roomId}</p>
-        </div>
+        <button
+          onClick={handleCopy}
+          title="Clicca per copiare"
+          className="group bg-felt-900 border border-amber-800/40 hover:border-amber-600/60
+                     rounded-xl px-8 py-4 text-center w-full transition-colors cursor-pointer"
+        >
+          <p className="text-felt-500 text-xs tracking-widest mb-1 group-hover:text-felt-400 transition-colors">
+            {copied ? 'COPIATO!' : 'CODICE STANZA'}
+          </p>
+          <p className={`font-cinzel text-xl tracking-wider transition-colors
+            ${copied ? 'text-green-400' : 'text-amber-300 group-hover:text-amber-200'}`}>
+            {roomId}
+          </p>
+        </button>
 
         {/* Swap hint */}
         {isOwner && (
@@ -97,10 +116,19 @@ export default function LobbyScreen() {
                 {player ? (
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${player.is_bot ? 'bg-felt-500' : 'bg-green-400'}`} />
-                    <span className="text-amber-100 text-sm font-medium truncate">
+                    <span className="text-amber-100 text-sm font-medium truncate flex-1">
                       {player.name}
                       {isMe && <span className="text-amber-500 text-xs ml-1">(tu)</span>}
                     </span>
+                    {isOwner && !isMe && !player.is_bot && (
+                      <button
+                        onClick={e => { e.stopPropagation(); kickPlayer(seat) }}
+                        title="Espelli giocatore"
+                        className="text-red-500/70 hover:text-red-400 text-xs leading-none px-1 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">

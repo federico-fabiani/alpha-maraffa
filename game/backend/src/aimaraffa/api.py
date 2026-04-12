@@ -289,7 +289,7 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
                 for s, sl in sorted(room.slots.items())
             ]
             await room.broadcast({"type": "player_left", "data": {"seat": target_seat, "name": target.name, "players": player_list}})
-            logger.info("%s kicked %s (uuid %s) from %s", slot.name, target.name, target.uuid, room_id)
+            logger.info("%s kicked %s (uuid %s) from %s", slot.name, target.name, target.uuid, room.room_id)
 
     elif t == "ping":
         await room._send(slot.seat, {"type": "pong"})

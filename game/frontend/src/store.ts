@@ -66,6 +66,7 @@ interface Actions {
   promotePlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card) => void
+  showNotification: (notification: Notification) => void
   dismissNotification: () => void
   reset: () => void
   // Exported for unit testing
@@ -204,6 +205,8 @@ const useGameStore = create<State & Actions>((set, get) => ({
   playCard: (card) => {
     get().ws?.send(JSON.stringify({ type: 'play_card', data: { card } }))
   },
+
+  showNotification: (notification) => set({ notification }),
 
   dismissNotification: () => set({ notification: null }),
 

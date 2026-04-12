@@ -62,7 +62,7 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
     <div
       role={isPlayable ? 'button' : undefined}
       tabIndex={isPlayable ? 0 : undefined}
-      onClick={isPlayable ? onClick : undefined}
+      onClick={onClick}
       onKeyDown={isPlayable ? (e) => e.key === 'Enter' && onClick?.() : undefined}
       title={`${RANK_FULL[card.rank]} di ${meta.label}`}
       data-sprite-coords={`${coords.col},${coords.row}`}

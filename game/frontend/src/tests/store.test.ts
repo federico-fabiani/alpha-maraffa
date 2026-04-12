@@ -145,3 +145,10 @@ describe('dismissNotification', () => {
     expect(useGameStore.getState().notification).toBeNull()
   })
 })
+
+describe('showNotification', () => {
+  it('sets the notification', () => {
+    useGameStore.getState().showNotification({ text: 'Mossa non valida', duration: 1200 })
+    expect(useGameStore.getState().notification?.text).toBe('Mossa non valida')
+  })
+})

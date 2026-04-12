@@ -33,6 +33,7 @@ export default function GameScreen() {
 
   const playCard        = useGameStore(s => s.playCard)
   const selectBriscola  = useGameStore(s => s.selectBriscola)
+  const showNotification = useGameStore(s => s.showNotification)
   const dismissNotif    = useGameStore(s => s.dismissNotification)
 
   const seat = mySeat ?? 0
@@ -48,7 +49,16 @@ export default function GameScreen() {
   const needsBriscola  = phase === 'briscola_selection' && currentPlayerSeat === seat
 
   const handleCardClick = (card: Card) => {
-    if (isMyTurn && card.playable) playCard(card)
+    if (!card.playable) {
+      showNotification({
+        text: 'Mossa non valida',
+        subtitle: 'Questa carta non e giocabile in questo turno.',
+        duration: 1400,
+      })
+      return
+    }
+
+    if (isMyTurn) playCard(card)
   }
 
   return (

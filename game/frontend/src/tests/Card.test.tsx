@@ -28,11 +28,12 @@ describe('Card', () => {
     expect(onClick).toHaveBeenCalledOnce()
   })
 
-  it('does not call onClick when not playable', async () => {
+  it('calls onClick when not playable (for illegal move feedback)', async () => {
     const onClick = vi.fn()
-    render(<Card card={{ suit: 'bastoni', rank: 7, playable: false }} onClick={onClick} />)
-    // Not playable → no role="button"
-    expect(screen.queryByRole('button')).toBeNull()
+    const { container } = render(<Card card={{ suit: 'bastoni', rank: 7, playable: false }} onClick={onClick} />)
+    const cardFace = container.firstChild as HTMLElement
+    await userEvent.click(cardFace)
+    expect(onClick).toHaveBeenCalledOnce()
   })
 
   it('applies playable class when playable', () => {

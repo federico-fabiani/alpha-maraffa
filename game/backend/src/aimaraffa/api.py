@@ -47,7 +47,9 @@ class UserRegistry:
         if len(self._active) >= self.max_users:
             raise ValueError("Server pieno")
         uid = str(uuid_module.uuid4())
-        name = requested_name.strip() or pick_a_name(Genre.MASCULINE)
+        genre = Genre.MASCULINE if uid[-1] in "01234567" else Genre.FEMININE
+        title = "Nonno" if genre == Genre.MASCULINE else "Nonna"
+        name = requested_name.strip() or f"{title} {pick_a_name(genre)}"
         self._active[uid] = name
         return uid, name
 

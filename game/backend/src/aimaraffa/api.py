@@ -256,7 +256,7 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
     data = msg.get("data", {})
 
     if t == "start_game":
-        if room.status == "waiting" and room.game_task is None:
+        if room.status == "waiting" and room.game_task is None and slot is room.creator_slot:
             room.game_task = asyncio.create_task(room.run_game_loop())
 
     elif t == "select_briscola":

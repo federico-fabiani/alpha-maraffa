@@ -189,6 +189,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
   },
 
   startGame: () => {
+    if (!get().isOwner) return
     get().ws?.send(JSON.stringify({ type: 'start_game' }))
   },
 

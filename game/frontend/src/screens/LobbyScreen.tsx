@@ -163,13 +163,19 @@ export default function LobbyScreen() {
         <div className="flex flex-col gap-3 w-full">
           <button
             onClick={startGame}
-            className="bg-amber-600 hover:bg-amber-500 text-white font-semibold
-                       py-3 rounded-lg transition-colors font-cinzel tracking-wider"
+            disabled={!isOwner}
+            className={`text-white font-semibold py-3 rounded-lg transition-colors font-cinzel tracking-wider ${
+              isOwner
+                ? 'bg-amber-600 hover:bg-amber-500'
+                : 'bg-felt-700 text-felt-500 cursor-not-allowed'
+            }`}
           >
             INIZIA PARTITA
           </button>
           <p className="text-felt-500 text-xs text-center">
-            I posti liberi verranno riempiti da bot.
+            {isOwner
+              ? 'I posti liberi verranno riempiti da bot.'
+              : 'Solo il proprietario della stanza puo avviare la partita.'}
           </p>
           <button onClick={reset} className="text-felt-500 hover:text-felt-400 text-sm transition-colors">
             ← Abbandona

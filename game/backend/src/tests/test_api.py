@@ -135,6 +135,38 @@ def test_ws_ping_returns_pong():
         assert pong["type"] == "pong"
 
 
+def test_only_owner_can_start_game():
+    """A non-owner start_game message must not transition room status to in_game."""
+    owner_login = client.post("/api/login", json={"player_name": "Owner"}).json()
+    guest_login = client.post("/api/login", json={"player_name": "Guest"}).json()
+    room_id = client.post("/api/rooms", json={"player_name": "Owner"}).json()["room_id"]
+    try:
+        with client.websocket_connect(
+            f"/ws/{room_id}?player_name={owner_login['player_name']}&uuid={owner_login['uuid']}"
+        ) as ws_owner:
+            owner_joined = json.loads(ws_owner.receive_text())
+            assert owner_joined["type"] == "joined"
+            assert owner_joined["data"]["seat"] == 0
+
+            with client.websocket_connect(
+                f"/ws/{room_id}?player_name={guest_login['player_name']}&uuid={guest_login['uuid']}"
+            ) as ws_guest:
+                guest_joined = json.loads(ws_guest.receive_text())
+                assert guest_joined["type"] == "joined"
+                assert guest_joined["data"]["seat"] == 1
+
+                owner_notice = json.loads(ws_owner.receive_text())
+                assert owner_notice["type"] == "player_joined"
+
+                ws_guest.send_text(json.dumps({"type": "start_game"}))
+
+                room_state = client.get(f"/api/rooms/{room_id}").json()
+                assert room_state["status"] == "waiting"
+    finally:
+        client.post("/api/logout", json={"uuid": owner_login["uuid"]})
+        client.post("/api/logout", json={"uuid": guest_login["uuid"]})
+
+
 # ── WebSocket: full game flow (1 human + 3 bots) ──────────────────────────────
 
 def test_ws_full_game_reaches_game_over():

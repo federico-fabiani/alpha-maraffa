@@ -156,6 +156,75 @@ body::before {
   pointer-events: none;
 }
 
+/*
+ * Gold foil sweep animation.
+ * With background-size: 300%, the band (30%-70% of gradient) is visible only
+ * when background-position is between -5% and 105%. Outside that range the
+ * band is off-screen and only the texture shows (the "luminous" resting state).
+ * Resting position: 120% (band safely off-screen to the left).
+ * Sweep end:        -20% (band safely off-screen to the right).
+ */
+
+/* Single pass: resting → sweep → resting (for hover) */
+@keyframes gold-foil-sweep {
+  0%   { background-position: 120% 50%, 0 0; }
+  50%  { background-position: -20% 50%, 0 0; }
+  100% { background-position: 120% 50%, 0 0; }
+}
+
+/* Periodic: one sweep in the first ~5.5% of a 45 s cycle, then hold */
+@keyframes gold-foil-periodic {
+  0%    { background-position: 120% 50%, 0 0; }
+  2.78% { background-position: -20% 50%, 0 0; }
+  2.79% { background-position: 120% 50%, 0 0; } /* invisible snap back */
+  100%  { background-position: 120% 50%, 0 0; }
+}
+
+.card-face.briscola-card {
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    /* 0 0 0 1.5px rgba(251, 191, 36, 0.55), */
+    0 0 8px rgba(251, 191, 36, 0.18);
+}
+
+.card-face.briscola-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: overlay;
+  background:
+    /* Banda luminosa scorrevole */
+    linear-gradient(
+      110deg,
+      transparent        30%,
+      rgba(255, 250, 120, 0.55) 44%,
+      rgba(255, 225, 10,  0.90) 50%,
+      rgba(255, 250, 120, 0.55) 56%,
+      transparent        70%
+    ),
+    /* Texture a righe diagonali fini */
+    repeating-linear-gradient(
+      58deg,
+      transparent                  0px,
+      rgba(255, 215, 30, 0.13)     1px,
+      transparent                  2px,
+      transparent                  6px
+    );
+  background-size: 300% 100%, 8px 8px;
+  background-position: 120% 50%, 0 0; /* resting: texture on, band off-screen */
+  animation: gold-foil-periodic 30s linear infinite;
+}
+
+.card-face.briscola-card:hover::before {
+  /* Full round-trip in 2 s: resting → sweep → resting; no abrupt end */
+  animation: gold-foil-sweep 2s ease-in-out;
+}
+
 .card-face.playable {
   cursor: pointer;
   animation: var(--animate-card-breathe);

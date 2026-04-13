@@ -1,3 +1,4 @@
+import useGameStore from '../store'
 import type { Card as CardType } from '../types'
 
 // ── Lookup tables ──────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ interface CardProps {
 }
 
 export function Card({ card, size = 'md', onClick, className = '' }: CardProps) {
+  const briscola  = useGameStore(s => s.briscola)
   const meta = SUIT_META[card.suit]
   const sz   = SIZE[size]
   const isPlayable = card.playable === true
@@ -75,6 +77,7 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
       className={`
         card-face card-sprite ${sz.width} ${sz.height}
         ${isPlayable ? 'playable' : 'opacity-80'}
+        ${card.suit === briscola ? 'briscola-card' : ''}
         ${className}
       `}
     >

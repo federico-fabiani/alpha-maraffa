@@ -190,11 +190,11 @@ body::before {
 
 .hand-card-slot {
   position: relative;
-  margin-left: -10px;
+  margin-left: -9px;
   transform-origin: bottom center;
   transform:
-    translateY(calc(8px + (var(--hand-offset, 0) * 1px)))
-    rotate(calc(var(--hand-offset, 0) * 5deg));
+    translateY(calc(4px + (var(--hand-offset-abs, 0) * 2.35px)))
+    rotate(calc(var(--hand-offset, 0) * 3.25deg));
   transition: transform 0.18s ease, margin 0.18s ease;
 }
 
@@ -204,8 +204,8 @@ body::before {
 
 .hand-card-slot:hover {
   transform:
-    translateY(-16px)
-    rotate(calc(var(--hand-offset, 0) * 2deg))
+    translateY(-14px)
+    rotate(calc(var(--hand-offset, 0) * 1.4deg))
     scale(1.04);
   z-index: 25;
 }

@@ -35,7 +35,11 @@ export default function PlayerArea({ player, isActive, position }: PlayerAreaPro
           <>
             {player.name}
             {isActive && <span className="ml-1 text-amber-400">●</span>}
-            {!player.is_connected && <span className="ml-1 text-red-400">✕</span>}
+            {!player.is_connected && (
+                player.is_bot
+                  ? <span className="ml-1">🤖</span>
+                  : <span className="ml-1 text-red-400">✕</span>
+              )}
           </>
         ) : (
           <span className="italic text-felt-600">Attesa...</span>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import useGameStore from '../store'
 import { Card as CardComponent } from '../components/Card'
@@ -7,8 +8,27 @@ import ScoreBoard from '../components/ScoreBoard'
 import BriscolaIndicator from '../components/BriscolaIndicator'
 import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
-import type { Card } from '../types'
+import type { Card, Suit } from '../types'
 
+const SUIT_ORDER: Record<Suit, number> = {
+  bastoni: 0,
+  denara: 1,
+  spade: 2,
+  coppe: 3,
+}
+
+const CARD_ORDER: Record<number, number> = {
+  3: 9,
+  2: 8,
+  1: 7,
+  10: 6,
+  9: 5,
+  8: 4,
+  7: 3,
+  6: 2,
+  5: 1,
+  4: 0,
+}
 export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
@@ -60,6 +80,21 @@ export default function GameScreen() {
 
     if (isMyTurn) playCard(card)
   }
+
+  const sortedHand = useMemo(() => {
+    return myHand.map((card, index) => ({ card, index })).sort((a, b) => {
+      const suitDiff = SUIT_ORDER[a.card.suit] - SUIT_ORDER[b.card.suit]
+      if (suitDiff !== 0) return suitDiff
+
+      const pointsDiff = CARD_ORDER[b.card.rank] - CARD_ORDER[a.card.rank]
+      if (pointsDiff !== 0) return pointsDiff
+
+      const rankDiff = b.card.rank - a.card.rank
+      if (rankDiff !== 0) return rankDiff
+
+      return a.index - b.index
+    })
+  }, [myHand])
 
   return (
     <div className="game-stage relative w-full h-full overflow-hidden select-none">
@@ -114,13 +149,13 @@ export default function GameScreen() {
       </div>
 
       {/* ── My name badge ── */}
-      <div className="absolute bottom-36 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-30">
         {playerBySeat[seat] && (
           <div className={`
-            px-3 py-1 rounded-full text-xs font-medium border
+            px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-lg backdrop-blur-sm
             ${playerBySeat[seat]?.team === 1
-              ? 'border-amber-500/50 text-amber-300 bg-amber-900/20'
-              : 'border-blue-500/50 text-blue-300 bg-blue-900/20'}
+              ? 'border-amber-400/70 text-amber-100 bg-felt-950/85'
+              : 'border-blue-400/70 text-blue-100 bg-felt-950/85'}
             ${isMyTurn ? 'animate-pulse-ring' : ''}
           `}>
             {playerBySeat[seat]?.name}
@@ -130,23 +165,29 @@ export default function GameScreen() {
       </div>
 
       {/* ── My hand ── */}
-      <div className="player-hand absolute bottom-2 left-1/2 -translate-x-1/2">
-        {myHand.map((card, i) => (
-          <div
-            key={`${card.suit}-${card.rank}-${i}`}
-            className="hand-card-slot"
-            style={{
-              '--hand-index': i,
-              '--hand-offset': i - (myHand.length - 1) / 2,
-            } as React.CSSProperties}
-          >
-            <CardComponent
-              card={card}
-              size="md"
-              onClick={() => handleCardClick(card)}
-            />
-          </div>
-        ))}
+      <div className="absolute bottom-11 left-1/2 -translate-x-1/2 z-20">
+        <div className="player-hand">
+          {sortedHand.map(({ card }, i) => {
+            const handOffset = i - (sortedHand.length - 1) / 2
+            return (
+              <div
+                key={`${card.suit}-${card.rank}`}
+                className="hand-card-slot"
+                style={{
+                  '--hand-index': i,
+                  '--hand-offset': handOffset,
+                  '--hand-offset-abs': Math.abs(handOffset),
+                } as React.CSSProperties}
+              >
+                <CardComponent
+                  card={card}
+                  size="md"
+                  onClick={() => handleCardClick(card)}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* ── Briscola selection modal ── */}

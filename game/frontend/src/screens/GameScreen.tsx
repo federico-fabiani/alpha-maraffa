@@ -32,7 +32,7 @@ const CARD_ORDER: Record<number, number> = {
 export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
-    briscola, currentPlayerSeat, tableCards,
+    briscola, currentPlayerSeat, tableCards, turnResultWinnerSeat,
     round, turn, totalScores, roundScores,
     notification, briscolaSelectorSeat,
   } = useGameStore(useShallow(s => ({
@@ -43,6 +43,7 @@ export default function GameScreen() {
     briscola: s.briscola,
     currentPlayerSeat: s.currentPlayerSeat,
     tableCards: s.tableCards,
+    turnResultWinnerSeat: s.turnResultWinnerSeat,
     round: s.round,
     turn: s.turn,
     totalScores: s.totalScores,
@@ -182,7 +183,7 @@ export default function GameScreen() {
 
       {/* ── Centre table ── */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <TableArea tableCards={tableCards} mySeat={seat} />
+        <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
 
       {/* ── My name badge ── */}

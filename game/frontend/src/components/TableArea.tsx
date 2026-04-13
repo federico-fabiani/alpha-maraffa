@@ -4,6 +4,7 @@ import type { TableCard } from '../types'
 interface TableAreaProps {
   tableCards: TableCard[]
   mySeat: number
+  winnerSeat?: number | null
 }
 
 /** Position offsets for each seat's card on the table (relative to mySeat). */
@@ -17,7 +18,7 @@ function slotStyle(relativeSeat: number): React.CSSProperties {
   }
 }
 
-export default function TableArea({ tableCards, mySeat }: TableAreaProps) {
+export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaProps) {
   return (
     <div className="table-area relative w-72 h-52 rounded-3xl">
 
@@ -29,7 +30,7 @@ export default function TableArea({ tableCards, mySeat }: TableAreaProps) {
         return (
           <div
             key={seat}
-            className="absolute table-card-slot animate-card-appear"
+            className={`absolute table-card-slot animate-card-appear${seat === winnerSeat ? ' winning-card' : ''}`}
             style={slotStyle(relativeSeat)}
           >
             <Card card={card} size="table" />

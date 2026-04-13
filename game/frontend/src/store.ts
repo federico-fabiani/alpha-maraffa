@@ -46,6 +46,7 @@ interface State {
   totalScores: Record<string, number>
   roundScores: Record<string, number>
   lastTurnWinner: number | null
+  turnResultWinnerSeat: number | null
   // UI
   notification: Notification | null
   gameOverData: GameOverData | null
@@ -99,6 +100,7 @@ export const initialState: State = {
   totalScores: { '1': 0, '2': 0 },
   roundScores: { '1': 0, '2': 0 },
   lastTurnWinner: null,
+  turnResultWinnerSeat: null,
   notification: null,
   gameOverData: null,
   error: null,
@@ -268,6 +270,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           briscolaSelectorSeat: d.briscola_selector_seat,
           currentPlayerSeat: d.current_player_seat,
           tableCards: d.table_cards,
+          turnResultWinnerSeat: null,
           myHand: d.my_hand,
           players: d.players,
           totalScores: d.total_scores,
@@ -290,6 +293,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
       case 'turn_result':
         set({
+          turnResultWinnerSeat: data.winner_seat as number,
           notification: {
             text: `Prende ${data.winner_name as string}`,
             subtitle: `Team ${data.winner_team as number} +${data.points as number} pt`,

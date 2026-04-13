@@ -210,6 +210,33 @@ body::before {
   z-index: 25;
 }
 
+/* ── Winning card ───────────────────────────────────────────────────────────── */
+
+@keyframes card-win-trill {
+  0%   { rotate:  0deg; }
+  10%  { rotate: -6deg; translate: -1px -2px; }
+  25%  { rotate:  6deg; translate:  1px -2px; }
+  40%  { rotate: -4deg; translate: -1px  0; }
+  55%  { rotate:  3deg; translate:  1px  0; }
+  70%  { rotate: -2deg; translate:  0    0; }
+  85%  { rotate:  1deg; }
+  100% { rotate:  0deg; translate: 0 0; }
+}
+
+@keyframes card-win-glow {
+  0%   { filter: drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
+  18%  { filter: drop-shadow(0 0 14px rgba(251,191,36,0.95)) drop-shadow(0 7px 14px rgba(0,0,0,0.5)); }
+  60%  { filter: drop-shadow(0 0 8px rgba(251,191,36,0.55)) drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
+  100% { filter: drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
+}
+
+.winning-card {
+  animation:
+    card-win-trill 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both,
+    card-win-glow  2s ease-in-out both;
+  z-index: 10;
+}
+
 /* ── Table area ─────────────────────────────────────────────────────────────── */
 
 .table-area {

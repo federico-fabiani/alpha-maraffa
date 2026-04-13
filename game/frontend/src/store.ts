@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import type {
+  BriscolaAnnouncement,
   Card,
   GameOverData,
   LobbyPlayer,
@@ -17,12 +18,7 @@ import type {
 
 let _pingIntervalId: ReturnType<typeof setInterval> | null = null
 let _lastPingTime = 0
-const SUIT_LABEL: Record<Suit, string> = {
-  bastoni: 'BASTONI',
-  denara: 'DENARA',
-  spade: 'SPADE',
-  coppe: 'COPPE',
-}
+let _briscolaAnnouncementSeq = 0
 // ── Types ───────────────────────────────────────────────────────────────────��──
 
 interface State {
@@ -53,6 +49,7 @@ interface State {
   roundScores: Record<string, number>
   lastTurnWinner: number | null
   turnResultWinnerSeat: number | null
+  briscolaAnnouncement: BriscolaAnnouncement | null
   // UI
   notification: Notification | null
   gameOverData: GameOverData | null
@@ -107,6 +104,7 @@ export const initialState: State = {
   roundScores: { '1': 0, '2': 0 },
   lastTurnWinner: null,
   turnResultWinnerSeat: null,
+  briscolaAnnouncement: null,
   notification: null,
   gameOverData: null,
   error: null,
@@ -288,13 +286,15 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
       case 'briscola_set': {
         const selectedSuit = data.suit as Suit
+        _briscolaAnnouncementSeq += 1
         set({
           briscola: selectedSuit,
-          notification: {
-            text: `${data.by_name as string} ha scelto ${SUIT_LABEL[selectedSuit]} come briscola`,
-            subtitle: 'La mano puo iniziare',
-            duration: 3000,
+          briscolaAnnouncement: {
+            byName: data.by_name as string,
+            suit: selectedSuit,
+            eventId: _briscolaAnnouncementSeq,
           },
+          notification: null,
         })
         break
       }

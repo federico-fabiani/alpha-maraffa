@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import useGameStore from '../store'
-import { Card as CardComponent } from '../components/Card'
+import { Card as CardComponent, SUIT_META } from '../components/Card'
 import PlayerArea from '../components/PlayerArea'
 import TableArea from '../components/TableArea'
 import ScoreBoard from '../components/ScoreBoard'
 import BriscolaIndicator from '../components/BriscolaIndicator'
 import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
-import type { Card, Suit } from '../types'
+import type { BriscolaAnnouncement, Card, Suit } from '../types'
 
 const SUIT_ORDER: Record<Suit, number> = {
   bastoni: 0,
@@ -32,7 +32,7 @@ const CARD_ORDER: Record<number, number> = {
 export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
-    briscola, currentPlayerSeat, tableCards, turnResultWinnerSeat,
+    briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat,
     round, turn, totalScores, roundScores,
     notification, briscolaSelectorSeat,
   } = useGameStore(useShallow(s => ({
@@ -41,6 +41,7 @@ export default function GameScreen() {
     myHand: s.myHand,
     phase: s.phase,
     briscola: s.briscola,
+    briscolaAnnouncement: s.briscolaAnnouncement,
     currentPlayerSeat: s.currentPlayerSeat,
     tableCards: s.tableCards,
     turnResultWinnerSeat: s.turnResultWinnerSeat,
@@ -65,6 +66,10 @@ export default function GameScreen() {
     startX: number
     startY: number
   } | null>(null)
+  const [showCornerBriscola, setShowCornerBriscola] = useState(false)
+  const [cornerToastPop, setCornerToastPop] = useState(false)
+  const [briscolaReveal, setBriscolaReveal] = useState<(BriscolaAnnouncement & { fadingOut: boolean }) | null>(null)
+  const lastBriscolaEventRef = useRef<number | null>(null)
 
   const dragDist     = drag ? Math.hypot(drag.x - drag.startX, drag.y - drag.startY) : 0
   const isActiveDrag = dragDist > 8
@@ -99,7 +104,6 @@ export default function GameScreen() {
 
   const isMyTurn       = currentPlayerSeat === seat && phase === 'playing'
   const needsBriscola  = phase === 'briscola_selection' && currentPlayerSeat === seat
-  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola
   const briscolaChooserName = currentPlayerSeat != null
     ? playerBySeat[currentPlayerSeat]?.name ?? 'Un giocatore'
     : 'Un giocatore'
@@ -132,6 +136,64 @@ export default function GameScreen() {
     })
   }, [myHand])
 
+  useEffect(() => {
+    if (!briscola) {
+      setBriscolaReveal(null)
+      setShowCornerBriscola(false)
+      setCornerToastPop(false)
+      lastBriscolaEventRef.current = null
+      return
+    }
+
+    if (!briscolaAnnouncement) {
+      setShowCornerBriscola(true)
+      setCornerToastPop(false)
+      return
+    }
+
+    if (lastBriscolaEventRef.current === briscolaAnnouncement.eventId) {
+      setBriscolaReveal(null)
+      setShowCornerBriscola(true)
+      setCornerToastPop(false)
+      return
+    }
+
+    setShowCornerBriscola(false)
+    setCornerToastPop(false)
+    setBriscolaReveal({ ...briscolaAnnouncement, fadingOut: false })
+
+    const fadeTimer = window.setTimeout(() => {
+      setBriscolaReveal(prev => {
+        if (!prev || prev.eventId !== briscolaAnnouncement.eventId) return prev
+        return { ...prev, fadingOut: true }
+      })
+    }, 980)
+
+    const clearCenterTimer = window.setTimeout(() => {
+      setBriscolaReveal(null)
+    }, 1320)
+
+    const cornerPopTimer = window.setTimeout(() => {
+      setShowCornerBriscola(true)
+      setCornerToastPop(true)
+      lastBriscolaEventRef.current = briscolaAnnouncement.eventId
+    }, 1400)
+
+    const cornerPopOffTimer = window.setTimeout(() => {
+      setCornerToastPop(false)
+    }, 1850)
+
+    return () => {
+      window.clearTimeout(fadeTimer)
+      window.clearTimeout(clearCenterTimer)
+      window.clearTimeout(cornerPopTimer)
+      window.clearTimeout(cornerPopOffTimer)
+    }
+  }, [briscola, briscolaAnnouncement])
+
+  const revealMeta = briscolaReveal ? SUIT_META[briscolaReveal.suit] : null
+  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola && !briscolaReveal
+
   return (
     <div
       className="game-stage relative w-full h-full overflow-hidden select-none touch-none"
@@ -153,8 +215,23 @@ export default function GameScreen() {
         />
       </div>
       {briscola && (
-        <div className="absolute top-3 right-3 z-10">
+        <div
+          className={`absolute top-3 right-3 z-10 transform-gpu transition-opacity duration-300 ease-out ${showCornerBriscola ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${cornerToastPop ? 'corner-toast-pop' : ''}`}
+        >
           <BriscolaIndicator suit={briscola} />
+        </div>
+      )}
+
+      {briscolaReveal && revealMeta && (
+        <div
+          className={`briscola-reveal ${briscolaReveal.fadingOut ? 'fade-out' : ''}`}
+          style={{ '--briscola-accent': revealMeta.color } as React.CSSProperties}
+        >
+          <p className="briscola-reveal-title">
+            {briscolaReveal.byName} ha scelto come briscola {revealMeta.label.toUpperCase()}
+          </p>
+          <p className="briscola-reveal-subtitle">Briscola scelta</p>
+          <div className="briscola-reveal-icon" aria-hidden="true">{revealMeta.symbol}</div>
         </div>
       )}
 
@@ -191,7 +268,7 @@ export default function GameScreen() {
       </div>
 
       {/* ── My name badge ── */}
-      <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-30">
+      <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-10">
         {playerBySeat[seat] && (
           <div className={`
             px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-lg backdrop-blur-sm
@@ -227,6 +304,7 @@ export default function GameScreen() {
             const isBeingDragged = isActiveDrag
               && drag?.card.suit === card.suit
               && drag?.card.rank === card.rank
+            const isBriscolaIdle = phase === 'briscola_selection' && !card.playable
             return (
               <div
                 key={`${card.suit}-${card.rank}`}
@@ -242,7 +320,7 @@ export default function GameScreen() {
                   card={card}
                   size="md"
                   onClick={() => handleCardClick(card)}
-                  className={isBeingDragged ? 'opacity-0' : ''}
+                  className={`${isBeingDragged ? 'opacity-0' : ''} ${isBriscolaIdle ? 'idle-floating' : ''}`.trim()}
                 />
               </div>
             )
@@ -271,11 +349,11 @@ export default function GameScreen() {
         <BriscolaModal onSelect={selectBriscola} selectorName={playerBySeat[briscolaSelectorSeat ?? seat]?.name} />
       )}
 
-      {/* ── Briscola waiting banner for other players ── */}
+      {/* ── Briscola waiting banner ── */}
       {isWaitingBriscola && (
-        <div className="absolute bottom-44 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-slide-up">
-          <div className="bg-felt-900/95 border border-amber-800/50 rounded-xl px-6 py-3 text-center shadow-xl backdrop-blur-sm">
-            <p className="text-amber-200 font-semibold">
+        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center px-6">
+          <div className="bg-felt-900/92 border border-amber-800/50 rounded-2xl px-7 py-4 text-center shadow-2xl backdrop-blur-sm animate-fade-in">
+            <p className="text-amber-200 font-semibold text-base md:text-lg">
               {briscolaChooserName} sta scegliendo le briscole...
             </p>
           </div>

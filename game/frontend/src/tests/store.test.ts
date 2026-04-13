@@ -101,15 +101,49 @@ describe('_processMessage: game_state', () => {
 })
 
 describe('_processMessage: briscola_set', () => {
-  it('sets briscola and shows a notification', () => {
+  it('sets briscola and announcement payload without redundant notification', () => {
     useGameStore.getState()._processMessage({
       type: 'briscola_set',
       data: { suit: 'denara', by_seat: 0, by_name: 'Alice' },
     })
     const s = useGameStore.getState()
     expect(s.briscola).toBe('denara')
-    expect(s.notification).not.toBeNull()
-    expect(s.notification?.text).toContain('DENARA')
+    expect(s.briscolaAnnouncement?.byName).toBe('Alice')
+    expect(s.briscolaAnnouncement?.suit).toBe('denara')
+    expect(s.briscolaAnnouncement?.eventId).toBeGreaterThan(0)
+    expect(s.notification).toBeNull()
+  })
+
+  it('keeps briscolaAnnouncement after the next game_state update', () => {
+    useGameStore.getState()._processMessage({
+      type: 'briscola_set',
+      data: { suit: 'spade', by_seat: 1, by_name: 'Bob' },
+    })
+
+    const eventId = useGameStore.getState().briscolaAnnouncement?.eventId
+
+    useGameStore.getState()._processMessage({
+      type: 'game_state',
+      data: {
+        phase: 'playing',
+        round: 1,
+        turn: 1,
+        briscola: 'spade',
+        briscola_selector_seat: 1,
+        current_player_seat: 1,
+        table_cards: [],
+        my_hand: [],
+        players: [],
+        total_scores: { '1': 0, '2': 0 },
+        round_scores: { '1': 0, '2': 0 },
+        last_turn_winner: null,
+      },
+    })
+
+    const s = useGameStore.getState()
+    expect(s.briscolaAnnouncement?.byName).toBe('Bob')
+    expect(s.briscolaAnnouncement?.suit).toBe('spade')
+    expect(s.briscolaAnnouncement?.eventId).toBe(eventId)
   })
 })
 

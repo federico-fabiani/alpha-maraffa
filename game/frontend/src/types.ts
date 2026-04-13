@@ -48,6 +48,12 @@ export interface Notification {
   duration?: number
 }
 
+export interface BriscolaAnnouncement {
+  byName: string
+  suit: Suit
+  eventId: number
+}
+
 export interface GameOverData {
   winner_team: 1 | 2
   scores: Record<string, number>

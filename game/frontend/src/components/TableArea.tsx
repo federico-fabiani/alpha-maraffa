@@ -19,7 +19,7 @@ function slotStyle(relativeSeat: number): React.CSSProperties {
 
 export default function TableArea({ tableCards, mySeat }: TableAreaProps) {
   return (
-    <div className="table-area relative w-64 h-48 rounded-3xl">
+    <div className="table-area relative w-72 h-52 rounded-3xl">
 
       {/* Felt centre circle */}
       <div className="absolute inset-4 rounded-2xl table-area-inner" />

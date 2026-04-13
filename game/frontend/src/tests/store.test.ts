@@ -125,6 +125,51 @@ describe('_processMessage: turn_result', () => {
   })
 })
 
+describe('_processMessage: card_played', () => {
+  it('removes the played card from myHand when I am the one who played', () => {
+    useGameStore.setState({
+      mySeat: 2,
+      myHand: [
+        { suit: 'coppe', rank: 7, playable: true },
+        { suit: 'spade', rank: 1, playable: true },
+      ],
+    })
+
+    useGameStore.getState()._processMessage({
+      type: 'card_played',
+      data: {
+        seat: 2,
+        card: { suit: 'coppe', rank: 7 },
+        table: [{ seat: 2, card: { suit: 'coppe', rank: 7 } }],
+      },
+    })
+
+    const s = useGameStore.getState()
+    expect(s.myHand).toEqual([{ suit: 'spade', rank: 1, playable: true }])
+    expect(s.tableCards).toHaveLength(1)
+  })
+
+  it('does not change myHand when another seat plays', () => {
+    useGameStore.setState({
+      mySeat: 2,
+      myHand: [{ suit: 'coppe', rank: 7, playable: true }],
+    })
+
+    useGameStore.getState()._processMessage({
+      type: 'card_played',
+      data: {
+        seat: 1,
+        card: { suit: 'denara', rank: 3 },
+        table: [{ seat: 1, card: { suit: 'denara', rank: 3 } }],
+      },
+    })
+
+    const s = useGameStore.getState()
+    expect(s.myHand).toEqual([{ suit: 'coppe', rank: 7, playable: true }])
+    expect(s.tableCards).toHaveLength(1)
+  })
+})
+
 describe('_processMessage: game_over', () => {
   it('sets gameOverData and navigates to gameover screen', () => {
     useGameStore.getState()._processMessage({

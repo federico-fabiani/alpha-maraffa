@@ -378,9 +378,21 @@ const useGameStore = create<State & Actions>((set, get) => ({
         break
       }
 
-      case 'card_played':
-        set({ tableCards: data.table as TableCard[] })
+      case 'card_played': {
+        const playedSeat = data.seat as number
+        const playedCard = data.card as Card
+        set(state => {
+          if (state.mySeat !== playedSeat) {
+            return { tableCards: data.table as TableCard[] }
+          }
+
+          return {
+            tableCards: data.table as TableCard[],
+            myHand: state.myHand.filter(c => !(c.suit === playedCard.suit && c.rank === playedCard.rank)),
+          }
+        })
         break
+      }
 
       case 'player_disconnected': {
         const disconnectedSeat = data.seat as number

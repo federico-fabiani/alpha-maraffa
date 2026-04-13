@@ -148,14 +148,30 @@ describe('_processMessage: briscola_set', () => {
 })
 
 describe('_processMessage: turn_result', () => {
-  it('shows a notification with winner info', () => {
+  it('shows a notification with winner info and stores last trick cards', () => {
     useGameStore.getState()._processMessage({
       type: 'turn_result',
-      data: { winner_name: 'Bob', winner_team: 2, points: 1.34 },
+      data: {
+        winner_name: 'Bob',
+        winner_team: 2,
+        points: 1.34,
+        table: [
+          { seat: 1, card: { suit: 'denara', rank: 2 } },
+          { seat: 2, card: { suit: 'spade', rank: 3 } },
+          { seat: 3, card: { suit: 'coppe', rank: 4 } },
+          { seat: 0, card: { suit: 'bastoni', rank: 5 } },
+        ],
+      },
     })
-    const { notification } = useGameStore.getState()
+    const { notification, lastTrickCards } = useGameStore.getState()
     expect(notification).not.toBeNull()
     expect(notification?.text).toContain('Bob')
+    expect(lastTrickCards).toEqual([
+      { seat: 1, card: { suit: 'denara', rank: 2 } },
+      { seat: 2, card: { suit: 'spade', rank: 3 } },
+      { seat: 3, card: { suit: 'coppe', rank: 4 } },
+      { seat: 0, card: { suit: 'bastoni', rank: 5 } },
+    ])
   })
 })
 
@@ -181,6 +197,7 @@ describe('_processMessage: card_played', () => {
     const s = useGameStore.getState()
     expect(s.myHand).toEqual([{ suit: 'spade', rank: 1, playable: true }])
     expect(s.tableCards).toHaveLength(1)
+    expect(s.lastTrickCards).toEqual([])
   })
 
   it('does not change myHand when another seat plays', () => {
@@ -201,6 +218,7 @@ describe('_processMessage: card_played', () => {
     const s = useGameStore.getState()
     expect(s.myHand).toEqual([{ suit: 'coppe', rank: 7, playable: true }])
     expect(s.tableCards).toHaveLength(1)
+    expect(s.lastTrickCards).toEqual([])
   })
 })
 

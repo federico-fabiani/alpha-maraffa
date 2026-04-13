@@ -156,6 +156,10 @@ body::before {
   pointer-events: none;
 }
 
+.card-face.recent-trick-card {
+  border-width: 1px;
+}
+
 /*
  * Gold foil sweep animation.
  * With background-size: 300%, the band (30%-70% of gradient) is visible only

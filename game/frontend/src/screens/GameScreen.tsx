@@ -29,10 +29,21 @@ const CARD_ORDER: Record<number, number> = {
   5: 1,
   4: 0,
 }
+
+function lastTrickSlotStyle(relativeSeat: number): React.CSSProperties {
+  switch (relativeSeat) {
+    case 0: return { bottom: '0px',  left: '50%', transform: 'translateX(-50%)' }
+    case 1: return { right:  '0px',  top:  '50%', transform: 'translateY(-50%)' }
+    case 2: return { top:    '0px',  left: '50%', transform: 'translateX(-50%)' }
+    case 3: return { left:   '0px',  top:  '50%', transform: 'translateY(-50%)' }
+    default: return {}
+  }
+}
+
 export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
-    briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat,
+    briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat, lastTrickCards,
     round, turn, totalScores,
     notification, briscolaSelectorSeat,
   } = useGameStore(useShallow(s => ({
@@ -45,6 +56,7 @@ export default function GameScreen() {
     currentPlayerSeat: s.currentPlayerSeat,
     tableCards: s.tableCards,
     turnResultWinnerSeat: s.turnResultWinnerSeat,
+    lastTrickCards: s.lastTrickCards,
     round: s.round,
     turn: s.turn,
     totalScores: s.totalScores,
@@ -264,6 +276,31 @@ export default function GameScreen() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
+
+      {/* ── Last trick (4 cards cross layout) ── */}
+      {lastTrickCards.length > 0 && (
+        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 translate-x-[9.25rem] sm:translate-x-[10.6rem] z-20 pointer-events-none">
+          <p className="text-[10px] tracking-[0.12em] uppercase text-felt-500 mb-1.5 pl-1">Ultima presa</p>
+          <div className="relative w-28 h-28">
+            <div className="absolute inset-5 rounded-full border border-felt-700/50 bg-felt-900/20" />
+            {lastTrickCards.map(({ seat: cardSeat, card }, idx) => {
+              const relativeSeat = (cardSeat - seat + 4) % 4
+              return (
+                <div
+                  key={`last-trick-${idx}-${cardSeat}-${card.suit}-${card.rank}`}
+                  className="absolute"
+                  style={{
+                    ...lastTrickSlotStyle(relativeSeat),
+                    zIndex: idx + 1,
+                  }}
+                >
+                  <CardComponent card={card} size="sm" className="opacity-95 recent-trick-card" />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── My name badge ── */}
       <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-10">

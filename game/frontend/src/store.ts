@@ -43,6 +43,7 @@ interface State {
   briscolaSelectorSeat: number | null
   currentPlayerSeat: number | null
   tableCards: TableCard[]
+  lastTrickCards: TableCard[]
   myHand: Card[]
   players: Player[]
   totalScores: Record<string, number>
@@ -98,6 +99,7 @@ export const initialState: State = {
   briscolaSelectorSeat: null,
   currentPlayerSeat: null,
   tableCards: [],
+  lastTrickCards: [],
   myHand: [],
   players: [],
   totalScores: { '1': 0, '2': 0 },
@@ -249,7 +251,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
       }
 
       case 'game_started':
-        set({ screen: 'game', lobbyPlayers: data.players as LobbyPlayer[] })
+        set({ screen: 'game', lobbyPlayers: data.players as LobbyPlayer[], lastTrickCards: [] })
         break
 
       case 'game_state': {
@@ -267,7 +269,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           round_scores: Record<string, number>
           last_turn_winner: number | null
         }
-        set({
+        set(state => ({
           phase: d.phase,
           round: d.round,
           turn: d.turn,
@@ -275,13 +277,14 @@ const useGameStore = create<State & Actions>((set, get) => ({
           briscolaSelectorSeat: d.briscola_selector_seat,
           currentPlayerSeat: d.current_player_seat,
           tableCards: d.table_cards,
+          lastTrickCards: d.phase === 'briscola_selection' ? [] : state.lastTrickCards,
           turnResultWinnerSeat: null,
           myHand: d.my_hand,
           players: d.players,
           totalScores: d.total_scores,
           roundScores: d.round_scores,
           lastTurnWinner: d.last_turn_winner,
-        })
+        }))
         break
       }
 
@@ -301,8 +304,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
       }
 
       case 'turn_result':
+        const trickCards = ((data.table as TableCard[] | undefined) ?? []).slice(-4)
         set({
           turnResultWinnerSeat: data.winner_seat as number,
+          lastTrickCards: trickCards,
           notification: {
             text: `Prende ${data.winner_name as string}`,
             subtitle: `Team ${data.winner_team as number} +${data.points as number} pt`,
@@ -392,7 +397,9 @@ const useGameStore = create<State & Actions>((set, get) => ({
         const playedCard = data.card as Card
         set(state => {
           if (state.mySeat !== playedSeat) {
-            return { tableCards: data.table as TableCard[] }
+            return {
+              tableCards: data.table as TableCard[],
+            }
           }
 
           return {

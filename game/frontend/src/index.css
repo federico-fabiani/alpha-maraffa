@@ -237,6 +237,19 @@ body::before {
   z-index: 10;
 }
 
+@keyframes card-collect {
+  0%   { scale: 1;    opacity: 1; translate: 0 0; }
+  18%  { scale: 1.08; opacity: 1; }
+  100% { scale: 0.3;  opacity: 0; translate: var(--collect-x, 0px) var(--collect-y, 0px); }
+}
+
+.collecting-card {
+  animation: card-collect 0.38s cubic-bezier(0.4, 0, 0.85, 1) both;
+  animation-delay: calc(var(--card-index, 0) * 50ms);
+  pointer-events: none;
+  z-index: 20;
+}
+
 /* ── Table area ─────────────────────────────────────────────────────────────── */
 
 .table-area {

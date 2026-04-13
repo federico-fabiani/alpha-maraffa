@@ -33,7 +33,7 @@ export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
     briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat,
-    round, turn, totalScores, roundScores,
+    round, turn, totalScores,
     notification, briscolaSelectorSeat,
   } = useGameStore(useShallow(s => ({
     mySeat: s.mySeat,
@@ -48,7 +48,6 @@ export default function GameScreen() {
     round: s.round,
     turn: s.turn,
     totalScores: s.totalScores,
-    roundScores: s.roundScores,
     notification: s.notification,
     briscolaSelectorSeat: s.briscolaSelectorSeat,
   })))
@@ -211,7 +210,6 @@ export default function GameScreen() {
           round={round}
           turn={turn}
           totalScores={totalScores}
-          roundScores={roundScores}
         />
       </div>
       {briscola && (

@@ -4,10 +4,9 @@ interface ScoreBoardProps {
   round: number
   turn: number
   totalScores: Record<string, number>
-  roundScores: Record<string, number>
 }
 
-export default function ScoreBoard({ round, turn, totalScores, roundScores }: ScoreBoardProps) {
+export default function ScoreBoard({ round, turn, totalScores }: ScoreBoardProps) {
   return (
     <div className="bg-felt-900/80 border border-felt-700/60 rounded-xl p-3 w-44 backdrop-blur-sm">
       <div className="flex justify-between text-xs text-felt-500 mb-2">
@@ -17,7 +16,6 @@ export default function ScoreBoard({ round, turn, totalScores, roundScores }: Sc
 
       {[1, 2].map(team => {
         const total = totalScores[String(team)] ?? 0
-        const round_ = roundScores[String(team)] ?? 0
         const pct    = Math.min((total / WIN_THRESHOLD) * 100, 100)
 
         return (
@@ -30,9 +28,6 @@ export default function ScoreBoard({ round, turn, totalScores, roundScores }: Sc
                 <span className={`font-cinzel font-bold text-base ${team === 1 ? 'text-amber-400' : 'text-blue-400'}`}>
                   {total}
                 </span>
-                {round_ > 0 && (
-                  <span className="text-xs text-felt-500">+{round_}</span>
-                )}
               </div>
             </div>
             {/* Progress bar toward 41 */}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import useGameStore from '../store'
 import { Card as CardComponent } from '../components/Card'
@@ -56,6 +56,37 @@ export default function GameScreen() {
   const showNotification = useGameStore(s => s.showNotification)
   const dismissNotif    = useGameStore(s => s.dismissNotification)
 
+  // ── Drag-to-play state ────────────────────────────────────────────────────────
+  const [drag, setDrag] = useState<{
+    card: Card
+    x: number
+    y: number
+    startX: number
+    startY: number
+  } | null>(null)
+
+  const dragDist     = drag ? Math.hypot(drag.x - drag.startX, drag.y - drag.startY) : 0
+  const isActiveDrag = dragDist > 8
+  const isDragOver   = drag !== null && (drag.startY - drag.y) > 90
+
+  const handleCardPointerDown = (e: React.PointerEvent, card: Card) => {
+    if (!isMyTurn || !card.playable) return
+    setDrag({ card, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY })
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!drag) return
+    setDrag(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!drag) return
+    if ((drag.startY - e.clientY) > 90 && drag.card.playable && isMyTurn) {
+      playCard(drag.card)
+    }
+    setDrag(null)
+  }
+
   const seat = mySeat ?? 0
 
   // Relative seat positions around the table
@@ -97,7 +128,13 @@ export default function GameScreen() {
   }, [myHand])
 
   return (
-    <div className="game-stage relative w-full h-full overflow-hidden select-none">
+    <div
+      className="game-stage relative w-full h-full overflow-hidden select-none touch-none"
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => setDrag(null)}
+      onPointerLeave={() => setDrag(null)}
+    >
       <div className="game-stage-ambient" />
       <div className="game-stage-vignette" />
 
@@ -164,11 +201,27 @@ export default function GameScreen() {
         )}
       </div>
 
+      {/* ── Drop zone indicator (appears while dragging) ── */}
+      {isActiveDrag && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className={`
+            rounded-full border-2 transition-all duration-200
+            ${isDragOver
+              ? 'w-36 h-36 border-amber-400/75 bg-amber-400/10 shadow-[0_0_32px_rgba(251,191,36,0.2)]'
+              : 'w-28 h-28 border-white/15'
+            }
+          `} />
+        </div>
+      )}
+
       {/* ── My hand ── */}
-      <div className="absolute bottom-11 left-1/2 -translate-x-1/2 z-20">
+      <div className={`absolute bottom-11 left-1/2 -translate-x-1/2 z-20 ${isActiveDrag ? 'pointer-events-none' : ''}`}>
         <div className="player-hand">
           {sortedHand.map(({ card }, i) => {
             const handOffset = i - (sortedHand.length - 1) / 2
+            const isBeingDragged = isActiveDrag
+              && drag?.card.suit === card.suit
+              && drag?.card.rank === card.rank
             return (
               <div
                 key={`${card.suit}-${card.rank}`}
@@ -178,17 +231,35 @@ export default function GameScreen() {
                   '--hand-offset': handOffset,
                   '--hand-offset-abs': Math.abs(handOffset),
                 } as React.CSSProperties}
+                onPointerDown={(e) => handleCardPointerDown(e, card)}
               >
                 <CardComponent
                   card={card}
                   size="md"
                   onClick={() => handleCardClick(card)}
+                  className={isBeingDragged ? 'opacity-0' : ''}
                 />
               </div>
             )
           })}
         </div>
       </div>
+
+      {/* ── Drag ghost ── */}
+      {isActiveDrag && drag && (
+        <div
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: drag.x - 36,
+            top: drag.y - 54,
+            transform: `rotate(-4deg) scale(${isDragOver ? 1.1 : 1.04})`,
+            transition: 'transform 0.12s ease, filter 0.12s ease',
+            filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.55))',
+          }}
+        >
+          <CardComponent card={drag.card} size="md" />
+        </div>
+      )}
 
       {/* ── Briscola selection modal ── */}
       {needsBriscola && (

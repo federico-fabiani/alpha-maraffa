@@ -10,7 +10,7 @@ const SUITS: Suit[] = ['bastoni', 'denara', 'spade', 'coppe']
 
 export default function BriscolaModal({ onSelect, selectorName }: BriscolaModalProps) {
   return (
-    <div className="absolute inset-0 bg-felt-950/70 flex items-center justify-center z-20 animate-fade-in backdrop-blur-sm">
+    <div className="absolute inset-0 bg-felt-950/25 flex items-center justify-center z-20 animate-fade-in">
       <div className="bg-felt-900 border border-amber-800/40 rounded-2xl p-6 w-80 shadow-2xl">
         <h3 className="font-cinzel text-center text-amber-400 text-lg font-bold mb-1">
           SCEGLI LA BRISCOLA

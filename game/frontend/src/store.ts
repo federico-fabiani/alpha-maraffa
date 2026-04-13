@@ -17,6 +17,12 @@ import type {
 
 let _pingIntervalId: ReturnType<typeof setInterval> | null = null
 let _lastPingTime = 0
+const SUIT_LABEL: Record<Suit, string> = {
+  bastoni: 'BASTONI',
+  denara: 'DENARA',
+  spade: 'SPADE',
+  coppe: 'COPPE',
+}
 // ── Types ───────────────────────────────────────────────────────────────────��──
 
 interface State {
@@ -280,16 +286,18 @@ const useGameStore = create<State & Actions>((set, get) => ({
         break
       }
 
-      case 'briscola_set':
+      case 'briscola_set': {
+        const selectedSuit = data.suit as Suit
         set({
-          briscola: data.suit as Suit,
+          briscola: selectedSuit,
           notification: {
-            text: `Briscola: ${(data.suit as string).toUpperCase()}`,
-            subtitle: `Scelta da ${data.by_name as string}`,
+            text: `${data.by_name as string} ha scelto ${SUIT_LABEL[selectedSuit]} come briscola`,
+            subtitle: 'La mano puo iniziare',
             duration: 3000,
           },
         })
         break
+      }
 
       case 'turn_result':
         set({

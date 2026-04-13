@@ -99,6 +99,10 @@ export default function GameScreen() {
 
   const isMyTurn       = currentPlayerSeat === seat && phase === 'playing'
   const needsBriscola  = phase === 'briscola_selection' && currentPlayerSeat === seat
+  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola
+  const briscolaChooserName = currentPlayerSeat != null
+    ? playerBySeat[currentPlayerSeat]?.name ?? 'Un giocatore'
+    : 'Un giocatore'
 
   const handleCardClick = (card: Card) => {
     if (!card.playable) {
@@ -265,6 +269,17 @@ export default function GameScreen() {
       {/* ── Briscola selection modal ── */}
       {needsBriscola && (
         <BriscolaModal onSelect={selectBriscola} selectorName={playerBySeat[briscolaSelectorSeat ?? seat]?.name} />
+      )}
+
+      {/* ── Briscola waiting banner for other players ── */}
+      {isWaitingBriscola && (
+        <div className="absolute bottom-44 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-slide-up">
+          <div className="bg-felt-900/95 border border-amber-800/50 rounded-xl px-6 py-3 text-center shadow-xl backdrop-blur-sm">
+            <p className="text-amber-200 font-semibold">
+              {briscolaChooserName} sta scegliendo le briscole...
+            </p>
+          </div>
+        </div>
       )}
 
       {/* ── Turn notification ── */}

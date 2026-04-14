@@ -1,0 +1,95 @@
+@echo off
+setlocal enabledelayedexpansion
+
+set "PROJECT_ID=diva-personal-assistant"
+set "REGION=europe-west1"
+set "SERVICE_NAME=aimaraffa"
+set "IMAGE_URI=gcr.io/%PROJECT_ID%/%SERVICE_NAME%:latest"
+
+set "ROOT_DIR=%~dp0"
+set "FRONTEND_DIR=%ROOT_DIR%game\frontend"
+set "BACKEND_DIR=%ROOT_DIR%game\backend"
+set "STATIC_DIR=%BACKEND_DIR%\src\aimaraffa\static"
+
+where gcloud >nul 2>&1
+if errorlevel 1 (
+    echo Errore: gcloud non trovato nel PATH. Installa Google Cloud CLI o riapri il terminale.
+    exit /b 1
+)
+
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo Errore: npm non trovato nel PATH. Installa Node.js o riapri il terminale.
+    exit /b 1
+)
+
+where docker >nul 2>&1
+if errorlevel 1 (
+    echo Errore: docker non trovato nel PATH. Avvia Docker Desktop e verifica il PATH.
+    exit /b 1
+)
+
+echo [1/6] Verifico se Cloud Run service "%SERVICE_NAME%" esiste...
+call gcloud run services describe "%SERVICE_NAME%" --project "%PROJECT_ID%" --region "%REGION%" >nul 2>&1
+if errorlevel 1 (
+    set "SERVICE_EXISTS=0"
+    echo Service non trovato. Lo creero dopo la build.
+) else (
+    set "SERVICE_EXISTS=1"
+    echo Service trovato.
+)
+
+echo [2/6] Build frontend...
+pushd "%FRONTEND_DIR%" || goto :error
+if not exist "node_modules" (
+    call npm ci
+    if errorlevel 1 goto :error
+)
+call npm run build
+if errorlevel 1 goto :error
+
+echo [3/6] Copio il frontend in game\backend\src\aimaraffa\static...
+if exist "%STATIC_DIR%" rmdir /s /q "%STATIC_DIR%"
+mkdir "%STATIC_DIR%"
+xcopy "%FRONTEND_DIR%\dist\*" "%STATIC_DIR%\" /e /i /y >nul
+if errorlevel 1 goto :error
+popd
+
+echo [4/6] Build immagine Docker...
+pushd "%BACKEND_DIR%" || goto :error
+call gcloud auth configure-docker gcr.io --quiet
+if errorlevel 1 goto :error
+docker build -t "%IMAGE_URI%" .
+if errorlevel 1 goto :error
+
+echo [5/6] Push immagine Docker...
+docker push "%IMAGE_URI%"
+if errorlevel 1 goto :error
+
+echo [6/6] Deploy su Cloud Run...
+if "%SERVICE_EXISTS%"=="1" (
+    echo Aggiorno il service esistente "%SERVICE_NAME%".
+) else (
+    echo Creo il service "%SERVICE_NAME%".
+)
+call gcloud run deploy "%SERVICE_NAME%" ^
+    --image "%IMAGE_URI%" ^
+    --project "%PROJECT_ID%" ^
+    --region "%REGION%" ^
+    --platform managed ^
+    --allow-unauthenticated ^
+    --quiet
+if errorlevel 1 goto :error
+
+popd
+echo.
+echo Completato. Immagine pubblicata: %IMAGE_URI%
+exit /b 0
+
+:error
+set "EXIT_CODE=%ERRORLEVEL%"
+popd >nul 2>&1
+popd >nul 2>&1
+echo.
+echo Errore durante il deploy. Exit code: %EXIT_CODE%
+exit /b %EXIT_CODE%

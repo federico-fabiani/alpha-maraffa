@@ -4,9 +4,12 @@ import asyncio
 import json
 import logging
 import uuid as uuid_module
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from aimaraffa.config import settings
@@ -30,6 +33,13 @@ app.add_middleware(
 )
 
 rooms = RoomManager()
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="frontend-static")
+    assets_dir = STATIC_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
 
 
 # ── User registry ──────────────────────────────────────────────────────────────
@@ -327,3 +337,30 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
 
     elif t == "ping":
         await room._send(slot.seat, {"type": "pong"})
+
+
+@app.get("/", include_in_schema=False)
+async def frontend_index():
+    """Serve the built SPA index when frontend assets are available."""
+    index_file = STATIC_DIR / "index.html"
+    if not index_file.exists():
+        raise HTTPException(status_code=404, detail="Frontend static files not found")
+    return FileResponse(index_file)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def frontend_spa_fallback(full_path: str):
+    """Serve static files and fallback to index.html for SPA routes."""
+    reserved_prefixes = ("api", "ws", "docs", "redoc", "openapi.json", "static", "assets")
+    if full_path.startswith(reserved_prefixes):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    requested_file = STATIC_DIR / full_path
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    raise HTTPException(status_code=404, detail="Frontend static files not found")

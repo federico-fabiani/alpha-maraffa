@@ -72,8 +72,7 @@ interface Actions {
   kickPlayer: (seat: number) => void
   promotePlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
-  declare: (declaration: Declaration) => void
-  playCard: (card: Card) => void
+  playCard: (card: Card, declaration?: Declaration) => void
   showNotification: (notification: Notification) => void
   dismissNotification: () => void
   reset: () => void
@@ -215,12 +214,8 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'select_briscola', data: { suit } }))
   },
 
-  declare: (declaration) => {
-    get().ws?.send(JSON.stringify({ type: 'declare', data: { declaration } }))
-  },
-
-  playCard: (card) => {
-    get().ws?.send(JSON.stringify({ type: 'play_card', data: { card } }))
+  playCard: (card, declaration = null) => {
+    get().ws?.send(JSON.stringify({ type: 'play_card', data: { card, declaration } }))
   },
 
   showNotification: (notification) => set({ notification }),
@@ -309,23 +304,6 @@ const useGameStore = create<State & Actions>((set, get) => ({
             eventId: _briscolaAnnouncementSeq,
           },
           notification: null,
-        })
-        break
-      }
-
-      case 'declaration_made': {
-        const decl = data as { seat: number; name: string; declaration: string }
-        const DECL_TEXT: Record<string, string> = {
-          busso: 'bussa!',
-          striscio: 'striscia.',
-          volo: 'vola!',
-        }
-        set({
-          currentDeclaration: decl.declaration as Declaration,
-          notification: {
-            text: `${decl.name} ${DECL_TEXT[decl.declaration] ?? decl.declaration}`,
-            duration: 2000,
-          },
         })
         break
       }
@@ -435,18 +413,23 @@ const useGameStore = create<State & Actions>((set, get) => ({
       case 'card_played': {
         const playedSeat = data.seat as number
         const playedCard = data.card as Card
-        set(state => {
-          if (state.mySeat !== playedSeat) {
-            return {
-              tableCards: data.table as TableCard[],
-            }
-          }
-
-          return {
-            tableCards: data.table as TableCard[],
-            myHand: state.myHand.filter(c => !(c.suit === playedCard.suit && c.rank === playedCard.rank)),
-          }
-        })
+        const declaration = (data.declaration ?? null) as Declaration
+        const DECL_TEXT: Record<string, string> = {
+          busso: 'bussa!', striscio: 'striscia.', volo: 'vola!',
+        }
+        set(state => ({
+          tableCards: data.table as TableCard[],
+          myHand: state.mySeat === playedSeat
+            ? state.myHand.filter(c => !(c.suit === playedCard.suit && c.rank === playedCard.rank))
+            : state.myHand,
+          ...(declaration ? {
+            currentDeclaration: declaration,
+            notification: {
+              text: `${data.name as string} ${DECL_TEXT[declaration] ?? declaration}`,
+              duration: 2000,
+            },
+          } : {}),
+        }))
         break
       }
 

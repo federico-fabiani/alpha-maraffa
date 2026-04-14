@@ -75,7 +75,7 @@ BOT_THINK_DELAY     = 0.5    # seconds before a bot selects briscola
 TURN_RESULT_PAUSE   = 2.0    # seconds to display who won a turn
 ROUND_END_PAUSE     = 3.5    # seconds to display round summary
 
-VALID_DECLARATIONS  = frozenset({"busso", "striscio", "volo"})
+_VALID_DECLARATIONS = frozenset({"busso", "striscio", "volo"})
 
 _ITALIAN_ADJECTIVES = [
     "ROSSO", "BLU", "VERDE", "NERO", "ORO", "VIOLA",
@@ -315,28 +315,21 @@ class GameRoom:
         payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         return Suit(payload["suit"].lower())
 
-    async def _await_card(self, seat: int) -> Card:
-        """Wait for the player's card play, or generate one for a bot."""
+    async def _await_card(self, seat: int) -> Tuple[Card, Optional[str]]:
+        """Wait for the player's card play; returns (card, declaration) where declaration is
+        only meaningful for the lead player and None for all other players and bots."""
         slot = self.slots[seat]
         lead_suit = self.table_cards[0][1].suit if self.table_cards else None
         if slot.is_bot:
             await asyncio.sleep(BOT_PLAY_DELAY)
-            return bot_select_card(slot.hand, lead_suit, self.briscola)
+            return bot_select_card(slot.hand, lead_suit, self.briscola), None
         payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         card = dict_to_card(payload.get("card", {}))
         valid = get_valid_cards(slot.hand, lead_suit)
         if card not in valid:
             card = valid[0]
-        return card
-
-    async def _await_declaration(self, seat: int) -> Optional[str]:
-        """Wait for the lead player's optional declaration (busso/striscio/volo); bots skip."""
-        slot = self.slots[seat]
-        if slot.is_bot:
-            return None
-        payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         declaration = payload.get("declaration")
-        return declaration if declaration in VALID_DECLARATIONS else None
+        return card, (declaration if declaration in _VALID_DECLARATIONS else None)
 
     # ── Game loop ──────────────────────────────────────────────────────────────
 
@@ -452,32 +445,17 @@ class GameRoom:
             self.turn_num = t + 1
             self.table_cards = []
             self.current_declaration = None
-
-            # Declaration phase — only broadcast when the lead player is human
-            lead_slot = self.slots[first_of_turn]
-            if not lead_slot.is_bot:
-                self.phase = "declaring"
-                self.current_player_seat = first_of_turn
-                await self.broadcast_state()
-                declaration = await self._await_declaration(first_of_turn)
-                self.current_declaration = declaration
-                if declaration:
-                    await self.broadcast({
-                        "type": "declaration_made",
-                        "data": {
-                            "seat": first_of_turn,
-                            "name": lead_slot.name,
-                            "declaration": declaration,
-                        },
-                    })
-
             self.phase = "playing"
 
-            for seat in self._rotate_seats(first_of_turn):
+            for i, seat in enumerate(self._rotate_seats(first_of_turn)):
                 self.current_player_seat = seat
                 await self.broadcast_state()
 
-                card = await self._await_card(seat)
+                card, declaration = await self._await_card(seat)
+
+                # Only the lead player's declaration (first card of trick) is recorded
+                if i == 0 and declaration:
+                    self.current_declaration = declaration
 
                 slot = self.slots[seat]
                 if card in slot.hand:
@@ -490,6 +468,7 @@ class GameRoom:
                         "seat": seat,
                         "name": slot.name,
                         "card": card_to_dict(card),
+                        "declaration": self.current_declaration if i == 0 else None,
                         "table": [{"seat": s, "card": card_to_dict(c)} for s, c in self.table_cards],
                         "hands_count": {str(s): len(sl.hand) for s, sl in self.slots.items()},
                     },

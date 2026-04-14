@@ -273,15 +273,12 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
         if room.phase == "briscola_selection" and room.current_player_seat == slot.seat:
             await slot.input_queue.put({"suit": data.get("suit", "bastoni")})
 
-    elif t == "declare":
-        if room.phase == "declaring" and room.current_player_seat == slot.seat:
-            declaration = data.get("declaration")
-            if declaration in (None, "busso", "striscio", "volo"):
-                await slot.input_queue.put({"declaration": declaration})
-
     elif t == "play_card":
         if room.phase == "playing" and room.current_player_seat == slot.seat:
-            await slot.input_queue.put({"card": data.get("card", {})})
+            await slot.input_queue.put({
+                "card": data.get("card", {}),
+                "declaration": data.get("declaration"),
+            })
 
     elif t == "swap_seats":
         if room.status == "waiting" and slot is room.creator_slot:

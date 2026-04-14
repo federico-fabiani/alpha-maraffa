@@ -7,7 +7,6 @@ import TableArea from '../components/TableArea'
 import ScoreBoard from '../components/ScoreBoard'
 import BriscolaIndicator from '../components/BriscolaIndicator'
 import BriscolaModal from '../components/BriscolaModal'
-import DeclarationPanel from '../components/DeclarationPanel'
 import Notification from '../components/Notification'
 import type { BriscolaAnnouncement, Card, Declaration, Suit } from '../types'
 
@@ -68,9 +67,11 @@ export default function GameScreen() {
 
   const playCard        = useGameStore(s => s.playCard)
   const selectBriscola  = useGameStore(s => s.selectBriscola)
-  const declare         = useGameStore(s => s.declare)
   const showNotification = useGameStore(s => s.showNotification)
   const dismissNotif    = useGameStore(s => s.dismissNotification)
+
+  // ── Declaration state (local toggle, sent bundled with the card) ─────────────
+  const [pendingDeclaration, setPendingDeclaration] = useState<Declaration>(null)
 
   // ── Drag-to-play state ────────────────────────────────────────────────────────
   const [drag, setDrag] = useState<{
@@ -102,7 +103,8 @@ export default function GameScreen() {
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!drag) return
     if ((drag.startY - e.clientY) > 90 && drag.card.playable && isMyTurn) {
-      playCard(drag.card)
+      playCard(drag.card, isLeadPlayer ? pendingDeclaration : null)
+      setPendingDeclaration(null)
     }
     setDrag(null)
   }
@@ -116,24 +118,16 @@ export default function GameScreen() {
 
   const playerBySeat = Object.fromEntries(players.map(p => [p.seat, p]))
 
-  const isMyTurn        = currentPlayerSeat === seat && phase === 'playing'
-  const needsBriscola   = phase === 'briscola_selection' && currentPlayerSeat === seat
-  const isMyDeclaration = phase === 'declaring' && currentPlayerSeat === seat
-  const isWaitingDeclaration = phase === 'declaring' && currentPlayerSeat !== seat
+  const isMyTurn     = currentPlayerSeat === seat && phase === 'playing'
+  const needsBriscola = phase === 'briscola_selection' && currentPlayerSeat === seat
 
   // Lead player of the current trick: first card on table, or current player when table is empty
-  const leadSeat = tableCards.length > 0 ? tableCards[0].seat : currentPlayerSeat
+  const leadSeat     = tableCards.length > 0 ? tableCards[0].seat : currentPlayerSeat
+  const isLeadPlayer = isMyTurn && tableCards.length === 0
 
   const briscolaChooserName = currentPlayerSeat != null
     ? playerBySeat[currentPlayerSeat]?.name ?? 'Un giocatore'
     : 'Un giocatore'
-  const declaringPlayerName = currentPlayerSeat != null
-    ? playerBySeat[currentPlayerSeat]?.name ?? 'Un giocatore'
-    : 'Un giocatore'
-
-  const handleDeclare = (declaration: Declaration) => {
-    declare(declaration)
-  }
 
   const handleCardClick = (card: Card) => {
     if (!card.playable) {
@@ -145,7 +139,10 @@ export default function GameScreen() {
       return
     }
 
-    if (isMyTurn) playCard(card)
+    if (isMyTurn) {
+      playCard(card, isLeadPlayer ? pendingDeclaration : null)
+      setPendingDeclaration(null)
+    }
   }
 
   const sortedHand = useMemo(() => {
@@ -321,23 +318,46 @@ export default function GameScreen() {
         </div>
       )}
 
-      {/* ── My name badge ── */}
+      {/* ── My name badge + declaration toggle buttons ── */}
       <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5">
+        {/* Declaration toggle buttons — visible only when I'm the lead player */}
+        {isLeadPlayer && (
+          <div className="flex gap-1.5">
+            {(['busso', 'striscio', 'volo'] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setPendingDeclaration(pendingDeclaration === d ? null : d)}
+                className={`
+                  px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all
+                  ${pendingDeclaration === d
+                    ? 'bg-amber-700/80 border-amber-400/80 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)]'
+                    : 'bg-felt-900/75 border-felt-700/60 text-felt-500 hover:text-amber-400 hover:border-amber-700/50'
+                  }
+                `}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Declaration badge (shown to self while leading a trick) */}
         {leadSeat === seat && currentDeclaration && (
           <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
             {currentDeclaration.toUpperCase()}
           </div>
         )}
+
         {playerBySeat[seat] && (
           <div className={`
             px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-lg backdrop-blur-sm
             ${playerBySeat[seat]?.team === 1
               ? 'border-amber-400/70 text-amber-100 bg-felt-950/85'
               : 'border-blue-400/70 text-blue-100 bg-felt-950/85'}
-            ${isMyTurn || isMyDeclaration ? 'animate-pulse-ring' : ''}
+            ${isMyTurn ? 'animate-pulse-ring' : ''}
           `}>
             {playerBySeat[seat]?.name}
-            {(isMyTurn || isMyDeclaration) && <span className="ml-1 text-amber-400">●</span>}
+            {isMyTurn && <span className="ml-1 text-amber-400">●</span>}
           </div>
         )}
       </div>
@@ -400,22 +420,6 @@ export default function GameScreen() {
           }}
         >
           <CardComponent card={drag.card} size="md" />
-        </div>
-      )}
-
-      {/* ── Declaration panel (my turn to declare) ── */}
-      {isMyDeclaration && (
-        <DeclarationPanel onDeclare={handleDeclare} />
-      )}
-
-      {/* ── Declaration waiting banner (opponent is declaring) ── */}
-      {isWaitingDeclaration && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex items-end justify-center pb-48 px-6">
-          <div className="bg-felt-900/92 border border-amber-800/50 rounded-2xl px-7 py-3 text-center shadow-2xl backdrop-blur-sm animate-fade-in">
-            <p className="text-amber-200 font-semibold text-sm">
-              {declaringPlayerName} sta dichiarando...
-            </p>
-          </div>
         </div>
       )}
 

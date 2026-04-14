@@ -7,7 +7,6 @@ export type PingStatus = 'good' | 'ok' | 'bad' | 'offline'
 export type Phase =
   | 'waiting'
   | 'briscola_selection'
-  | 'declaring'
   | 'playing'
   | 'turn_result'
   | 'round_end'

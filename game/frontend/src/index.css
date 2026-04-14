@@ -25,6 +25,7 @@
   --animate-float: float 3.2s ease-in-out infinite;
   --animate-card-appear: card-appear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-card-breathe: card-breathe 2.8s ease-in-out infinite;
+  --animate-demo-blink: demo-blink 1s step-start infinite;
 
   /* Fonts */
   --font-cinzel: 'Cinzel', serif;
@@ -55,6 +56,11 @@
 @keyframes card-appear {
   from { scale: 0.78; translate: 0 14px; opacity: 0; }
   to   { scale: 1;    translate: 0 0;    opacity: 1; }
+}
+
+@keyframes demo-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 @keyframes card-breathe {

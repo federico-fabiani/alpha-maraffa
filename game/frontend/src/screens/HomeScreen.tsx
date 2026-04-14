@@ -16,7 +16,17 @@ export default function HomeScreen() {
   const canProceed = playerName.trim().length > 0
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="relative flex items-center justify-center h-full">
+      {/* Demo badge */}
+      <span
+        className="absolute top-4 right-4 font-cinzel font-bold text-xs tracking-widest
+                   px-3 py-1 rounded-full bg-red-600/90 text-white border border-red-400/60
+                   shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+        style={{ animation: 'var(--animate-demo-blink)' }}
+      >
+        DEMO
+      </span>
+
       <div className="flex flex-col items-center gap-8">
 
         {/* Logo */}

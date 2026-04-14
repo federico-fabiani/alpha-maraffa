@@ -1,10 +1,11 @@
 import { CardBack } from './Card'
-import type { Player } from '../types'
+import type { Declaration, Player } from '../types'
 
 interface PlayerAreaProps {
   player: Player | undefined
   isActive: boolean
   position: 'top' | 'left' | 'right'
+  declaration?: Declaration
 }
 
 const TEAM_BADGE: Record<number, string> = {
@@ -12,7 +13,13 @@ const TEAM_BADGE: Record<number, string> = {
   2: 'border-blue-500/60  text-blue-300',
 }
 
-export default function PlayerArea({ player, isActive, position }: PlayerAreaProps) {
+const DECLARATION_LABEL: Record<string, string> = {
+  busso: 'BUSSO',
+  striscio: 'STRISCIO',
+  volo: 'VOLO',
+}
+
+export default function PlayerArea({ player, isActive, position, declaration }: PlayerAreaProps) {
   const cardCount = player?.cards_count ?? 0
 
   // Orientation of the stacked card fan
@@ -25,6 +32,13 @@ export default function PlayerArea({ player, isActive, position }: PlayerAreaPro
 
   return (
     <div className={`flex flex-col items-center gap-2 ${position === 'top' ? '' : position === 'left' ? 'items-end' : 'items-start'}`}>
+      {/* Declaration badge */}
+      {declaration && (
+        <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
+          {DECLARATION_LABEL[declaration] ?? declaration}
+        </div>
+      )}
+
       {/* Name badge */}
       <div className={`
         px-3 py-1 rounded-full text-xs font-medium border bg-felt-900/60

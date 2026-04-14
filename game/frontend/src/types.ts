@@ -7,10 +7,13 @@ export type PingStatus = 'good' | 'ok' | 'bad' | 'offline'
 export type Phase =
   | 'waiting'
   | 'briscola_selection'
+  | 'declaring'
   | 'playing'
   | 'turn_result'
   | 'round_end'
   | 'game_over'
+
+export type Declaration = 'busso' | 'striscio' | 'volo' | null
 
 export type Screen = 'home' | 'lobby' | 'game' | 'gameover'
 

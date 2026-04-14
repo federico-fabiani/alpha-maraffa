@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import type {
   BriscolaAnnouncement,
   Card,
+  Declaration,
   GameOverData,
   LobbyPlayer,
   Notification,
@@ -51,6 +52,7 @@ interface State {
   lastTurnWinner: number | null
   turnResultWinnerSeat: number | null
   briscolaAnnouncement: BriscolaAnnouncement | null
+  currentDeclaration: Declaration
   // UI
   notification: Notification | null
   gameOverData: GameOverData | null
@@ -70,6 +72,7 @@ interface Actions {
   kickPlayer: (seat: number) => void
   promotePlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
+  declare: (declaration: Declaration) => void
   playCard: (card: Card) => void
   showNotification: (notification: Notification) => void
   dismissNotification: () => void
@@ -107,6 +110,7 @@ export const initialState: State = {
   lastTurnWinner: null,
   turnResultWinnerSeat: null,
   briscolaAnnouncement: null,
+  currentDeclaration: null,
   notification: null,
   gameOverData: null,
   error: null,
@@ -211,6 +215,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'select_briscola', data: { suit } }))
   },
 
+  declare: (declaration) => {
+    get().ws?.send(JSON.stringify({ type: 'declare', data: { declaration } }))
+  },
+
   playCard: (card) => {
     get().ws?.send(JSON.stringify({ type: 'play_card', data: { card } }))
   },
@@ -268,6 +276,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           total_scores: Record<string, number>
           round_scores: Record<string, number>
           last_turn_winner: number | null
+          current_declaration: Declaration
         }
         set(state => ({
           phase: d.phase,
@@ -284,6 +293,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           totalScores: d.total_scores,
           roundScores: d.round_scores,
           lastTurnWinner: d.last_turn_winner,
+          currentDeclaration: d.current_declaration ?? null,
         }))
         break
       }
@@ -299,6 +309,23 @@ const useGameStore = create<State & Actions>((set, get) => ({
             eventId: _briscolaAnnouncementSeq,
           },
           notification: null,
+        })
+        break
+      }
+
+      case 'declaration_made': {
+        const decl = data as { seat: number; name: string; declaration: string }
+        const DECL_TEXT: Record<string, string> = {
+          busso: 'bussa!',
+          striscio: 'striscia.',
+          volo: 'vola!',
+        }
+        set({
+          currentDeclaration: decl.declaration as Declaration,
+          notification: {
+            text: `${decl.name} ${DECL_TEXT[decl.declaration] ?? decl.declaration}`,
+            duration: 2000,
+          },
         })
         break
       }

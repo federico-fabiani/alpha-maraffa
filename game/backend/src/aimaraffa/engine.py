@@ -75,6 +75,8 @@ BOT_THINK_DELAY     = 0.5    # seconds before a bot selects briscola
 TURN_RESULT_PAUSE   = 2.0    # seconds to display who won a turn
 ROUND_END_PAUSE     = 3.5    # seconds to display round summary
 
+VALID_DECLARATIONS  = frozenset({"busso", "striscio", "volo"})
+
 _ITALIAN_ADJECTIVES = [
     "ROSSO", "BLU", "VERDE", "NERO", "ORO", "VIOLA",
     "BIANCO", "ARGENTO", "ANTICO", "FIERO", "SAGGIO", "PRODE",
@@ -188,6 +190,7 @@ class GameRoom:
         self.current_player_seat: Optional[int] = None
         self.table_cards: List[Tuple[int, Card]] = []
         self.last_turn_winner_seat: Optional[int] = None
+        self.current_declaration: Optional[str] = None
         self.phase = "waiting"
 
     # ── Internal helpers ───────────────────────────────────────────────────────
@@ -238,6 +241,7 @@ class GameRoom:
                 "total_scores": self.total_scores,
                 "round_scores": {k: round(v, 2) for k, v in self.round_scores.items()},
                 "last_turn_winner": self.last_turn_winner_seat,
+                "current_declaration": self.current_declaration,
             },
         }
 
@@ -324,6 +328,15 @@ class GameRoom:
         if card not in valid:
             card = valid[0]
         return card
+
+    async def _await_declaration(self, seat: int) -> Optional[str]:
+        """Wait for the lead player's optional declaration (busso/striscio/volo); bots skip."""
+        slot = self.slots[seat]
+        if slot.is_bot:
+            return None
+        payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
+        declaration = payload.get("declaration")
+        return declaration if declaration in VALID_DECLARATIONS else None
 
     # ── Game loop ──────────────────────────────────────────────────────────────
 
@@ -438,6 +451,26 @@ class GameRoom:
         for t in range(10):
             self.turn_num = t + 1
             self.table_cards = []
+            self.current_declaration = None
+
+            # Declaration phase — only broadcast when the lead player is human
+            lead_slot = self.slots[first_of_turn]
+            if not lead_slot.is_bot:
+                self.phase = "declaring"
+                self.current_player_seat = first_of_turn
+                await self.broadcast_state()
+                declaration = await self._await_declaration(first_of_turn)
+                self.current_declaration = declaration
+                if declaration:
+                    await self.broadcast({
+                        "type": "declaration_made",
+                        "data": {
+                            "seat": first_of_turn,
+                            "name": lead_slot.name,
+                            "declaration": declaration,
+                        },
+                    })
+
             self.phase = "playing"
 
             for seat in self._rotate_seats(first_of_turn):

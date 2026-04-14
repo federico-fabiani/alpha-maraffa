@@ -163,4 +163,14 @@ game/frontend/node_modules/
 game/frontend/dist/
 game/frontend/.vite/
 *.tsbuildinfo
+
+# Frontend production bundle copied into backend static during deploy
+game/backend/src/aimaraffa/static/assets/
+game/backend/src/aimaraffa/static/favicon.ico
+game/backend/src/aimaraffa/static/index.html
+game/backend/src/aimaraffa/static/manifest.webmanifest
+game/backend/src/aimaraffa/static/registerSW.js
+game/backend/src/aimaraffa/static/sw.js
+game/backend/src/aimaraffa/static/workbox-*.js
+game/backend/src/aimaraffa/static/icons/
 /.claude/settings.local.json

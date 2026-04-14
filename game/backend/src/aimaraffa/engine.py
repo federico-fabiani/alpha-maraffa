@@ -415,6 +415,24 @@ class GameRoom:
             },
         })
 
+        # Maraffa (cricca): selettore ha 1, 2 e 3 di briscola → +3 punti immediati
+        selector_slot = self.slots[self.briscola_selector_seat]
+        maraffa_cards = [c for c in selector_slot.hand if c.suit == self.briscola and c.rank in (1, 2, 3)]
+        if len(maraffa_cards) == 3:
+            maraffa_team = selector_slot.team
+            self.total_scores[maraffa_team] += 3
+            await self.broadcast({
+                "type": "maraffa",
+                "data": {
+                    "seat": self.briscola_selector_seat,
+                    "name": selector_slot.name,
+                    "team": maraffa_team,
+                    "cards": [card_to_dict(c) for c in sorted(maraffa_cards, key=lambda c: c.rank)],
+                    "bonus": 3,
+                    "total_scores": self.total_scores,
+                },
+            })
+
         first_of_turn = self.briscola_selector_seat
 
         for t in range(10):

@@ -303,6 +303,19 @@ const useGameStore = create<State & Actions>((set, get) => ({
         break
       }
 
+      case 'maraffa': {
+        const m = data as { name: string; team: number; bonus: number; total_scores: Record<string, number> }
+        set({
+          totalScores: m.total_scores,
+          notification: {
+            text: `Maraffa! ${m.name} ha 1, 2 e 3 di briscola`,
+            subtitle: `Team ${m.team} +${m.bonus} punti bonus`,
+            duration: 4000,
+          },
+        })
+        break
+      }
+
       case 'turn_result':
         const trickCards = ((data.table as TableCard[] | undefined) ?? []).slice(-4)
         set({

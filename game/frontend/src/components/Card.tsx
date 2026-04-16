@@ -38,10 +38,10 @@ export function getCardSpriteCoords(card: Pick<CardType, 'suit' | 'rank'>): Card
 }
 
 const SIZE: Record<string, { width: string; height: string }> = {
-  sm:    { width: 'w-10',  height: 'h-14' },
-  md:    { width: 'w-[4.5rem]',  height: 'h-[6.75rem]' },
-  lg:    { width: 'w-20',       height: 'h-28' },
-  table: { width: 'w-14',       height: 'h-[84px]' },
+  sm:    { width: 'w-10',        height: 'h-14' },
+  md:    { width: 'w-[5.5rem]',  height: 'h-[8.25rem]' },
+  lg:    { width: 'w-20',        height: 'h-28' },
+  table: { width: 'w-[4.5rem]',  height: 'h-[6.75rem]' },
 }
 
 // ── Card face ──────────────────────────────────────────────────────────────────

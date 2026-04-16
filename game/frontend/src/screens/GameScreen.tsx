@@ -295,7 +295,7 @@ export default function GameScreen() {
 
       {/* ── Last trick (4 cards cross layout) ── */}
       {lastTrickCards.length > 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 translate-x-[9.25rem] sm:translate-x-[10.6rem] z-20 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 translate-x-[11.5rem] sm:translate-x-[12.5rem] z-20 pointer-events-none">
           <p className="text-[10px] tracking-[0.12em] uppercase text-felt-500 mb-1.5 pl-1">Ultima presa</p>
           <div className="relative w-28 h-28">
             <div className="absolute inset-5 rounded-full border border-felt-700/50 bg-felt-900/20" />
@@ -319,7 +319,7 @@ export default function GameScreen() {
       )}
 
       {/* ── My name badge + declaration toggle buttons ── */}
-      <div className="absolute bottom-[10.75rem] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5">
+      <div className="absolute bottom-[12.5rem] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5">
         {/* Declaration toggle buttons — visible only when I'm the lead player */}
         {isLeadPlayer && (
           <div className="flex gap-1.5">
@@ -412,8 +412,8 @@ export default function GameScreen() {
         <div
           className="fixed pointer-events-none z-50"
           style={{
-            left: drag.x - 36,
-            top: drag.y - 54,
+            left: drag.x - 44,
+            top: drag.y - 66,
             transform: `rotate(-4deg) scale(${isDragOver ? 1.1 : 1.04})`,
             transition: 'transform 0.12s ease, filter 0.12s ease',
             filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.55))',

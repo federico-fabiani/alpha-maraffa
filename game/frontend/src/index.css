@@ -1,6 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=IM+Fell+English:ital@0;1&family=Outfit:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Houstonville';
+  src: url('./assets/Houstonville.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ── Custom theme tokens ─────────────────────────────────────────────────────── */
 
 @theme {
@@ -108,6 +116,59 @@ body::before {
     linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 24px 24px;
   animation: ambient-pan 18s ease-in-out infinite;
+}
+
+/* ── CRT overlay ────────────────────────────────────────────────────────────── */
+
+@keyframes crt-flicker {
+  0%, 100% { opacity: 1; }
+  92%       { opacity: 1; }
+  93%       { opacity: 0.85; }
+  94%       { opacity: 1; }
+  97%       { opacity: 1; }
+  98%       { opacity: 0.9; }
+  99%       { opacity: 1; }
+}
+
+@keyframes veil-drift {
+  0%   { background-position: 20%  20%,  80% 75%, auto; }
+  25%  { background-position: 70%  45%,  25% 30%, auto; }
+  50%  { background-position: 55%  75%,  80% 20%, auto; }
+  75%  { background-position: 25%  60%,  60% 80%, auto; }
+  100% { background-position: 20%  20%,  80% 75%, auto; }
+}
+
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background-image:
+    radial-gradient(ellipse 60% 55% at 30% 40%, rgba(90, 45, 15, 0.38) 0%, transparent 100%),
+    radial-gradient(ellipse 55% 60% at 70% 60%, rgba(70, 30, 10, 0.32) 0%, transparent 100%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.10) 2px,
+      rgba(0, 0, 0, 0.10) 4px
+    );
+  background-size: 160% 160%, 160% 160%, auto;
+  background-position: 20% 20%, 80% 75%, auto;
+  animation: veil-drift 28s ease-in-out infinite;
+}
+
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+  pointer-events: none;
 }
 
 .game-stage-ambient {
@@ -513,20 +574,66 @@ body::before {
 
 /* ── Home screen ─────────────────────────────────────────────────────────────── */
 
-.home-title {
-  width: min(72vw, 500px);
-  filter: drop-shadow(0 4px 22px rgba(80, 15, 5, 0.35));
+@keyframes letter-drift-a {
+  0%   { transform: translate(0,      0); }
+  30%  { transform: translate(1.3px, -5.8px); }
+  65%  { transform: translate(-0.6px, -3.2px); }
+  100% { transform: translate(0,      0); }
+}
+
+@keyframes letter-drift-b {
+  0%   { transform: translate(0,      0); }
+  35%  { transform: translate(-1.3px, -6.4px); }
+  70%  { transform: translate(1.0px,  -3.8px); }
+  100% { transform: translate(0,      0); }
+}
+
+@keyframes letter-drift-c {
+  0%   { transform: translate(0,     0); }
+  20%  { transform: translate(1.0px, -3.0px); }
+  55%  { transform: translate(-1.4px, -6.0px); }
+  80%  { transform: translate(0.5px, -2.0px); }
+  100% { transform: translate(0,     0); }
+}
+
+@keyframes letter-drift-d {
+  0%   { transform: translate(0,      0); }
+  25%  { transform: translate(-0.8px, -5.0px); }
+  60%  { transform: translate(1.5px,  -2.5px); }
+  85%  { transform: translate(-0.4px, -4.5px); }
+  100% { transform: translate(0,      0); }
+}
+
+.title-word {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.46em;
+  user-select: none;
+  line-height: 1;
+}
+
+.title-letter {
+  font-family: 'Houstonville', serif;
+  font-size: clamp(4.6rem, 14.95vw, 9.2rem);
+  color: #6b1c0e;
+  display: inline-block;
+  line-height: 1;
+  will-change: transform;
+  backface-visibility: hidden;
+  text-shadow: 3px 3px 0 rgba(20, 4, 2, 0.35);
+  /* filter applied per-letter inline with unique SVG filter ID */
 }
 
 .home-name-input {
   width: min(82vw, 400px);
-  background: rgba(255, 248, 218, 0.62);
+  background: rgba(255, 248, 218, 0.32);
   border: 1.5px solid rgba(120, 48, 18, 0.42);
   border-radius: 0.3rem;
-  padding: 0.75rem 1.4rem;
+  padding: 0.4rem 1rem;
   text-align: center;
   font-family: 'IM Fell English', serif;
-  font-size: 1.35rem;
+  font-size: 1.65rem;
+  font-style: italic;
   color: #4a1808;
   outline: none;
   backdrop-filter: blur(6px);

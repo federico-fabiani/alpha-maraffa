@@ -65,6 +65,9 @@ export default function App() {
         }}
       />
 
+      {/* CRT overlay */}
+      <div className="crt-overlay" />
+
       {/* Screen content */}
       <div
         className="screen-content relative w-full h-full z-10"

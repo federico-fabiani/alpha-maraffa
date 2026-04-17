@@ -2,10 +2,6 @@ import { useState } from 'react'
 import useGameStore from '../store'
 
 const SEAT_LABELS = ['Posto 1', 'Posto 2', 'Posto 3', 'Posto 4']
-const TEAM_COLORS: Record<number, string> = {
-  1: 'border-amber-500/60 text-amber-300',
-  2: 'border-blue-500/60 text-blue-300',
-}
 
 export default function LobbyScreen() {
   const roomId       = useGameStore(s => s.roomId)
@@ -13,11 +9,11 @@ export default function LobbyScreen() {
   const isOwner      = useGameStore(s => s.isOwner)
   const lobbyPlayers = useGameStore(s => s.lobbyPlayers)
   const startGame    = useGameStore(s => s.startGame)
-  const swapSeats     = useGameStore(s => s.swapSeats)
-  const kickPlayer    = useGameStore(s => s.kickPlayer)
+  const swapSeats    = useGameStore(s => s.swapSeats)
+  const kickPlayer   = useGameStore(s => s.kickPlayer)
   const promotePlayer = useGameStore(s => s.promotePlayer)
-  const ownerSeat     = useGameStore(s => s.ownerSeat)
-  const reset         = useGameStore(s => s.reset)
+  const ownerSeat    = useGameStore(s => s.ownerSeat)
+  const reset        = useGameStore(s => s.reset)
 
   const [swapPending, setSwapPending] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
@@ -34,45 +30,35 @@ export default function LobbyScreen() {
   const handleSeatClick = (seat: number) => {
     if (!isOwner) return
     if (swapPending === null) {
-      if (!playerBySeat[seat]) return   // first click must be on an occupied seat
+      if (!playerBySeat[seat]) return
       setSwapPending(seat)
     } else if (swapPending === seat) {
-      setSwapPending(null)              // deselect
+      setSwapPending(null)
     } else {
-      swapSeats(swapPending, seat)      // empty or occupied: both valid as destination
+      swapSeats(swapPending, seat)
       setSwapPending(null)
     }
   }
 
   return (
     <div className="flex items-center justify-center h-full">
-      <div className="flex flex-col items-center gap-8 w-96">
+      <div className="lobby-wrap">
 
         {/* Header */}
         <div className="text-center">
-          <h2 className="font-cinzel text-3xl font-bold text-amber-400 glow-gold">SALA D'ATTESA</h2>
-          <p className="text-felt-500 text-xs tracking-widest mt-1">IN ATTESA DI GIOCATORI</p>
+          <h2 className="lobby-heading">Sala d'attesa</h2>
+          <p className="lobby-hint">in attesa di giocatori…</p>
         </div>
 
         {/* Room code */}
-        <button
-          onClick={handleCopy}
-          title="Clicca per copiare"
-          className="group bg-felt-900 border border-amber-800/40 hover:border-amber-600/60
-                     rounded-xl px-8 py-4 text-center w-full transition-colors cursor-pointer"
-        >
-          <p className="text-felt-500 text-xs tracking-widest mb-1 group-hover:text-felt-400 transition-colors">
-            {copied ? 'COPIATO!' : 'CODICE STANZA'}
-          </p>
-          <p className={`font-cinzel text-xl tracking-wider transition-colors
-            ${copied ? 'text-green-400' : 'text-amber-300 group-hover:text-amber-200'}`}>
-            {roomId}
-          </p>
+        <button onClick={handleCopy} title="Clicca per copiare" className="lobby-code-box">
+          <p className="lobby-code-label">{copied ? 'copiato!' : 'codice stanza'}</p>
+          <p className="lobby-code-value">{roomId}</p>
         </button>
 
         {/* Swap hint */}
         {isOwner && (
-          <p className="text-felt-500 text-xs text-center -mt-4">
+          <p className="lobby-hint" style={{ marginTop: '-0.75rem' }}>
             {swapPending !== null
               ? `Seleziona il secondo posto da scambiare con Posto ${swapPending + 1}…`
               : 'Clicca due posti per scambiarli.'}
@@ -82,60 +68,61 @@ export default function LobbyScreen() {
         {/* Seats grid */}
         <div className="grid grid-cols-2 gap-3 w-full">
           {[0, 1, 2, 3].map(seat => {
-            const player   = playerBySeat[seat]
-            const isMe     = seat === mySeat
-            const team     = seat % 2 === 0 ? 1 : 2
-            const teamCls  = TEAM_COLORS[team]
+            const player    = playerBySeat[seat]
+            const isMe      = seat === mySeat
+            const team      = seat % 2 === 0 ? 1 : 2
             const isPending = swapPending === seat
             const isOccupied = !!player
-            // Clickable on first-click only if occupied; always clickable as destination
             const isClickable = isOwner && (isOccupied || swapPending !== null)
 
             return (
               <div
                 key={seat}
                 onClick={() => handleSeatClick(seat)}
-                className={`rounded-xl border bg-felt-900/60 p-4 transition-all
-                  ${isMe ? 'border-amber-400/80 ring-1 ring-amber-400/30' : 'border-felt-700'}
-                  ${isPending ? 'ring-2 ring-amber-400 border-amber-400' : ''}
-                  ${isClickable && !isPending ? 'cursor-pointer hover:border-amber-600/60' : ''}
-                  ${isPending ? 'cursor-pointer' : ''}
-                  ${swapPending !== null && !isPending && !isOccupied ? 'border-dashed border-amber-800/50' : ''}
-                `}
+                className={[
+                  'lobby-seat',
+                  isMe      ? 'is-me'      : '',
+                  isPending ? 'is-pending' : '',
+                  isClickable ? 'cursor-pointer' : '',
+                  swapPending !== null && !isPending && !isOccupied ? 'border-dashed' : '',
+                ].filter(Boolean).join(' ')}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-felt-500 text-xs">{SEAT_LABELS[seat]}</span>
-                  <div className="flex items-center gap-1.5">
-                    {isOwner && player && (
-                      <span className="text-felt-600 text-xs">
-                        {isPending ? '✕' : '⇄'}
-                      </span>
-                    )}
-                    <span className={`text-xs font-semibold ${teamCls}`}>Team {team}</span>
-                  </div>
+                  <span className="lobby-seat-label">{SEAT_LABELS[seat]}</span>
+                  <span
+                    className="lobby-seat-team"
+                    style={{ color: team === 1 ? '#b45309' : '#1d4ed8' }}
+                  >
+                    Team {team}
+                  </span>
                 </div>
 
                 {player ? (
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${player.is_bot ? 'bg-felt-500' : 'bg-green-400'}`} />
-                    <span className="text-amber-100 text-sm font-medium truncate flex-1">
-                      {seat === ownerSeat && <span className="text-amber-400 text-xs mr-1">👑</span>}
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: player.is_bot ? 'rgba(100,40,14,0.35)' : '#5c1a0a' }}
+                    />
+                    <span className="lobby-player-name truncate flex-1">
+                      {seat === ownerSeat && <span style={{ color: '#b45309', marginRight: '0.2rem' }}>♛</span>}
                       {player.name}
-                      {isMe && <span className="text-amber-500 text-xs ml-1">(tu)</span>}
+                      {isMe && <span style={{ color: 'rgba(100,40,14,0.55)', fontSize: '0.78rem', marginLeft: '0.3rem' }}>(tu)</span>}
                     </span>
                     {isOwner && !isMe && !player.is_bot && (
                       <>
                         <button
                           onClick={e => { e.stopPropagation(); promotePlayer(seat) }}
                           title="Promuovi a owner"
-                          className="text-amber-500/70 hover:text-amber-400 text-xs leading-none px-1 transition-colors"
+                          className="home-back-btn"
+                          style={{ padding: '0 0.3rem', fontSize: '0.82rem' }}
                         >
-                          👑
+                          ♛
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); kickPlayer(seat) }}
                           title="Espelli giocatore"
-                          className="text-red-500/70 hover:text-red-400 text-xs leading-none px-1 transition-colors"
+                          className="home-back-btn"
+                          style={{ padding: '0 0.3rem', fontSize: '0.82rem' }}
                         >
                           ✕
                         </button>
@@ -144,8 +131,8 @@ export default function LobbyScreen() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-felt-700 animate-pulse" />
-                    <span className="text-felt-500 text-sm italic">in attesa...</span>
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'rgba(100,40,14,0.25)' }} />
+                    <span className="lobby-empty-slot">in attesa…</span>
                   </div>
                 )}
               </div>
@@ -154,33 +141,26 @@ export default function LobbyScreen() {
         </div>
 
         {/* Team legend */}
-        <div className="flex gap-6 text-xs text-felt-500">
-          <span><span className="text-amber-400">■</span> Team 1 (posti 1 e 3)</span>
-          <span><span className="text-blue-400">■</span> Team 2 (posti 2 e 4)</span>
+        <div className="lobby-legend">
+          <span><span className="lobby-team1-dot">■</span> Team 1 (posti 1 e 3)</span>
+          <span><span className="lobby-team2-dot">■</span> Team 2 (posti 2 e 4)</span>
         </div>
 
         {/* Actions */}
         <div className="flex flex-col gap-3 w-full">
-          <button
-            onClick={startGame}
-            disabled={!isOwner}
-            className={`text-white font-semibold py-3 rounded-lg transition-colors font-cinzel tracking-wider ${
-              isOwner
-                ? 'bg-amber-600 hover:bg-amber-500'
-                : 'bg-felt-700 text-felt-500 cursor-not-allowed'
-            }`}
-          >
+          <button onClick={startGame} disabled={!isOwner} className="lobby-btn primary">
             INIZIA PARTITA
           </button>
-          <p className="text-felt-500 text-xs text-center">
+          <p className="lobby-hint">
             {isOwner
               ? 'I posti liberi verranno riempiti da bot.'
-              : 'Solo il proprietario della stanza puo avviare la partita.'}
+              : 'Solo il proprietario della stanza può avviare la partita.'}
           </p>
-          <button onClick={reset} className="text-felt-500 hover:text-felt-400 text-sm transition-colors">
+          <button onClick={reset} className="home-back-btn" style={{ alignSelf: 'center' }}>
             ← Abbandona
           </button>
         </div>
+
       </div>
     </div>
   )

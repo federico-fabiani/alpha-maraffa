@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=IM+Fell+English:ital@0;1&family=Outfit:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 /* ── Custom theme tokens ─────────────────────────────────────────────────────── */
@@ -29,6 +29,7 @@
 
   /* Fonts */
   --font-cinzel: 'Cinzel', serif;
+  --font-fell: 'IM Fell English', serif;
   --font-outfit: 'Outfit', sans-serif;
 }
 
@@ -503,3 +504,261 @@ body::before {
     margin-left: -14px;
   }
 }
+
+/* ── Screen transition ───────────────────────────────────────────────────────── */
+
+.screen-content {
+  transition: opacity 0.38s ease;
+}
+
+/* ── Home screen ─────────────────────────────────────────────────────────────── */
+
+.home-title {
+  width: min(72vw, 500px);
+  filter: drop-shadow(0 4px 22px rgba(80, 15, 5, 0.35));
+}
+
+.home-name-input {
+  width: min(82vw, 300px);
+  background: rgba(255, 248, 218, 0.62);
+  border: 1.5px solid rgba(120, 48, 18, 0.42);
+  border-radius: 0.3rem;
+  padding: 0.6rem 1.2rem;
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-size: 1.1rem;
+  color: #4a1808;
+  outline: none;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-name-input::placeholder {
+  color: rgba(100, 48, 18, 0.42);
+  font-style: italic;
+}
+
+.home-name-input:focus {
+  border-color: rgba(140, 48, 18, 0.72);
+  box-shadow: 0 0 0 3px rgba(140, 48, 18, 0.1);
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  22%  { transform: translateX(-7px); }
+  44%  { transform: translateX( 7px); }
+  66%  { transform: translateX(-4px); }
+  88%  { transform: translateX( 3px); }
+}
+
+.home-name-input.shake {
+  animation: input-shake 0.42s ease-out;
+}
+
+.home-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  cursor: pointer;
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  color: #5c1a0a;
+  user-select: none;
+  padding: 0.28rem 0.4rem;
+  letter-spacing: 0.03em;
+  transition: color 0.12s ease;
+}
+
+.home-menu-item:hover {
+  color: #7a2210;
+}
+
+.home-menu-item.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.home-arrow {
+  width: clamp(1.8rem, 3.5vw, 2.8rem);
+  height: auto;
+  flex-shrink: 0;
+  transition: opacity 0.18s ease;
+}
+
+.home-arrow-left {
+  transform: scaleX(-1);
+}
+
+.home-back-btn {
+  font-family: 'IM Fell English', serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.62);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  transition: color 0.12s ease;
+}
+
+.home-back-btn:hover {
+  color: #5c1a0a;
+}
+
+/* ── Lobby rustic ─────────────────────────────────────────────────────────────── */
+
+.lobby-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  width: min(92vw, 26rem);
+}
+
+.lobby-heading {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  color: #5c1a0a;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.lobby-hint {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.62);
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.lobby-code-box {
+  width: 100%;
+  background: rgba(255, 248, 218, 0.5);
+  border: 1.5px solid rgba(120, 48, 18, 0.38);
+  border-radius: 0.45rem;
+  padding: 0.9rem 1.8rem;
+  text-align: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.lobby-code-box:hover {
+  background: rgba(255, 245, 205, 0.7);
+  border-color: rgba(140, 48, 18, 0.58);
+}
+
+.lobby-code-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.52);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.lobby-code-value {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #5c1a0a;
+  letter-spacing: 0.1em;
+}
+
+.lobby-seat {
+  background: rgba(255, 248, 218, 0.4);
+  border: 1.5px solid rgba(120, 48, 18, 0.28);
+  border-radius: 0.45rem;
+  padding: 0.7rem 0.9rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.lobby-seat.is-me {
+  background: rgba(255, 242, 195, 0.58);
+  border-color: rgba(140, 48, 18, 0.65);
+}
+
+.lobby-seat.is-pending {
+  border-color: rgba(130, 48, 18, 0.85);
+  box-shadow: 0 0 0 2px rgba(140, 48, 18, 0.2);
+}
+
+.lobby-seat-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.55);
+}
+
+.lobby-seat-team {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.lobby-player-name {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.95rem;
+  color: #3d1105;
+}
+
+.lobby-empty-slot {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.88rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.45);
+}
+
+.lobby-btn {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.1em;
+  border-radius: 0.4rem;
+  border: 1.5px solid rgba(120, 48, 18, 0.4);
+  background: rgba(255, 248, 218, 0.55);
+  color: #5c1a0a;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.lobby-btn:hover:not(:disabled) {
+  background: rgba(255, 242, 195, 0.75);
+  border-color: rgba(140, 48, 18, 0.6);
+  color: #3d1105;
+}
+
+.lobby-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.lobby-btn.primary {
+  background: rgba(140, 38, 14, 0.78);
+  color: #f5ead0;
+  border-color: rgba(140, 38, 14, 0.5);
+}
+
+.lobby-btn.primary:hover:not(:disabled) {
+  background: rgba(160, 42, 14, 0.88);
+  border-color: rgba(160, 42, 14, 0.65);
+}
+
+.lobby-legend {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: rgba(100, 40, 14, 0.55);
+  display: flex;
+  gap: 1.5rem;
+}
+
+.lobby-team1-dot { color: #b45309; }
+.lobby-team2-dot { color: #1d4ed8; }

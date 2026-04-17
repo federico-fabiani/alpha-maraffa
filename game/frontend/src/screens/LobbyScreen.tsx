@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import useGameStore from '../store'
 
-const SEAT_LABELS = ['Posto 1', 'Posto 2', 'Posto 3', 'Posto 4']
+const SEAT_AREA = ['bottom', 'right', 'top', 'left'] as const
+const TEAM_COLOR = ['#c8922a', '#8b3a1a', '#c8922a', '#8b3a1a']
 
 export default function LobbyScreen() {
-  const roomId       = useGameStore(s => s.roomId)
-  const mySeat       = useGameStore(s => s.mySeat)
-  const isOwner      = useGameStore(s => s.isOwner)
-  const lobbyPlayers = useGameStore(s => s.lobbyPlayers)
-  const startGame    = useGameStore(s => s.startGame)
-  const swapSeats    = useGameStore(s => s.swapSeats)
-  const kickPlayer   = useGameStore(s => s.kickPlayer)
+  const roomId        = useGameStore(s => s.roomId)
+  const mySeat        = useGameStore(s => s.mySeat)
+  const isOwner       = useGameStore(s => s.isOwner)
+  const lobbyPlayers  = useGameStore(s => s.lobbyPlayers)
+  const startGame     = useGameStore(s => s.startGame)
+  const swapSeats     = useGameStore(s => s.swapSeats)
+  const kickPlayer    = useGameStore(s => s.kickPlayer)
   const promotePlayer = useGameStore(s => s.promotePlayer)
-  const ownerSeat    = useGameStore(s => s.ownerSeat)
-  const reset        = useGameStore(s => s.reset)
+  const ownerSeat     = useGameStore(s => s.ownerSeat)
+  const reset         = useGameStore(s => s.reset)
 
   const [swapPending, setSwapPending] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
@@ -47,7 +48,6 @@ export default function LobbyScreen() {
         {/* Header */}
         <div className="text-center">
           <h2 className="lobby-heading">Sala d'attesa</h2>
-          <p className="lobby-hint">in attesa di giocatori…</p>
         </div>
 
         {/* Room code */}
@@ -56,95 +56,74 @@ export default function LobbyScreen() {
           <p className="lobby-code-value">{roomId}</p>
         </button>
 
-        {/* Swap hint */}
-        {isOwner && (
-          <p className="lobby-hint" style={{ marginTop: '-0.75rem' }}>
-            {swapPending !== null
-              ? `Seleziona il secondo posto da scambiare con Posto ${swapPending + 1}…`
-              : 'Clicca due posti per scambiarli.'}
-          </p>
-        )}
-
-        {/* Seats grid */}
-        <div className="grid grid-cols-2 gap-3 w-full">
+        {/* Physical table layout */}
+        <div className="lobby-table">
           {[0, 1, 2, 3].map(seat => {
-            const player    = playerBySeat[seat]
-            const isMe      = seat === mySeat
-            const team      = seat % 2 === 0 ? 1 : 2
-            const isPending = swapPending === seat
-            const isOccupied = !!player
-            const isClickable = isOwner && (isOccupied || swapPending !== null)
+            const player      = playerBySeat[seat]
+            const isMe        = seat === mySeat
+            const teamColor   = TEAM_COLOR[seat]
+            const isPending   = swapPending === seat
+            const isClickable = isOwner && (!!player || swapPending !== null)
+            const area        = SEAT_AREA[seat]
 
             return (
               <div
                 key={seat}
                 onClick={() => handleSeatClick(seat)}
                 className={[
-                  'lobby-seat',
-                  isMe      ? 'is-me'      : '',
-                  isPending ? 'is-pending' : '',
+                  'lobby-seat-card',
+                  `lobby-seat-${area}`,
+                  isMe       ? 'is-me'      : '',
+                  isPending  ? 'is-pending' : '',
                   isClickable ? 'cursor-pointer' : '',
-                  swapPending !== null && !isPending && !isOccupied ? 'border-dashed' : '',
                 ].filter(Boolean).join(' ')}
+                style={{ '--team-color': teamColor } as React.CSSProperties}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="lobby-seat-label">{SEAT_LABELS[seat]}</span>
-                  <span
-                    className="lobby-seat-team"
-                    style={{ color: team === 1 ? '#b45309' : '#1d4ed8' }}
-                  >
-                    Team {team}
-                  </span>
+                <div className={`lobby-avatar${player ? '' : ' empty'}`}>
+                  {player
+                    ? <span>{player.name.charAt(0).toUpperCase()}</span>
+                    : <span>–</span>
+                  }
                 </div>
 
                 {player ? (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: player.is_bot ? 'rgba(100,40,14,0.35)' : '#5c1a0a' }}
-                    />
-                    <span className="lobby-player-name truncate flex-1">
-                      {seat === ownerSeat && <span style={{ color: '#b45309', marginRight: '0.2rem' }}>♛</span>}
+                  <div className="lobby-seat-info">
+                    <p className="lobby-seat-name">
+                      {ownerSeat === seat && <span className="lobby-owner-crown">♛ </span>}
                       {player.name}
-                      {isMe && <span style={{ color: 'rgba(100,40,14,0.55)', fontSize: '0.78rem', marginLeft: '0.3rem' }}>(tu)</span>}
-                    </span>
+                      {isMe && <span className="lobby-me-tag"> (tu)</span>}
+                    </p>
                     {isOwner && !isMe && !player.is_bot && (
-                      <>
+                      <div className="lobby-seat-actions">
                         <button
                           onClick={e => { e.stopPropagation(); promotePlayer(seat) }}
                           title="Promuovi a owner"
-                          className="home-back-btn"
-                          style={{ padding: '0 0.3rem', fontSize: '0.82rem' }}
-                        >
-                          ♛
-                        </button>
+                          className="lobby-action-btn"
+                        >♛</button>
                         <button
                           onClick={e => { e.stopPropagation(); kickPlayer(seat) }}
-                          title="Espelli giocatore"
-                          className="home-back-btn"
-                          style={{ padding: '0 0.3rem', fontSize: '0.82rem' }}
-                        >
-                          ✕
-                        </button>
-                      </>
+                          title="Espelli"
+                          className="lobby-action-btn"
+                        >✕</button>
+                      </div>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'rgba(100,40,14,0.25)' }} />
-                    <span className="lobby-empty-slot">in attesa…</span>
-                  </div>
+                  <p className="lobby-seat-empty">Attesa…</p>
                 )}
               </div>
             )
           })}
         </div>
 
-        {/* Team legend */}
-        <div className="lobby-legend">
-          <span><span className="lobby-team1-dot">■</span> Team 1 (posti 1 e 3)</span>
-          <span><span className="lobby-team2-dot">■</span> Team 2 (posti 2 e 4)</span>
-        </div>
+        {/* Swap hint */}
+        {isOwner && (
+          <p className="lobby-hint" style={{ marginTop: '-0.5rem' }}>
+            {swapPending !== null
+              ? `Seleziona il secondo posto da scambiare…`
+              : 'Clicca due posti per scambiarli.'}
+          </p>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col gap-3 w-full">

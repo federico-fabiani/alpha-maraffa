@@ -70,8 +70,8 @@ export default function HomeScreen() {
         DEMO
       </span>
 
-      {/* Title – absolute, pinned from top */}
-      <div className="absolute top-[14%] left-0 right-0 flex justify-center">
+      <div className="flex flex-col items-center gap-10" style={{ marginTop: '-14vh' }}>
+        {/* Title – individual animated letters */}
         {/* One SVG filter per letter: unique warp seed + unique grain seed → unique campitura */}
         <svg aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
@@ -98,7 +98,7 @@ export default function HomeScreen() {
             ))}
           </defs>
         </svg>
-        <div className="title-word" aria-label="MARAFONE">
+        <div className="title-word mb-4" aria-label="MARAFONE">
           {([
             { l: 'M', anim: 'letter-drift-a', dur: '5.3s', delay: '0s',    filterId: 'ts0', color: '#6b1c0e' },
             { l: 'A', anim: 'letter-drift-c', dur: '4.8s', delay: '-0.65s', filterId: 'ts1', color: '#7a2010' },
@@ -123,10 +123,7 @@ export default function HomeScreen() {
             </span>
           ))}
         </div>
-      </div>
 
-      {/* Input + menu – independently centered */}
-      <div className="flex flex-col items-center gap-6" style={{ marginTop: '16vh' }}>
         {/* Name input */}
         <input
           ref={nameRef}

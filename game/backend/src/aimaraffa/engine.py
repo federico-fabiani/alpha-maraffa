@@ -143,10 +143,14 @@ def bot_select_briscola(hand: List[Card]) -> Suit:
     return max(counts, key=counts.get)  # type: ignore[arg-type]
 
 
-def bot_select_card(hand: List[Card], lead_suit: Optional[Suit], briscola: Suit) -> Card:
-    """Bot AI: play a random valid card from the legal moves."""
-    return random.choice(get_valid_cards(hand, lead_suit))
-
+def bot_select_card(
+    hand: List[Card], lead_suit: Optional[Suit], briscola: Suit
+) -> Tuple[Card, Optional[str]]:
+    """Bot AI: play a random valid card; when leading, emit busso/striscio/volo."""
+    card = random.choice(get_valid_cards(hand, lead_suit))
+    if lead_suit is not None:
+        return card, None
+    return card, random.choice(list(_VALID_DECLARATIONS) + [None])
 
 # ── Room entities ──────────────────────────────────────────────────────────────
 
@@ -322,7 +326,7 @@ class GameRoom:
         lead_suit = self.table_cards[0][1].suit if self.table_cards else None
         if slot.is_bot:
             await asyncio.sleep(BOT_PLAY_DELAY)
-            return bot_select_card(slot.hand, lead_suit, self.briscola), None
+            return bot_select_card(slot.hand, lead_suit, self.briscola)
         payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         card = dict_to_card(payload.get("card", {}))
         valid = get_valid_cards(slot.hand, lead_suit)
@@ -458,6 +462,7 @@ class GameRoom:
                     self.current_declaration = declaration
 
                 slot = self.slots[seat]
+                hand_before = [card_to_dict(c) for c in slot.hand]
                 if card in slot.hand:
                     slot.hand.remove(card)
                 self.table_cards.append((seat, card))
@@ -471,6 +476,7 @@ class GameRoom:
                         "declaration": self.current_declaration if i == 0 else None,
                         "table": [{"seat": s, "card": card_to_dict(c)} for s, c in self.table_cards],
                         "hands_count": {str(s): len(sl.hand) for s, sl in self.slots.items()},
+                        "hand_before": hand_before,
                     },
                 })
 

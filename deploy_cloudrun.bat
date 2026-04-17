@@ -1,10 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "PROJECT_ID=diva-personal-assistant"
+set "PROJECT_ID=le-idee-di-feffo"
 set "REGION=europe-west1"
 set "SERVICE_NAME=aimaraffa"
-set "IMAGE_URI=gcr.io/%PROJECT_ID%/%SERVICE_NAME%:latest"
+set "AR_REPO=%SERVICE_NAME%"
+set "IMAGE_URI=%REGION%-docker.pkg.dev/%PROJECT_ID%/%AR_REPO%/%SERVICE_NAME%:latest"
 
 set "ROOT_DIR=%~dp0"
 set "FRONTEND_DIR=%ROOT_DIR%game\frontend"
@@ -57,7 +58,13 @@ popd
 
 echo [4/6] Build immagine Docker...
 pushd "%BACKEND_DIR%" || goto :error
-call gcloud auth configure-docker gcr.io --quiet
+echo Assicuro che la repository Artifact Registry "%AR_REPO%" esista...
+call gcloud artifacts repositories describe "%AR_REPO%" --project "%PROJECT_ID%" --location "%REGION%" >nul 2>&1
+if errorlevel 1 (
+    call gcloud artifacts repositories create "%AR_REPO%" --repository-format=docker --location "%REGION%" --project "%PROJECT_ID%" --description "Docker images for %SERVICE_NAME%"
+    if errorlevel 1 goto :error
+)
+call gcloud auth configure-docker %REGION%-docker.pkg.dev --quiet
 if errorlevel 1 goto :error
 docker build -t "%IMAGE_URI%" .
 if errorlevel 1 goto :error

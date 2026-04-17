@@ -519,14 +519,14 @@ body::before {
 }
 
 .home-name-input {
-  width: min(82vw, 300px);
+  width: min(82vw, 400px);
   background: rgba(255, 248, 218, 0.62);
   border: 1.5px solid rgba(120, 48, 18, 0.42);
   border-radius: 0.3rem;
-  padding: 0.6rem 1.2rem;
+  padding: 0.75rem 1.4rem;
   text-align: center;
   font-family: 'IM Fell English', serif;
-  font-size: 1.1rem;
+  font-size: 1.35rem;
   color: #4a1808;
   outline: none;
   backdrop-filter: blur(6px);
@@ -579,7 +579,7 @@ body::before {
 }
 
 .home-arrow {
-  width: clamp(1.8rem, 3.5vw, 2.8rem);
+  width: clamp(2.4rem, 4.5vw, 3.8rem);
   height: auto;
   flex-shrink: 0;
   transition: opacity 0.18s ease;

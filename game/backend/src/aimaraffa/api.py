@@ -6,6 +6,8 @@ import logging
 import uuid as uuid_module
 from pathlib import Path
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -13,16 +15,28 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from aimaraffa.config import settings
+import aimaraffa.engine as eng
 from aimaraffa.engine import GameRoom, PlayerSlot, RoomManager
 from aimaraffa.names import Genre, pick_a_name
- 
+
 logging.basicConfig(
     level=settings.log_level,
     format="%(asctime)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Marafone Digital")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.ml_model_path:
+        eng.init_ml_bot(settings.ml_model_path)
+        logger.info("ML bot enabled — model: %s", settings.ml_model_path)
+    else:
+        logger.info("ML bot disabled — bots use random strategy")
+    yield
+
+
+app = FastAPI(title="Marafone Digital", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

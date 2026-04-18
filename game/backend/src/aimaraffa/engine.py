@@ -77,6 +77,19 @@ ROUND_END_PAUSE     = 3.5    # seconds to display round summary
 
 _VALID_DECLARATIONS = frozenset({"busso", "striscio", "volo"})
 
+# ── Bot strategy selection ─────────────────────────────────────────────────────
+
+USE_ML_BOT: bool = False
+_ml_agent = None   # set by init_ml_bot(); type: MLAgent from aimaraffa.ml_agent
+
+
+def init_ml_bot(model_path: str) -> None:
+    """Load the XGBoost model and switch all bot slots to ML strategy."""
+    global _ml_agent, USE_ML_BOT
+    from aimaraffa.ml_agent import MLAgent  # lazy import — avoids pulling pandas at startup
+    _ml_agent = MLAgent(model_path)
+    USE_ML_BOT = True
+
 _ITALIAN_ADJECTIVES = [
     "ROSSO", "BLU", "VERDE", "NERO", "ORO", "VIOLA",
     "BIANCO", "ARGENTO", "ANTICO", "FIERO", "SAGGIO", "PRODE",
@@ -315,6 +328,18 @@ class GameRoom:
         slot = self.slots[seat]
         if slot.is_bot:
             await asyncio.sleep(BOT_THINK_DELAY)
+            if USE_ML_BOT and _ml_agent is not None:
+                ctx = {
+                    "seat": seat,
+                    "round_num": self.round_num,
+                    "turn_num": 0,
+                    "briscola_selector_seat": self.briscola_selector_seat,
+                    "table_cards": [],
+                    "round_scores": {1: 0.0, 2: 0.0},
+                    "total_scores": dict(self.total_scores),
+                    "hand": slot.hand,
+                }
+                return _ml_agent.select_briscola(ctx)
             return bot_select_briscola(slot.hand)
         payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         return Suit(payload["suit"].lower())
@@ -326,6 +351,18 @@ class GameRoom:
         lead_suit = self.table_cards[0][1].suit if self.table_cards else None
         if slot.is_bot:
             await asyncio.sleep(BOT_PLAY_DELAY)
+            if USE_ML_BOT and _ml_agent is not None:
+                ctx = {
+                    "seat": seat,
+                    "round_num": self.round_num,
+                    "turn_num": self.turn_num,
+                    "briscola_selector_seat": self.briscola_selector_seat,
+                    "table_cards": list(self.table_cards),
+                    "round_scores": {k: round(v, 2) for k, v in self.round_scores.items()},
+                    "total_scores": dict(self.total_scores),
+                    "hand": slot.hand,
+                }
+                return _ml_agent.select_card(ctx, self.briscola)
             return bot_select_card(slot.hand, lead_suit, self.briscola)
         payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
         card = dict_to_card(payload.get("card", {}))
@@ -443,6 +480,9 @@ class GameRoom:
                 },
             })
 
+        if USE_ML_BOT and _ml_agent is not None:
+            _ml_agent.reset_round()
+
         first_of_turn = self.briscola_selector_seat
 
         for t in range(10):
@@ -466,6 +506,9 @@ class GameRoom:
                 if card in slot.hand:
                     slot.hand.remove(card)
                 self.table_cards.append((seat, card))
+                if USE_ML_BOT and _ml_agent is not None:
+                    _ml_agent.record_card(card, seat, self.turn_num,
+                                          declaration if i == 0 else None)
 
                 await self.broadcast({
                     "type": "card_played",

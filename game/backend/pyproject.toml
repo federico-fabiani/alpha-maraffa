@@ -25,6 +25,11 @@ testpaths = ["src/tests"]
 pythonpath = ["src"]
 
 [dependency-groups]
+ml = [
+    "pandas>=3.0.2",
+    "scikit-learn>=1.8.0",
+    "xgboost>=3.2.0",
+]
 dev = [
     "anyio>=4.13.0",
     "httpx>=0.28.1",

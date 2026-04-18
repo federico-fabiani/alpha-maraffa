@@ -77,7 +77,10 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load(path: Path, use_gpu: bool = False) -> tuple[pd.DataFrame, pd.Series]:
-    if use_gpu and _CUDF_AVAILABLE:
+    if path.suffix == ".parquet":
+        logger.info("Loading %s (Parquet) …", path)
+        df = pd.read_parquet(path)
+    elif use_gpu and _CUDF_AVAILABLE:
         logger.info("Loading %s with cuDF (GPU) …", path)
         df = cudf.read_csv(path).to_pandas()
     else:
@@ -176,7 +179,7 @@ def train(data: Path, model_out: Path, importance_out: Path,
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train XGBoost on Marafone play data")
     _a = Path("src/scripts/artifacts")
-    parser.add_argument("--data",           type=Path, default=_a / "marafone_dataset.csv")
+    parser.add_argument("--data",           type=Path, default=_a / "marafone_dataset.parquet")
     parser.add_argument("--model-out",      type=Path, default=_a / "marafone_model.joblib")
     parser.add_argument("--importance-out", type=Path, default=_a / "marafone_importance.csv")
     parser.add_argument("--test-size",   type=float, default=0.2)

@@ -68,7 +68,10 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_raw(path: Path) -> pd.DataFrame:
     log.info("Loading %s …", path)
-    df = pd.read_csv(path, low_memory=False)
+    if path.suffix == ".parquet":
+        df = pd.read_parquet(path)
+    else:
+        df = pd.read_csv(path, low_memory=False)
     log.info("  %d rows × %d columns", len(df), len(df.columns))
     return df
 
@@ -492,8 +495,8 @@ def main() -> None:
         description="Analisi strategie modello XGBoost Marafone"
     )
     parser.add_argument("--data",  type=Path,
-                        default=_a / "marafone_dataset.csv",
-                        help="CSV di test/analisi")
+                        default=_a / "marafone_dataset.parquet",
+                        help="Dataset di test/analisi (Parquet o CSV)")
     parser.add_argument("--model", type=Path,
                         default=_a / "marafone_model.joblib",
                         help="Modello allenato (.joblib)")

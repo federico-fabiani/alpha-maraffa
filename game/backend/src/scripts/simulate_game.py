@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import csv
 import logging
 import multiprocessing
 import os
@@ -11,6 +10,10 @@ import tempfile
 from math import floor
 from pathlib import Path
 from typing import Dict, List, Optional
+
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 import aimaraffa.engine as eng
 from aimaraffa.engine import (
@@ -42,7 +45,7 @@ for _s in _SUITS:
         _HISTORY_TEMPLATE[f"hist_{_s}_{_r}_decl"] = ""
 
 # Pre-computed field name list (avoid rebuilding on every worker spawn)
-_FIELDNAMES: List[str] = (
+_FIELDNAMES: List[str] = (  # noqa: E501
     [
         "game_id", "round_num", "turn_num", "play_order",
         "seat", "team", "briscola_suit", "briscola_selector_seat",
@@ -66,6 +69,53 @@ _FIELDNAMES: List[str] = (
         "round_pts_player_team", "round_pts_diff",
     ]
 )
+
+# Optimal dtypes per column — eliminates float64 bloat (11 GB → ~1 GB in RAM)
+_DTYPE_MAP: Dict[str, str] = {
+    "game_id":                 "category",
+    "round_num":               "int8",
+    "turn_num":                "int8",
+    "play_order":              "int8",
+    "seat":                    "int8",
+    "team":                    "int8",
+    "briscola_suit":           "category",
+    "briscola_selector_seat":  "int8",
+    "card_rank":               "int8",
+    "card_is_briscola":        "int8",
+    "card_is_lead":            "int8",
+    "is_lead":                 "int8",
+    "lead_suit":               "category",
+    "declaration":             "category",
+    "table_0_rank":            "int8",  # -1 = empty slot
+    "table_0_is_briscola":     "int8",
+    "table_0_is_lead":         "int8",
+    "table_0_seat":            "int8",
+    "table_1_rank":            "int8",
+    "table_1_is_briscola":     "int8",
+    "table_1_is_lead":         "int8",
+    "table_1_seat":            "int8",
+    "table_2_rank":            "int8",
+    "table_2_is_briscola":     "int8",
+    "table_2_is_lead":         "int8",
+    "table_2_seat":            "int8",
+    "round_score_t1":          "float32",
+    "round_score_t2":          "float32",
+    "total_score_t1":          "int16",
+    "total_score_t2":          "int16",
+    **{f"hand_briscola_{r}":      "int8" for r in _RANKS},
+    **{f"hand_lead_{r}":          "int8" for r in _RANKS},
+    **{f"hand_other_{r}_count":   "int8" for r in _RANKS},
+    **{f"hist_{s}_{r}_seat":      "int8" for s in _SUITS for r in _RANKS},
+    **{f"hist_{s}_{r}_turn":      "int8" for s in _SUITS for r in _RANKS},
+    **{f"hist_{s}_{r}_decl":  "category" for s in _SUITS for r in _RANKS},
+    "turn_winner_seat":         "int8",
+    "turn_winner_team":         "int8",
+    "turn_pts":                 "float32",
+    "round_pts_t1":             "int8",
+    "round_pts_t2":             "int8",
+    "round_pts_player_team":    "int8",
+    "round_pts_diff":           "int16",
+}
 
 
 # ── Feature helpers ────────────────────────────────────────────────────────────
@@ -154,7 +204,7 @@ class GameTracker:
 
             def _tslot(i):
                 if len(prev) <= i:
-                    return {"rank": None, "is_briscola": None, "is_lead": None, "seat": None}
+                    return {"rank": -1, "is_briscola": -1, "is_lead": -1, "seat": -1}
                 ib, il = _suit_role(prev[i]["card"]["suit"], self._briscola, lead_suit)
                 return {"rank": prev[i]["card"]["rank"], "is_briscola": ib, "is_lead": il,
                         "seat": prev[i]["seat"]}
@@ -369,22 +419,28 @@ async def simulate_one(game_id: str, tracker: GameTracker, verbose: bool) -> Non
     await room.run_game_loop()
 
 
+def _rows_to_table(rows: list) -> pa.Table:
+    """Convert a list of row dicts to a typed PyArrow Table."""
+    df = pd.DataFrame(rows, columns=_FIELDNAMES)
+    for col, dtype in _DTYPE_MAP.items():
+        if col in df.columns:
+            df[col] = df[col].astype(dtype)
+    return pa.Table.from_pandas(df, preserve_index=False)
+
+
 def _simulate_batch(args: tuple) -> str:
-    """Worker: simulate a batch of games, write rows to a temp CSV, return the path."""
+    """Worker: simulate a batch of games, write rows to a temp Parquet file, return the path."""
     game_ids, _verbose, tmp_path = args
-    with open(tmp_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=_FIELDNAMES)
-        for gid in game_ids:
-            tracker = GameTracker(gid)
-            simulate_one_sync(gid, tracker)
-            writer.writerows(tracker.rows)
+    rows: list = []
+    for gid in game_ids:
+        tracker = GameTracker(gid)
+        simulate_one_sync(gid, tracker)
+        rows.extend(tracker.rows)
+    pq.write_table(_rows_to_table(rows), tmp_path, compression="snappy")
     return tmp_path
 
 
 def run(n_games: int, output: Path, verbose: bool, workers: int = 0) -> None:
-    fieldnames = _fieldnames()
-    write_header = not output.exists() or output.stat().st_size == 0
-
     n_workers = min(workers or os.cpu_count() or 1, n_games)
     # Small batches: better load balancing; workers return only a file path via IPC
     batch_size = max(1, min(500, (n_games + n_workers - 1) // n_workers))
@@ -394,29 +450,33 @@ def run(n_games: int, output: Path, verbose: bool, workers: int = 0) -> None:
         (
             [f"G{j:07d}" for j in range(start, min(start + batch_size, n_games))],
             verbose and start == 0,
-            str(tmp_dir / f"batch_{i:05d}.csv"),
+            str(tmp_dir / f"batch_{i:05d}.parquet"),
         )
         for i, start in enumerate(range(0, n_games, batch_size))
     ]
 
     games_done = 0
-    with output.open("a", newline="", encoding="utf-8") as out_f:
-        if write_header:
-            out_f.write(",".join(fieldnames) + "\n")
-
+    parquet_writer: pq.ParquetWriter | None = None
+    try:
         if len(batches) > 1:
             with multiprocessing.Pool(processes=n_workers) as pool:
                 for tmp_path in pool.imap_unordered(_simulate_batch, batches):
-                    p = Path(tmp_path)
-                    out_f.write(p.read_text(encoding="utf-8"))
-                    p.unlink()
+                    table = pq.read_table(tmp_path)
+                    if parquet_writer is None:
+                        parquet_writer = pq.ParquetWriter(str(output), table.schema, compression="snappy")
+                    parquet_writer.write_table(table)
+                    Path(tmp_path).unlink()
                     games_done = min(games_done + batch_size, n_games)
                     logger.info("Progress: %d/%d games", games_done, n_games)
         else:
             tmp_path = _simulate_batch(batches[0])
-            p = Path(tmp_path)
-            out_f.write(p.read_text(encoding="utf-8"))
-            p.unlink()
+            table = pq.read_table(tmp_path)
+            parquet_writer = pq.ParquetWriter(str(output), table.schema, compression="snappy")
+            parquet_writer.write_table(table)
+            Path(tmp_path).unlink()
+    finally:
+        if parquet_writer is not None:
+            parquet_writer.close()
 
     tmp_dir.rmdir()
     logger.info("Done. %d games → %s", n_games, output)
@@ -427,8 +487,8 @@ def main() -> None:
     parser.add_argument("--games",   type=int,  default=1,
                         help="Number of games to simulate (default: 1)")
     parser.add_argument("--output",  type=Path,
-                        default=Path("src/scripts/artifacts/marafone_dataset.csv"),
-                        help="Output CSV path (appends if file exists)")
+                        default=Path("src/scripts/artifacts/marafone_dataset.parquet"),
+                        help="Output Parquet path")
     parser.add_argument("--verbose", action="store_true",
                         help="Print play-by-play log for the first game")
     parser.add_argument("--workers", type=int, default=0,

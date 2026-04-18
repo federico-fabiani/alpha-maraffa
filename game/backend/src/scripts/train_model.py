@@ -11,6 +11,13 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 
+try:
+    import cudf
+    import cudf.pandas  # noqa: F401
+    _CUDF_AVAILABLE = True
+except ImportError:
+    _CUDF_AVAILABLE = False
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -69,9 +76,15 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def load(path: Path) -> tuple[pd.DataFrame, pd.Series]:
-    logger.info("Loading %s …", path)
-    df = pd.read_csv(path, low_memory=False)
+def load(path: Path, use_gpu: bool = False) -> tuple[pd.DataFrame, pd.Series]:
+    if use_gpu and _CUDF_AVAILABLE:
+        logger.info("Loading %s with cuDF (GPU) …", path)
+        df = cudf.read_csv(path).to_pandas()
+    else:
+        if use_gpu and not _CUDF_AVAILABLE:
+            logger.warning("cuDF not available — falling back to pandas for CSV loading")
+        logger.info("Loading %s …", path)
+        df = pd.read_csv(path, low_memory=False)
     logger.info("  %d rows × %d columns", len(df), len(df.columns))
 
     y = df[TARGET].astype(np.float32)
@@ -81,13 +94,18 @@ def load(path: Path) -> tuple[pd.DataFrame, pd.Series]:
     return df, y, game_ids
 
 
+
+
 # ── Training ───────────────────────────────────────────────────────────────────
 
 def train(data: Path, model_out: Path, importance_out: Path,
           test_size: float, n_estimators: int, learning_rate: float,
-          max_depth: int, subsample: float) -> None:
+          max_depth: int, subsample: float, device: str = "cpu") -> None:
 
-    X, y, game_ids = load(data)
+    use_gpu = device == "cuda"
+    if use_gpu:
+        logger.info("GPU mode: device=cuda%s", " + cuDF" if _CUDF_AVAILABLE else " (cuDF not available)")
+    X, y, game_ids = load(data, use_gpu=use_gpu)
 
     # Split by game_id so rows from the same game stay in the same fold
     unique_games = game_ids.unique()
@@ -118,8 +136,8 @@ def train(data: Path, model_out: Path, importance_out: Path,
         tree_method="hist",
         enable_categorical=True,
         early_stopping_rounds=50,       # XGBoost 2+ takes this in the constructor
-        device="cpu",
-        n_jobs=-1,
+        device=device,
+        n_jobs=-1 if device == "cpu" else 1,   # n_jobs ignored on GPU, avoid warning
         random_state=42,
         eval_metric="rmse",
     )
@@ -166,6 +184,9 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--max-depth",   type=int,   default=6)
     parser.add_argument("--subsample",   type=float, default=0.8)
+    parser.add_argument("--device",      type=str,   default="cuda",
+                        choices=["cpu", "cuda"],
+                        help="XGBoost device: 'cuda' for GPU (default), 'cpu' for CPU")
     args = parser.parse_args()
 
     train(
@@ -177,6 +198,7 @@ def main() -> None:
         learning_rate=args.learning_rate,
         max_depth=args.max_depth,
         subsample=args.subsample,
+        device=args.device,
     )
 
 

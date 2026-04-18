@@ -40,7 +40,7 @@ for _r in _RANKS:
 _HISTORY_TEMPLATE: dict = {}
 for _s in _SUITS:
     for _r in _RANKS:
-        _HISTORY_TEMPLATE[f"hist_{_s}_{_r}_seat"] = -1
+        _HISTORY_TEMPLATE[f"hist_{_s}_{_r}_is_my_team"] = -1  # -1 = not yet played
         _HISTORY_TEMPLATE[f"hist_{_s}_{_r}_turn"] = -1
         _HISTORY_TEMPLATE[f"hist_{_s}_{_r}_decl"] = ""
 
@@ -48,21 +48,24 @@ for _s in _SUITS:
 _FIELDNAMES: List[str] = (  # noqa: E501
     [
         "game_id", "round_num", "turn_num", "play_order",
-        "seat", "team", "briscola_suit", "briscola_selector_seat",
+        "seat", "team", "briscola_suit", "briscola_selector_is_my_team",
         "card_rank", "card_is_briscola", "card_is_lead",
         "is_lead", "lead_suit", "declaration",
-        "table_0_rank", "table_0_is_briscola", "table_0_is_lead", "table_0_seat",
-        "table_1_rank", "table_1_is_briscola", "table_1_is_lead", "table_1_seat",
-        "table_2_rank", "table_2_is_briscola", "table_2_is_lead", "table_2_seat",
+        "table_0_rank", "table_0_is_briscola", "table_0_is_lead", "table_0_is_my_team",
+        "table_1_rank", "table_1_is_briscola", "table_1_is_lead", "table_1_is_my_team",
+        "table_2_rank", "table_2_is_briscola", "table_2_is_lead", "table_2_is_my_team",
         "round_score_t1", "round_score_t2",
         "total_score_t1", "total_score_t2",
     ] +
     [f"hand_briscola_{r}" for r in _RANKS] +
     [f"hand_lead_{r}"     for r in _RANKS] +
     [f"hand_other_{r}_count" for r in _RANKS] +
-    [f"hist_{s}_{r}_seat" for s in _SUITS for r in _RANKS] +
+    [f"hist_{s}_{r}_is_my_team" for s in _SUITS for r in _RANKS] +
     [f"hist_{s}_{r}_turn" for s in _SUITS for r in _RANKS] +
     [f"hist_{s}_{r}_decl" for s in _SUITS for r in _RANKS] +
+    [
+        "partner_suit_status", "opp_left_suit_status", "opp_right_suit_status",
+    ] +
     [
         "turn_winner_seat", "turn_winner_team", "turn_pts",
         "round_pts_t1", "round_pts_t2",
@@ -79,7 +82,7 @@ _DTYPE_MAP: Dict[str, str] = {
     "seat":                    "int8",
     "team":                    "int8",
     "briscola_suit":           "category",
-    "briscola_selector_seat":  "int8",
+    "briscola_selector_is_my_team": "int8",  # 1=my team selected, 0=opponent, computed per row
     "card_rank":               "int8",
     "card_is_briscola":        "int8",
     "card_is_lead":            "int8",
@@ -89,15 +92,15 @@ _DTYPE_MAP: Dict[str, str] = {
     "table_0_rank":            "int8",  # -1 = empty slot
     "table_0_is_briscola":     "int8",
     "table_0_is_lead":         "int8",
-    "table_0_seat":            "int8",
+    "table_0_is_my_team":      "int8",  # 1=my team, 0=opponent, -1=empty
     "table_1_rank":            "int8",
     "table_1_is_briscola":     "int8",
     "table_1_is_lead":         "int8",
-    "table_1_seat":            "int8",
+    "table_1_is_my_team":      "int8",
     "table_2_rank":            "int8",
     "table_2_is_briscola":     "int8",
     "table_2_is_lead":         "int8",
-    "table_2_seat":            "int8",
+    "table_2_is_my_team":      "int8",
     "round_score_t1":          "float32",
     "round_score_t2":          "float32",
     "total_score_t1":          "int16",
@@ -105,9 +108,12 @@ _DTYPE_MAP: Dict[str, str] = {
     **{f"hand_briscola_{r}":      "int8" for r in _RANKS},
     **{f"hand_lead_{r}":          "int8" for r in _RANKS},
     **{f"hand_other_{r}_count":   "int8" for r in _RANKS},
-    **{f"hist_{s}_{r}_seat":      "int8" for s in _SUITS for r in _RANKS},
+    **{f"hist_{s}_{r}_is_my_team": "int8" for s in _SUITS for r in _RANKS},
     **{f"hist_{s}_{r}_turn":      "int8" for s in _SUITS for r in _RANKS},
     **{f"hist_{s}_{r}_decl":  "category" for s in _SUITS for r in _RANKS},
+    "partner_suit_status":      "category",
+    "opp_left_suit_status":     "category",
+    "opp_right_suit_status":    "category",
     "turn_winner_seat":         "int8",
     "turn_winner_team":         "int8",
     "turn_pts":                 "float32",
@@ -148,15 +154,51 @@ def _hand_features(hand: List[dict], briscola: str, lead: str) -> Dict[str, int]
     return feat
 
 
-def _history_features(played: Dict[str, tuple]) -> dict:
-    """Seat, turn, and declaration for each card (-1/'' = not yet played).
-    History keeps absolute suit identity — needed for card counting across turns."""
+def _history_features(played: Dict[str, tuple], my_team: int) -> dict:
+    """Team-relative history: who played each card (1=my team, 0=opponent, -1=not played)."""
     feat = _HISTORY_TEMPLATE.copy()
     for key, (seat, turn, decl) in played.items():
-        feat[f"hist_{key}_seat"] = seat
+        feat[f"hist_{key}_is_my_team"] = int(_TEAM[seat] == my_team)
         feat[f"hist_{key}_turn"] = turn
         feat[f"hist_{key}_decl"] = decl
     return feat
+
+
+def _suit_status_features(
+    seat: int,
+    lead_suit: str,
+    played: Dict[str, tuple],
+) -> dict:
+    """Derive suit status for partner and opponents from declarations in round history.
+
+    Values: 'void' (volo declared), 'has' (striscio declared),
+            'busso' (busso declared — implies has + strategic invitation),
+            'unknown' (no declaration for this suit yet).
+
+    volo is permanent within a round and takes precedence over earlier declarations.
+    """
+    partner_seat   = (seat + 2) % 4
+    opp_left_seat  = (seat + 1) % 4
+    opp_right_seat = (seat + 3) % 4
+
+    def _status(target_seat: int) -> str:
+        decls = [
+            (turn, decl)
+            for key, (s, turn, decl) in played.items()
+            if s == target_seat and key.rsplit("_", 1)[0] == lead_suit and decl
+        ]
+        if not decls:
+            return "unknown"
+        if any(d == "volo" for _, d in decls):
+            return "void"
+        _, latest = max(decls, key=lambda x: x[0])
+        return "has" if latest == "striscio" else "busso"
+
+    return {
+        "partner_suit_status":   _status(partner_seat),
+        "opp_left_suit_status":  _status(opp_left_seat),
+        "opp_right_suit_status": _status(opp_right_seat),
+    }
 
 
 def _fieldnames() -> List[str]:
@@ -200,14 +242,15 @@ class GameTracker:
             card       = d["card"]
             prev       = table[:play_order]  # cards on table before this play
 
+            current_team = _TEAM[d["seat"]]
             cib, cil = _suit_role(card["suit"], self._briscola, lead_suit)
 
             def _tslot(i):
                 if len(prev) <= i:
-                    return {"rank": -1, "is_briscola": -1, "is_lead": -1, "seat": -1}
+                    return {"rank": -1, "is_briscola": -1, "is_lead": -1, "is_my_team": -1}
                 ib, il = _suit_role(prev[i]["card"]["suit"], self._briscola, lead_suit)
                 return {"rank": prev[i]["card"]["rank"], "is_briscola": ib, "is_lead": il,
-                        "seat": prev[i]["seat"]}
+                        "is_my_team": int(_TEAM[prev[i]["seat"]] == current_team)}
 
             t0, t1, t2 = _tslot(0), _tslot(1), _tslot(2)
 
@@ -217,9 +260,9 @@ class GameTracker:
                 "turn_num": self._turns_done + 1,
                 "play_order": play_order,
                 "seat": d["seat"],
-                "team": 1 if d["seat"] in (0, 2) else 2,
+                "team": current_team,
                 "briscola_suit": self._briscola,
-                "briscola_selector_seat": self._briscola_selector,
+                "briscola_selector_is_my_team": int(_TEAM[self._briscola_selector] == current_team),
                 "card_rank": card["rank"],
                 "card_is_briscola": cib,
                 "card_is_lead": cil,
@@ -227,17 +270,18 @@ class GameTracker:
                 "lead_suit": lead_suit,
                 "declaration": d.get("declaration") or "",
                 "table_0_rank": t0["rank"], "table_0_is_briscola": t0["is_briscola"],
-                "table_0_is_lead": t0["is_lead"], "table_0_seat": t0["seat"],
+                "table_0_is_lead": t0["is_lead"], "table_0_is_my_team": t0["is_my_team"],
                 "table_1_rank": t1["rank"], "table_1_is_briscola": t1["is_briscola"],
-                "table_1_is_lead": t1["is_lead"], "table_1_seat": t1["seat"],
+                "table_1_is_lead": t1["is_lead"], "table_1_is_my_team": t1["is_my_team"],
                 "table_2_rank": t2["rank"], "table_2_is_briscola": t2["is_briscola"],
-                "table_2_is_lead": t2["is_lead"], "table_2_seat": t2["seat"],
+                "table_2_is_lead": t2["is_lead"], "table_2_is_my_team": t2["is_my_team"],
                 "round_score_t1": round(self._round_scores[1], 2),
                 "round_score_t2": round(self._round_scores[2], 2),
                 "total_score_t1": self._total_scores[1],
                 "total_score_t2": self._total_scores[2],
                 **_hand_features(d.get("hand_before", []), self._briscola, lead_suit),
-                **_history_features(self._round_history),
+                **_history_features(self._round_history, current_team),
+                **_suit_status_features(d["seat"], lead_suit, self._round_history),
                 # filled retroactively
                 "turn_winner_seat": None,
                 "turn_winner_team": None,
@@ -304,11 +348,12 @@ async def _log_event(msg: dict) -> None:
 
 # ── Simulation runner ──────────────────────────────────────────────────────────
 
-def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
+def simulate_one_sync(game_id: str, tracker: GameTracker, agent=None) -> None:
     """Pure synchronous game simulation — no asyncio overhead."""
     total_scores: Dict[int, int] = {1: 0, 2: 0}
     hands: Dict[int, list] = {}
     briscola_selector: Optional[int] = None
+    round_num = 0
 
     while max(total_scores.values()) < GAME_WIN_THRESHOLD:
         # Deal cards
@@ -324,7 +369,23 @@ def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
                     briscola_selector = s
                     break
 
-        briscola = bot_select_briscola(hands[briscola_selector])
+        round_num += 1
+
+        if agent is not None:
+            agent.reset_round()
+            briscola = agent.select_briscola({
+                "seat": briscola_selector,
+                "round_num": round_num,
+                "turn_num": 0,
+                "briscola_selector_seat": briscola_selector,
+                "table_cards": [],
+                "round_scores": {1: 0.0, 2: 0.0},
+                "total_scores": dict(total_scores),
+                "hand": hands[briscola_selector],
+            })
+        else:
+            briscola = bot_select_briscola(hands[briscola_selector])
+
         tracker.on_event({"type": "briscola_set", "data": {
             "suit": briscola.value,
             "by_seat": briscola_selector,
@@ -340,7 +401,8 @@ def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
         round_scores: Dict[int, float] = {1: 0.0, 2: 0.0}
         first = briscola_selector
 
-        for _ in range(10):
+        for turn_idx in range(10):
+            turn_num = turn_idx + 1
             idx = _SEATS.index(first)
             order = _SEATS[idx:] + _SEATS[:idx]
 
@@ -348,12 +410,28 @@ def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
             table_dicts:  list = []   # {"seat": s, "card": {"suit": ..., "rank": ...}}
 
             for i, seat in enumerate(order):
-                lead_suit_obj = table_tuples[0][1].suit if table_tuples else None
-
                 hand_before = [{"suit": c.suit.value, "rank": c.rank} for c in hands[seat]]
-                card, decl = bot_select_card(hands[seat], lead_suit_obj, briscola)
+
+                if agent is not None:
+                    card, decl = agent.select_card({
+                        "seat": seat,
+                        "round_num": round_num,
+                        "turn_num": turn_num,
+                        "briscola_selector_seat": briscola_selector,
+                        "table_cards": list(table_tuples),
+                        "round_scores": {k: round(v, 2) for k, v in round_scores.items()},
+                        "total_scores": dict(total_scores),
+                        "hand": hands[seat],
+                    }, briscola)
+                else:
+                    lead_suit_obj = table_tuples[0][1].suit if table_tuples else None
+                    card, decl = bot_select_card(hands[seat], lead_suit_obj, briscola)
+
                 hands[seat].remove(card)
                 declaration = decl if i == 0 else None
+
+                if agent is not None:
+                    agent.record_card(card, seat, turn_num, declaration)
 
                 card_dict = {"suit": card.suit.value, "rank": card.rank}
                 table_tuples.append((seat, card))
@@ -428,22 +506,39 @@ def _rows_to_table(rows: list) -> pa.Table:
     return pa.Table.from_pandas(df, preserve_index=False)
 
 
+# Per-worker ML agent — set once by _init_worker, reused across batches in the same process
+_worker_agent = None
+
+
+def _init_worker(model_path: Optional[str]) -> None:
+    global _worker_agent
+    if model_path:
+        from aimaraffa.ml_agent import MLAgent
+        _worker_agent = MLAgent(Path(model_path))
+        logger.info("Worker: MLAgent loaded from %s", model_path)
+
+
 def _simulate_batch(args: tuple) -> str:
     """Worker: simulate a batch of games, write rows to a temp Parquet file, return the path."""
     game_ids, _verbose, tmp_path = args
     rows: list = []
     for gid in game_ids:
         tracker = GameTracker(gid)
-        simulate_one_sync(gid, tracker)
+        simulate_one_sync(gid, tracker, agent=_worker_agent)
         rows.extend(tracker.rows)
     pq.write_table(_rows_to_table(rows), tmp_path, compression="snappy")
     return tmp_path
 
 
-def run(n_games: int, output: Path, verbose: bool, workers: int = 0) -> None:
+def run(n_games: int, output: Path, verbose: bool, workers: int = 0,
+        model: Optional[Path] = None) -> None:
     n_workers = min(workers or os.cpu_count() or 1, n_games)
     # Small batches: better load balancing; workers return only a file path via IPC
     batch_size = max(1, min(500, (n_games + n_workers - 1) // n_workers))
+
+    model_str = str(model) if model else None
+    if model_str:
+        logger.info("ML bot enabled: %s", model_str)
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="maraffa_sim_"))
     batches = [
@@ -459,7 +554,11 @@ def run(n_games: int, output: Path, verbose: bool, workers: int = 0) -> None:
     parquet_writer: pq.ParquetWriter | None = None
     try:
         if len(batches) > 1:
-            with multiprocessing.Pool(processes=n_workers) as pool:
+            with multiprocessing.Pool(
+                processes=n_workers,
+                initializer=_init_worker,
+                initargs=(model_str,),
+            ) as pool:
                 for tmp_path in pool.imap_unordered(_simulate_batch, batches):
                     table = pq.read_table(tmp_path)
                     if parquet_writer is None:
@@ -469,6 +568,7 @@ def run(n_games: int, output: Path, verbose: bool, workers: int = 0) -> None:
                     games_done = min(games_done + batch_size, n_games)
                     logger.info("Progress: %d/%d games", games_done, n_games)
         else:
+            _init_worker(model_str)  # set _worker_agent for single-process path
             tmp_path = _simulate_batch(batches[0])
             table = pq.read_table(tmp_path)
             parquet_writer = pq.ParquetWriter(str(output), table.schema, compression="snappy")
@@ -493,8 +593,10 @@ def main() -> None:
                         help="Print play-by-play log for the first game")
     parser.add_argument("--workers", type=int, default=0,
                         help="Parallel worker processes (default: CPU count)")
+    parser.add_argument("--model", type=Path, default=None,
+                        help="Trained model (.joblib) for ML self-play (default: random bot)")
     args = parser.parse_args()
-    run(args.games, args.output, args.verbose, args.workers)
+    run(args.games, args.output, args.verbose, args.workers, args.model)
 
 
 if __name__ == "__main__":

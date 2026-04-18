@@ -32,7 +32,6 @@ _DROP = {
 }
 _SUITS = ["bastoni", "coppe", "denara", "spade"]
 _DECLS = ["busso", "striscio", "volo"]
-_SEATS = [0, 1, 2, 3]
 _RANKS = list(range(1, 11))
 
 # Point value per rank (game rule)
@@ -52,15 +51,6 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
     for col in decl_cols:
         if col in df.columns:
             df[col] = pd.Categorical(df[col], categories=_DECLS)
-    seat_cols = (
-        ["seat", "briscola_selector_seat"]
-        + [c for c in df.columns if c.startswith("table_") and c.endswith("_seat")]
-        + [c for c in df.columns if c.startswith("hist_")  and c.endswith("_seat")]
-    )
-    for col in seat_cols:
-        if col in df.columns:
-            s = pd.to_numeric(df[col], errors="coerce")
-            df[col] = pd.Categorical(s.where(s >= 0), categories=_SEATS)
     for col in [c for c in df.columns if c.startswith("table_") and c.endswith("_rank")]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
@@ -283,7 +273,7 @@ def section_briscola_selection(df: pd.DataFrame) -> str:
 def section_declarations(df: pd.DataFrame) -> str:
     """Frequency and outcome of declarations."""
     leads = df[df["is_lead"] == 1].copy()
-    leads["decl_label"] = leads["declaration"].fillna("").replace("", "nessuna")
+    leads["decl_label"] = leads["declaration"].astype(str).replace({"": "nessuna", "nan": "nessuna"})
 
     stats = (leads.groupby("decl_label")[TARGET]
                   .agg(media="mean", std="std", n="count")

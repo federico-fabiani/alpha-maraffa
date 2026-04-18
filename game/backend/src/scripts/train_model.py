@@ -26,6 +26,7 @@ TARGET = "round_pts_diff"   # points_my_team - points_opponent_team in this roun
 # Columns excluded from features: identifiers, same-turn outcomes (leak), target components
 _DROP = {
     "game_id",
+    "seat",                                               # redundant with team; causes seat-identity bias
     "turn_winner_seat", "turn_winner_team", "turn_pts",   # outcome of the same turn
     "round_pts_t1", "round_pts_t2",                       # target components
     "round_pts_player_team",                              # target component
@@ -33,9 +34,9 @@ _DROP = {
 }
 
 # Fixed category lists — unordered, no arithmetic meaning
-_SUITS = ["bastoni", "coppe", "denara", "spade"]
-_DECLS = ["busso", "striscio", "volo"]   # NaN = no declaration / not lead
-_SEATS = [0, 1, 2, 3]                    # NaN = not applicable (no card played yet)
+_SUITS        = ["bastoni", "coppe", "denara", "spade"]
+_DECLS        = ["busso", "striscio", "volo"]   # NaN = no declaration / not lead
+_SUIT_STATUS  = ["busso", "has", "unknown", "void"]  # derived suit-status features
 
 
 # ── Preprocessing ──────────────────────────────────────────────────────────────
@@ -45,10 +46,7 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Unordered suits — only reference-frame cols remain (card/table suits are now role-encoded)
-    suit_cols = (
-        ["briscola_suit", "lead_suit"]
-    )
-    for col in suit_cols:
+    for col in ["briscola_suit", "lead_suit"]:
         if col in df.columns:
             df[col] = pd.Categorical(df[col], categories=_SUITS)
 
@@ -58,16 +56,10 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = pd.Categorical(df[col], categories=_DECLS)
 
-    # Seat numbers: {0,2}=team1 {1,3}=team2 — no ordinal meaning, NaN = not applicable
-    seat_cols = (
-        ["seat", "briscola_selector_seat"]
-        + [c for c in df.columns if c.startswith("table_") and c.endswith("_seat")]
-        + [c for c in df.columns if c.startswith("hist_")  and c.endswith("_seat")]
-    )
-    for col in seat_cols:
+    # Suit-status features decoded from partner/opponent declarations
+    for col in ["partner_suit_status", "opp_left_suit_status", "opp_right_suit_status"]:
         if col in df.columns:
-            s = pd.to_numeric(df[col], errors="coerce")
-            df[col] = pd.Categorical(s.where(s >= 0), categories=_SEATS)
+            df[col] = pd.Categorical(df[col], categories=_SUIT_STATUS)
 
     # table_*_rank may be NaN (no card on table yet) — leave as float, NaN handled natively
     for col in [c for c in df.columns if c.startswith("table_") and c.endswith("_rank")]:

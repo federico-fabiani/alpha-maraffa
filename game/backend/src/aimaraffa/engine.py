@@ -132,6 +132,22 @@ def get_valid_cards(hand: List[Card], lead_suit: Optional[Suit]) -> List[Card]:
     return matching if matching else hand.copy()
 
 
+def get_valid_declarations(
+    hand_after_play: List[Card],
+    lead_card_suit: Suit,
+) -> List[Optional[str]]:
+    """Return valid declarations for the player opening a trick.
+
+    striscio/volo encode factual hand state and must be truthful; busso is a
+    strategic invitation and is always valid.  Caller passes the hand *after*
+    removing the played card so the remaining suit count is correct.
+    """
+    remaining = sum(1 for c in hand_after_play if c.suit == lead_card_suit)
+    decls: List[Optional[str]] = [None, "busso"]
+    decls.append("striscio" if remaining > 0 else "volo")
+    return decls
+
+
 def determine_turn_winner(seat_cards: List[Tuple[int, Card]], briscola: Suit) -> int:
     """Return the seat number of the player who wins this turn."""
     lead_suit = seat_cards[0][1].suit
@@ -159,11 +175,12 @@ def bot_select_briscola(hand: List[Card]) -> Suit:
 def bot_select_card(
     hand: List[Card], lead_suit: Optional[Suit], briscola: Suit
 ) -> Tuple[Card, Optional[str]]:
-    """Bot AI: play a random valid card; when leading, emit busso/striscio/volo."""
+    """Bot AI: play a random valid card with a valid declaration."""
     card = random.choice(get_valid_cards(hand, lead_suit))
     if lead_suit is not None:
         return card, None
-    return card, random.choice(list(_VALID_DECLARATIONS) + [None])
+    hand_after = [c for c in hand if c != card]
+    return card, random.choice(get_valid_declarations(hand_after, card.suit))
 
 # ── Room entities ──────────────────────────────────────────────────────────────
 

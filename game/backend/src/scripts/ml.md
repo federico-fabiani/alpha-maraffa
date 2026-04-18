@@ -2,9 +2,15 @@
 
 uv run python -m scripts.simulate_game --games 100000 --output src/scripts/artifacts/marafone_dataset.csv --workers 16
 
+uv run python -m scripts.simulate_game
+    --games 10000
+    --model src/scripts/artifacts/marafone_model.joblib
+    --output src/scripts/artifacts/marafone_dataset_v2.parquet
+    --workers 16
+
 # 2. Allena il modello
 
-uv run python -m scripts.train_model --data src/scripts/artifacts/marafone_dataset.csv
+uv run python -m scripts.train_model --data src/scripts/artifacts/marafone_dataset.parquet
 
 # 3. Analisi strategie (report Markdown)
 

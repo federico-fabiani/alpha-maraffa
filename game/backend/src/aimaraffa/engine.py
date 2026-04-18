@@ -408,9 +408,9 @@ class GameRoom:
         })
 
         next_first: Optional[int] = None
-        while max(self.total_scores.values()) <= GAME_WIN_THRESHOLD:
+        while max(self.total_scores.values()) < GAME_WIN_THRESHOLD:
             await self._round(next_first)
-            if max(self.total_scores.values()) > GAME_WIN_THRESHOLD:
+            if max(self.total_scores.values()) >= GAME_WIN_THRESHOLD:
                 break
             seats = sorted(self.slots.keys())
             idx = (seats.index(self.briscola_selector_seat) + 1) % len(seats)

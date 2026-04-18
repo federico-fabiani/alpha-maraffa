@@ -260,7 +260,7 @@ def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
     hands: Dict[int, list] = {}
     briscola_selector: Optional[int] = None
 
-    while max(total_scores.values()) <= GAME_WIN_THRESHOLD:
+    while max(total_scores.values()) < GAME_WIN_THRESHOLD:
         # Deal cards
         deck = Deck()
         deck.shuffle()
@@ -280,6 +280,12 @@ def simulate_one_sync(game_id: str, tracker: GameTracker) -> None:
             "by_seat": briscola_selector,
             "by_name": "",
         }})
+
+        # Maraffa (cricca): selettore ha 1, 2 e 3 di briscola → +3 punti immediati
+        maraffa_cards = [c for c in hands[briscola_selector]
+                         if c.suit == briscola and c.rank in (1, 2, 3)]
+        if len(maraffa_cards) == 3:
+            total_scores[_TEAM[briscola_selector]] += 3
 
         round_scores: Dict[int, float] = {1: 0.0, 2: 0.0}
         first = briscola_selector

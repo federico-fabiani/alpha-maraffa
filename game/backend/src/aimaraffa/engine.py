@@ -209,6 +209,7 @@ class GameRoom:
         self.last_turn_winner_seat: Optional[int] = None
         self.current_declaration: Optional[str] = None
         self.phase = "waiting"
+        self._maraffa_forced: bool = False  # selector must lead with briscola ace
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -225,7 +226,10 @@ class GameRoom:
 
         valid_set: set = set()
         if self.current_player_seat == for_seat and self.phase == "playing":
-            valid_set = {(c.suit.value, c.rank) for c in get_valid_cards(slot.hand, lead_suit)}
+            if self._maraffa_forced and for_seat == self.briscola_selector_seat and lead_suit is None:
+                valid_set = {(self.briscola.value, 1)}
+            else:
+                valid_set = {(c.suit.value, c.rank) for c in get_valid_cards(slot.hand, lead_suit)}
 
         my_hand = [
             {**card_to_dict(c), "playable": (c.suit.value, c.rank) in valid_set}
@@ -349,6 +353,19 @@ class GameRoom:
         only meaningful for the lead player and None for all other players and bots."""
         slot = self.slots[seat]
         lead_suit = self.table_cards[0][1].suit if self.table_cards else None
+
+        # Maraffa rule: briscola selector must open the first trick with the briscola ace
+        if self._maraffa_forced and seat == self.briscola_selector_seat and lead_suit is None:
+            self._maraffa_forced = False
+            forced_card = Card(self.briscola, 1)
+            if slot.is_bot:
+                await asyncio.sleep(BOT_PLAY_DELAY)
+                return forced_card, None
+            # Human: consume their input but silently override the card
+            payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
+            declaration = payload.get("declaration")
+            return forced_card, (declaration if declaration in _VALID_DECLARATIONS else None)
+
         if slot.is_bot:
             await asyncio.sleep(BOT_PLAY_DELAY)
             if USE_ML_BOT and _ml_agent is not None:
@@ -468,6 +485,7 @@ class GameRoom:
         if len(maraffa_cards) == 3:
             maraffa_team = selector_slot.team
             self.total_scores[maraffa_team] += 3
+            self._maraffa_forced = True  # selector must open first trick with the ace
             await self.broadcast({
                 "type": "maraffa",
                 "data": {

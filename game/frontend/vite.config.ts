@@ -18,7 +18,7 @@ export default defineConfig({
         theme_color: '#225522',
         background_color: '#225522',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'landscape',
         lang: 'it',
         icons: [
           { src: '/icons/icon-72x72.png',   sizes: '72x72',   type: 'image/png' },

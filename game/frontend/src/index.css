@@ -171,22 +171,27 @@ body::before {
   pointer-events: none;
 }
 
+.game-bg {
+  background-image: url('./assets/playing_area.png');
+  background-size:80%;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
 .game-stage-ambient {
   position: absolute;
-  inset: -15%;
+  inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 50%, rgba(22, 77, 55, 0.55), transparent 55%),
-    radial-gradient(circle at 30% 70%, rgba(19, 119, 78, 0.28), transparent 42%);
-  filter: blur(18px);
-  animation: ambient-pan 14s ease-in-out infinite;
+    radial-gradient(ellipse at 50% 100%, rgba(60, 25, 5, 0.38), transparent 55%),
+    radial-gradient(ellipse at 50% 0%, rgba(30, 10, 0, 0.30), transparent 45%);
 }
 
 .game-stage-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at center, transparent 36%, rgba(2, 7, 6, 0.66) 100%);
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(10, 4, 2, 0.72) 100%);
 }
 
 /* ── Card face ───────────────────────────────────────────────────────────────── */
@@ -399,23 +404,22 @@ body::before {
 /* ── Table area ─────────────────────────────────────────────────────────────── */
 
 .table-area {
-  background: radial-gradient(circle at 50% 50%, rgba(30, 98, 67, 0.44), rgba(11, 30, 21, 0.8));
-  border: 1px solid rgba(194, 149, 73, 0.3);
-  box-shadow:
-    0 0 0 1px rgba(255, 216, 154, 0.08) inset,
-    0 25px 40px rgba(0, 0, 0, 0.46),
-    0 0 30px rgba(34, 140, 93, 0.15);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  /* Perspective tilt to match the tablecloth's receding angle in the background image */
+  transform: perspective(720px) rotateX(17deg);
+  transform-style: flat;
 }
 
 .table-area-inner {
-  background:
-    radial-gradient(circle at 50% 46%, rgba(38, 125, 85, 0.22), rgba(17, 56, 38, 0.25)),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.028) 0, rgba(255, 255, 255, 0.028) 4px, transparent 4px, transparent 14px);
-  border: 1px solid rgba(255, 236, 190, 0.11);
+  display: none;
 }
 
 .table-card-slot {
-  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.45));
+  filter:
+    drop-shadow(0 10px 18px rgba(0, 0, 0, 0.60))
+    drop-shadow(0 2px 5px rgba(0, 0, 0, 0.40));
 }
 
 /* ── Card back ──────────────────────────────────────────────────────────────── */
@@ -547,11 +551,6 @@ body::before {
   .player-hand {
     transform: scale(0.92);
     transform-origin: bottom center;
-  }
-
-  .table-area {
-    width: 18rem;
-    height: 14rem;
   }
 }
 

@@ -41,7 +41,7 @@ const SIZE: Record<string, { width: string; height: string }> = {
   sm:    { width: 'w-10',        height: 'h-14' },
   md:    { width: 'w-[5.5rem]',  height: 'h-[8.25rem]' },
   lg:    { width: 'w-20',        height: 'h-28' },
-  table: { width: 'w-[4.5rem]',  height: 'h-[6.75rem]' },
+  table: { width: 'w-[8rem]',    height: 'h-[12rem]' },
 }
 
 // ── Card face ──────────────────────────────────────────────────────────────────

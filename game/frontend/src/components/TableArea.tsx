@@ -11,10 +11,10 @@ interface TableAreaProps {
 /** Position offsets for each seat's card on the table (relative to mySeat). */
 function slotStyle(relativeSeat: number): React.CSSProperties {
   switch (relativeSeat) {
-    case 0: return { bottom: '12px',  left: '50%', transform: 'translateX(-50%) rotate(-4deg)' } // me
-    case 1: return { right:  '12px',  top:  '50%', transform: 'translateY(-50%) rotate(6deg)' }  // right
-    case 2: return { top:    '12px',  left: '50%', transform: 'translateX(-50%) rotate(3deg)' }  // opposite
-    case 3: return { left:   '12px',  top:  '50%', transform: 'translateY(-50%) rotate(-6deg)' } // left
+    case 0: return { bottom: '20px',  left: '50%', transform: 'translateX(-50%) rotate(-4deg)' } // me
+    case 1: return { right:  '20px',  top:  '50%', transform: 'translateY(-50%) rotate(6deg)' }  // right
+    case 2: return { top:    '20px',  left: '50%', transform: 'translateX(-50%) rotate(3deg)' }  // opposite
+    case 3: return { left:   '20px',  top:  '50%', transform: 'translateY(-50%) rotate(-6deg)' } // left
     default: return {}
   }
 }
@@ -33,10 +33,10 @@ function slotStyle(relativeSeat: number): React.CSSProperties {
  *   winner 2 → (0, -340)   winner 3 → (-320,  0)
  */
 const COLLECT_VECTORS: Record<number, Record<number, { x: number; y: number }>> = {
-  0: { 0: { x:    0, y:  250 }, 1: { x: -120, y:  340 }, 2: { x:    0, y:  430 }, 3: { x:  120, y:  340 } },
-  1: { 0: { x:  320, y:  -90 }, 1: { x:  200, y:    0 }, 2: { x:  320, y:   90 }, 3: { x:  440, y:    0 } },
-  2: { 0: { x:    0, y: -430 }, 1: { x: -120, y: -340 }, 2: { x:    0, y: -250 }, 3: { x:  120, y: -340 } },
-  3: { 0: { x: -320, y:  -90 }, 1: { x: -440, y:    0 }, 2: { x: -320, y:   90 }, 3: { x: -200, y:    0 } },
+  0: { 0: { x:    0, y:  350 }, 1: { x: -200, y:  480 }, 2: { x:    0, y:  600 }, 3: { x:  200, y:  480 } },
+  1: { 0: { x:  520, y: -140 }, 1: { x:  320, y:    0 }, 2: { x:  520, y:  140 }, 3: { x:  700, y:    0 } },
+  2: { 0: { x:    0, y: -600 }, 1: { x: -200, y: -480 }, 2: { x:    0, y: -350 }, 3: { x:  200, y: -480 } },
+  3: { 0: { x: -520, y: -140 }, 1: { x: -700, y:    0 }, 2: { x: -520, y:  140 }, 3: { x: -320, y:    0 } },
 }
 
 export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaProps) {
@@ -68,10 +68,7 @@ export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaP
   }, [tableCards, mySeat])
 
   return (
-    <div className="table-area relative w-[22rem] h-[17rem] rounded-3xl">
-
-      {/* Felt centre circle */}
-      <div className="absolute inset-4 rounded-2xl table-area-inner" />
+    <div className="table-area relative w-[38rem] h-[28rem]">
 
       {/* Live cards */}
       {tableCards.map(({ seat, card }) => {

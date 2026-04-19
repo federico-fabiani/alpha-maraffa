@@ -220,7 +220,7 @@ export default function GameScreen() {
 
   return (
     <div
-      className="game-stage relative w-full h-full overflow-hidden select-none touch-none"
+      className="game-stage game-bg relative w-full h-full overflow-hidden select-none touch-none"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={() => setDrag(null)}
@@ -289,16 +289,15 @@ export default function GameScreen() {
       </div>
 
       {/* ── Centre table ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ alignItems: 'flex-start', paddingTop: '5%' }}>
         <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
 
       {/* ── Last trick (4 cards cross layout) ── */}
       {lastTrickCards.length > 0 && (
         <div className="absolute top-1/2 left-1/2 -translate-y-1/2 translate-x-[11.5rem] sm:translate-x-[12.5rem] z-20 pointer-events-none">
-          <p className="text-[10px] tracking-[0.12em] uppercase text-felt-500 mb-1.5 pl-1">Ultima presa</p>
+          <p className="text-[10px] tracking-[0.12em] uppercase text-amber-900/70 mb-1.5 pl-1 font-semibold drop-shadow-sm">Ultima presa</p>
           <div className="relative w-28 h-28">
-            <div className="absolute inset-5 rounded-full border border-felt-700/50 bg-felt-900/20" />
             {lastTrickCards.map(({ seat: cardSeat, card }, idx) => {
               const relativeSeat = (cardSeat - seat + 4) % 4
               return (
@@ -331,7 +330,7 @@ export default function GameScreen() {
                   px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all
                   ${pendingDeclaration === d
                     ? 'bg-amber-700/80 border-amber-400/80 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)]'
-                    : 'bg-felt-900/75 border-felt-700/60 text-felt-500 hover:text-amber-400 hover:border-amber-700/50'
+                    : 'bg-stone-900/80 border-stone-600/60 text-stone-400 hover:text-amber-400 hover:border-amber-700/50'
                   }
                 `}
               >
@@ -352,8 +351,8 @@ export default function GameScreen() {
           <div className={`
             px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-lg backdrop-blur-sm
             ${playerBySeat[seat]?.team === 1
-              ? 'border-amber-400/70 text-amber-100 bg-felt-950/85'
-              : 'border-blue-400/70 text-blue-100 bg-felt-950/85'}
+              ? 'border-amber-400/70 text-amber-100 bg-stone-950/85'
+              : 'border-blue-400/70 text-blue-100 bg-stone-950/85'}
             ${isMyTurn ? 'animate-pulse-ring' : ''}
           `}>
             {playerBySeat[seat]?.name}

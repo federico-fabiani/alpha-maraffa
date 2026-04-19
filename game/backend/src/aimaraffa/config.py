@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 _DEFAULT_MODEL = str(
     Path(__file__).resolve().parent.parent
-    / "scripts" / "artifacts" / "marafone_model.joblib"
+    / "scripts" / "artifacts" / "v1" / "marafone_model.joblib"
 )
 
 

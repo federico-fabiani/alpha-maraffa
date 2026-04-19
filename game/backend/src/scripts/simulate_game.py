@@ -532,6 +532,9 @@ def _simulate_batch(args: tuple) -> str:
 
 def run(n_games: int, output: Path, verbose: bool, workers: int = 0,
         model: Optional[Path] = None) -> None:
+    
+    output.parent.mkdir(parents=True, exist_ok=True)
+    
     n_workers = min(workers or os.cpu_count() or 1, n_games)
     # Small batches: better load balancing; workers return only a file path via IPC
     batch_size = max(1, min(500, (n_games + n_workers - 1) // n_workers))

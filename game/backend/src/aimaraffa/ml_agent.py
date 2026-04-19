@@ -6,29 +6,99 @@ from typing import Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
-import pandas as pd
 import xgboost as xgb
 
 from aimaraffa.engine import Card, Suit, get_valid_cards, get_valid_declarations
 
 logger = logging.getLogger(__name__)
 
-_SUITS            = ["bastoni", "denara", "spade", "coppe"]
-_RANKS            = list(range(1, 11))
-_SUIT_CATS        = ["bastoni", "coppe", "denara", "spade"]
-_DECL_CATS        = ["busso", "striscio", "volo"]
-_SUIT_STATUS_CATS = ["busso", "has", "unknown", "void"]
-_TEAM_OF          = {0: 1, 1: 2, 2: 1, 3: 2}
+# ── Categorical encoding ───────────────────────────────────────────────────────
+# Integer codes must match the pd.Categorical(categories=...) order used in training.
+
+_SUITS   = ["bastoni", "denara", "spade", "coppe"]   # history column ordering
+_RANKS   = list(range(1, 11))
+_TEAM_OF = {0: 1, 1: 2, 2: 1, 3: 2}
+
+_SUIT_ENC   = {"bastoni": 0.0, "coppe": 1.0, "denara": 2.0, "spade": 3.0}
+_DECL_ENC   = {"busso": 0.0, "striscio": 1.0, "volo": 2.0}
+_STATUS_ENC = {"busso": 0.0, "has": 1.0, "unknown": 2.0, "void": 3.0}
+
+# ── Feature schema ─────────────────────────────────────────────────────────────
+# Columns in the exact order produced by _FIELDNAMES minus _DROP in simulate_game.py.
+# 'q' = quantitative, 'c' = categorical (XGBoost native categorical splits).
+
+_SCHEMA: List[Tuple[str, str]] = (
+    [
+        ("round_num",                    "q"),
+        ("turn_num",                     "q"),
+        ("play_order",                   "q"),
+        ("team",                         "q"),   # present in pre-v2 models; ignored by v2+
+        ("briscola_suit",                "c"),
+        ("briscola_selector_is_my_team", "q"),
+        ("card_rank",                    "q"),
+        ("card_is_briscola",             "q"),
+        ("card_is_lead",                 "q"),
+        ("is_lead",                      "q"),
+        ("lead_suit",                    "c"),
+        ("declaration",                  "c"),
+        ("table_0_rank",                 "q"),
+        ("table_0_is_briscola",          "q"),
+        ("table_0_is_lead",              "q"),
+        ("table_0_is_my_team",           "q"),
+        ("table_1_rank",                 "q"),
+        ("table_1_is_briscola",          "q"),
+        ("table_1_is_lead",              "q"),
+        ("table_1_is_my_team",           "q"),
+        ("table_2_rank",                 "q"),
+        ("table_2_is_briscola",          "q"),
+        ("table_2_is_lead",              "q"),
+        ("table_2_is_my_team",           "q"),
+        ("round_score_t1",               "q"),
+        ("round_score_t2",               "q"),
+        ("total_score_t1",               "q"),
+        ("total_score_t2",               "q"),
+    ] +
+    [(f"hand_briscola_{r}",    "q") for r in _RANKS] +
+    [(f"hand_lead_{r}",        "q") for r in _RANKS] +
+    [(f"hand_other_{r}_count", "q") for r in _RANKS] +
+    [(f"hist_{s}_{r}_is_my_team", "q") for s in _SUITS for r in _RANKS] +
+    [(f"hist_{s}_{r}_turn",       "q") for s in _SUITS for r in _RANKS] +
+    [(f"hist_{s}_{r}_decl",       "c") for s in _SUITS for r in _RANKS] +
+    [
+        ("partner_suit_status",   "c"),
+        ("opp_left_suit_status",  "c"),
+        ("opp_right_suit_status", "c"),
+    ]
+)
+
+_COL_NAMES: List[str]     = [name  for name, _     in _SCHEMA]
+_COL_TYPES: List[str]     = [ftype for _,    ftype in _SCHEMA]
+_COL_IDX:   Dict[str, int] = {name: i for i, name in enumerate(_COL_NAMES)}
+_N_COLS = len(_COL_NAMES)
+
+# Pre-built template — copied once per candidate row, avoids rebuilding defaults
+_ROW_TEMPLATE: np.ndarray = np.full(_N_COLS, np.nan, dtype=np.float32)
+for _r in _RANKS:
+    _ROW_TEMPLATE[_COL_IDX[f"hand_briscola_{_r}"]]    = 0.0
+    _ROW_TEMPLATE[_COL_IDX[f"hand_lead_{_r}"]]        = 0.0
+    _ROW_TEMPLATE[_COL_IDX[f"hand_other_{_r}_count"]] = 0.0
+for _s in _SUITS:
+    for _r in _RANKS:
+        _ROW_TEMPLATE[_COL_IDX[f"hist_{_s}_{_r}_is_my_team"]] = -1.0
+        _ROW_TEMPLATE[_COL_IDX[f"hist_{_s}_{_r}_turn"]]       = -1.0
+        # hist_*_decl stays NaN — not played → missing category
+for _col in ("partner_suit_status", "opp_left_suit_status", "opp_right_suit_status"):
+    _ROW_TEMPLATE[_COL_IDX[_col]] = _STATUS_ENC["unknown"]
 
 
 class MLAgent:
     """
     Stateful ML bot that mirrors the per-play feature schema used during training.
 
-    Lifecycle per game:
-      - reset_round()         called at the start of every round
-      - record_card(...)      called after every card is played (all seats)
-      - select_briscola(ctx)  called when this bot must choose the briscola suit
+    Lifecycle per round:
+      - reset_round()               called at the start of every round
+      - record_card(...)            called after every card is played (all seats)
+      - select_briscola(ctx)        called when this bot must choose the briscola suit
       - select_card(ctx, briscola)  called when this bot must play a card
     """
 
@@ -51,10 +121,7 @@ class MLAgent:
     # ── Public selectors ───────────────────────────────────────────────────────
 
     def select_briscola(self, ctx: dict) -> Suit:
-        """
-        Choose the best briscola suit by averaging model predictions across all
-        possible first-card plays for each candidate suit.
-        """
+        """Choose the best briscola suit by averaging predictions over all first plays."""
         hand = ctx["hand"]
         best_suit, best_val = None, float("-inf")
 
@@ -63,10 +130,8 @@ class MLAgent:
             for card in hand:
                 hand_after = [c for c in hand if c != card]
                 for decl in get_valid_declarations(hand_after, card.suit):
-                    rows.append(self._build_row(card, decl, suit, ctx,
-                                                force_lead=True))
-            preds = self._predict(rows)
-            val = float(np.mean(preds))
+                    rows.append(self._build_np_row(card, decl, suit, ctx, force_lead=True))
+            val = float(np.mean(self._predict(rows)))
             logger.debug("  briscola %s → avg_diff=%.3f", suit.value, val)
             if val > best_val:
                 best_val, best_suit = val, suit
@@ -75,10 +140,7 @@ class MLAgent:
         return best_suit
 
     def select_card(self, ctx: dict, briscola: Suit) -> Tuple[Card, Optional[str]]:
-        """
-        Evaluate every (valid_card × valid_declaration) combination and return the best.
-        Declarations are only valid when leading; striscio/volo depend on hand state.
-        """
+        """Evaluate every (valid_card × valid_declaration) and return the best."""
         hand        = ctx["hand"]
         table_cards = ctx.get("table_cards", [])
         lead_suit   = table_cards[0][1].suit if table_cards else None
@@ -87,147 +149,122 @@ class MLAgent:
 
         candidates = []
         for card in valid:
-            if is_lead:
-                hand_after = [c for c in hand if c != card]
-                decls = get_valid_declarations(hand_after, card.suit)
-            else:
-                decls = [None]
+            decls = (get_valid_declarations([c for c in hand if c != card], card.suit)
+                     if is_lead else [None])
             for decl in decls:
                 candidates.append((card, decl))
 
-        rows  = [self._build_row(c, d, briscola, ctx) for c, d in candidates]
-        preds = self._predict(rows)
-
-        best_idx           = int(np.argmax(preds))
-        best_card, best_decl = candidates[best_idx]
+        preds = self._predict([self._build_np_row(c, d, briscola, ctx)
+                               for c, d in candidates])
+        best_card, best_decl = candidates[int(np.argmax(preds))]
         logger.debug("select_card → %s  decl=%s  score=%.3f",
-                     best_card, best_decl, preds[best_idx])
+                     best_card, best_decl, float(np.max(preds)))
         return best_card, best_decl
 
     # ── Feature construction ───────────────────────────────────────────────────
 
-    def _build_row(self, card: Card, declaration: Optional[str],
-                   briscola: Suit, ctx: dict,
-                   force_lead: bool = False) -> dict:
-        """Build one inference feature row matching the training schema exactly."""
-        seat        = ctx["seat"]
-        my_team     = _TEAM_OF[seat]
-        table_cards = [] if force_lead else ctx.get("table_cards", [])
-        play_order  = len(table_cards)
+    def _build_np_row(self, card: Card, declaration: Optional[str],
+                      briscola: Suit, ctx: dict,
+                      force_lead: bool = False) -> np.ndarray:
+        """Build one inference row as a pre-encoded float32 numpy array."""
+        row = _ROW_TEMPLATE.copy()
+        ri  = _COL_IDX  # local alias for speed
+
+        seat         = ctx["seat"]
+        my_team      = _TEAM_OF[seat]
+        table_cards  = [] if force_lead else ctx.get("table_cards", [])
+        row[ri["team"]] = float(my_team)
+        play_order   = len(table_cards)
         briscola_str = briscola.value
-        lead_str    = (table_cards[0][1].suit.value if table_cards
-                       else card.suit.value)         # lead = our card when play_order==0
+        lead_str     = (table_cards[0][1].suit.value if table_cards else card.suit.value)
 
         def role(s: str) -> Tuple[int, int]:
             return int(s == briscola_str), int(s == lead_str and s != briscola_str)
 
         cib, cil = role(card.suit.value)
 
-        # Table slots: team-relative (1=my team, 0=opponent, None=empty)
-        def tslot(i) -> Tuple:
-            if i >= len(table_cards):
-                return None, None, None, None
-            s, c = table_cards[i]
+        # ── Scalars ────────────────────────────────────────────────────────────
+        row[ri["round_num"]]    = ctx.get("round_num", 1)
+        row[ri["turn_num"]]     = ctx.get("turn_num",  1)
+        row[ri["play_order"]]   = play_order
+        row[ri["briscola_suit"]] = _SUIT_ENC.get(briscola_str, np.nan)
+
+        bss = ctx.get("briscola_selector_seat")
+        row[ri["briscola_selector_is_my_team"]] = (
+            float(_TEAM_OF[bss] == my_team) if bss is not None else np.nan
+        )
+
+        row[ri["card_rank"]]        = card.rank
+        row[ri["card_is_briscola"]] = cib
+        row[ri["card_is_lead"]]     = cil
+        row[ri["is_lead"]]          = float(play_order == 0)
+        row[ri["lead_suit"]]        = _SUIT_ENC.get(lead_str, np.nan)
+        row[ri["declaration"]]      = _DECL_ENC[declaration] if declaration else np.nan
+
+        # ── Table slots ────────────────────────────────────────────────────────
+        for i, (s, c) in enumerate(table_cards[:3]):
             ib, il = role(c.suit.value)
-            return c.rank, ib, il, int(_TEAM_OF[s] == my_team)
+            row[ri[f"table_{i}_rank"]]        = c.rank
+            row[ri[f"table_{i}_is_briscola"]] = ib
+            row[ri[f"table_{i}_is_lead"]]     = il
+            row[ri[f"table_{i}_is_my_team"]]  = float(_TEAM_OF[s] == my_team)
 
-        t0r, t0ib, t0il, t0im = tslot(0)
-        t1r, t1ib, t1il, t1im = tslot(1)
-        t2r, t2ib, t2il, t2im = tslot(2)
+        # ── Scores ─────────────────────────────────────────────────────────────
+        rs = ctx.get("round_scores", {1: 0.0, 2: 0.0})
+        ts = ctx.get("total_scores", {1: 0,   2: 0})
+        row[ri["round_score_t1"]] = rs[1]
+        row[ri["round_score_t2"]] = rs[2]
+        row[ri["total_score_t1"]] = ts[1]
+        row[ri["total_score_t2"]] = ts[2]
 
-        # Hand relative features — hand_before includes candidate card (matches training)
-        hb = {f"hand_briscola_{r}": 0 for r in _RANKS}
-        hl = {f"hand_lead_{r}":     0 for r in _RANKS}
-        ho = {f"hand_other_{r}_count": 0 for r in _RANKS}
+        # ── Hand ───────────────────────────────────────────────────────────────
         for c in ctx["hand"]:
             ib_c, il_c = role(c.suit.value)
             if ib_c:
-                hb[f"hand_briscola_{c.rank}"] = 1
+                row[ri[f"hand_briscola_{c.rank}"]] = 1.0
             elif il_c:
-                hl[f"hand_lead_{c.rank}"] = 1
+                row[ri[f"hand_lead_{c.rank}"]] = 1.0
             else:
-                ho[f"hand_other_{c.rank}_count"] += 1
+                row[ri[f"hand_other_{c.rank}_count"]] += 1.0
 
-        # History: team-relative (1=my team, 0=opponent, -1=not played)
-        hfeat: dict = {f"hist_{s}_{r}_is_my_team": -1 for s in _SUITS for r in _RANKS}
-        hfeat.update({f"hist_{s}_{r}_turn": -1 for s in _SUITS for r in _RANKS})
-        hfeat.update({f"hist_{s}_{r}_decl": "" for s in _SUITS for r in _RANKS})
+        # ── History ────────────────────────────────────────────────────────────
         for key, (hs, ht, hd) in self._history.items():
-            hfeat[f"hist_{key}_is_my_team"] = int(_TEAM_OF[hs] == my_team)
-            hfeat[f"hist_{key}_turn"] = ht
-            hfeat[f"hist_{key}_decl"] = hd
+            row[ri[f"hist_{key}_is_my_team"]] = float(_TEAM_OF[hs] == my_team)
+            row[ri[f"hist_{key}_turn"]]       = float(ht)
+            if hd:
+                row[ri[f"hist_{key}_decl"]] = _DECL_ENC.get(hd, np.nan)
 
-        # Suit status features: declarative signals from partner and opponents
-        partner_seat   = (seat + 2) % 4
-        opp_left_seat  = (seat + 1) % 4
-        opp_right_seat = (seat + 3) % 4
-
-        def _suit_status(target_seat: int) -> str:
+        # ── Suit status ────────────────────────────────────────────────────────
+        def _status(target_seat: int) -> float:
             decls = [
                 (ht, hd)
                 for key, (hs, ht, hd) in self._history.items()
                 if hs == target_seat and key.rsplit("_", 1)[0] == lead_str and hd
             ]
             if not decls:
-                return "unknown"
+                return _STATUS_ENC["unknown"]
             if any(d == "volo" for _, d in decls):
-                return "void"
+                return _STATUS_ENC["void"]
             _, latest = max(decls, key=lambda x: x[0])
-            return "has" if latest == "striscio" else "busso"
+            return _STATUS_ENC["has" if latest == "striscio" else "busso"]
 
-        rs = ctx.get("round_scores",  {1: 0.0, 2: 0.0})
-        ts = ctx.get("total_scores",  {1: 0,   2: 0})
+        row[ri["partner_suit_status"]]   = _status((seat + 2) % 4)
+        row[ri["opp_left_suit_status"]]  = _status((seat + 1) % 4)
+        row[ri["opp_right_suit_status"]] = _status((seat + 3) % 4)
 
-        bss = ctx.get("briscola_selector_seat")
-        bss_is_my_team = int(_TEAM_OF[bss] == my_team) if bss is not None else -1
+        return row
 
-        return {
-            "round_num":                  ctx.get("round_num", 1),
-            "turn_num":                   ctx.get("turn_num", 1),
-            "play_order":                 play_order,
-            "seat":                       seat,
-            "team":                       my_team,
-            "briscola_suit":              briscola_str,
-            "briscola_selector_is_my_team": bss_is_my_team,
-            "card_rank":                  card.rank,
-            "card_is_briscola":           cib,
-            "card_is_lead":               cil,
-            "is_lead":                    int(play_order == 0),
-            "lead_suit":                  lead_str,
-            "declaration":                declaration,           # None → NaN via encoding
-            "table_0_rank":          t0r, "table_0_is_briscola": t0ib,
-            "table_0_is_lead":       t0il, "table_0_is_my_team": t0im,
-            "table_1_rank":          t1r, "table_1_is_briscola": t1ib,
-            "table_1_is_lead":       t1il, "table_1_is_my_team": t1im,
-            "table_2_rank":          t2r, "table_2_is_briscola": t2ib,
-            "table_2_is_lead":       t2il, "table_2_is_my_team": t2im,
-            "round_score_t1":        rs[1], "round_score_t2": rs[2],
-            "total_score_t1":        ts[1], "total_score_t2": ts[2],
-            **hb, **hl, **ho,
-            **hfeat,
-            "partner_suit_status":   _suit_status(partner_seat),
-            "opp_left_suit_status":  _suit_status(opp_left_seat),
-            "opp_right_suit_status": _suit_status(opp_right_seat),
-        }
+    # ── Inference ──────────────────────────────────────────────────────────────
 
-    def _predict(self, rows: List[dict]) -> np.ndarray:
-        """Encode rows and run inference, passing enable_categorical explicitly."""
-        df = pd.DataFrame(rows)
-
-        for col in ["briscola_suit", "lead_suit"]:
-            df[col] = pd.Categorical(df[col], categories=_SUIT_CATS)
-
-        decl_cols = ["declaration"] + [c for c in df.columns if c.endswith("_decl")]
-        for col in decl_cols:
-            df[col] = pd.Categorical(df[col], categories=_DECL_CATS)
-
-        for col in ["partner_suit_status", "opp_left_suit_status", "opp_right_suit_status"]:
-            if col in df.columns:
-                df[col] = pd.Categorical(df[col], categories=_SUIT_STATUS_CATS)
-
-        # table_*_rank, *_is_briscola, *_is_lead, *_is_my_team may be None → float NaN
-        for col in [c for c in df.columns if c.startswith("table_")]:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-        dmat = xgb.DMatrix(df, enable_categorical=True)
-        return self.model.get_booster().predict(dmat)
+    def _predict(self, rows: List[np.ndarray]) -> np.ndarray:
+        """Stack pre-encoded rows and run XGBoost inference — no pandas."""
+        arr     = np.stack(rows)
+        booster = self.model.get_booster()
+        model_names = booster.feature_names
+        model_types = booster.feature_types
+        if model_names == _COL_NAMES:
+            dmat = xgb.DMatrix(arr, feature_names=_COL_NAMES, feature_types=_COL_TYPES)
+        else:
+            sel   = [_COL_IDX[n] for n in model_names]
+            dmat  = xgb.DMatrix(arr[:, sel], feature_names=model_names, feature_types=model_types)
+        return booster.predict(dmat)

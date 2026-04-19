@@ -25,6 +25,7 @@ TARGET = "round_pts_diff"
 
 _DROP = {
     "game_id",
+    "seat",
     "turn_winner_seat", "turn_winner_team", "turn_pts",
     "round_pts_t1", "round_pts_t2",
     "round_pts_player_team",
@@ -32,6 +33,7 @@ _DROP = {
 }
 _SUITS = ["bastoni", "coppe", "denara", "spade"]
 _DECLS = ["busso", "striscio", "volo"]
+_SUIT_STATUS = ["busso", "has", "unknown", "void"]
 _RANKS = list(range(1, 11))
 
 # Point value per rank (game rule)
@@ -51,6 +53,9 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
     for col in decl_cols:
         if col in df.columns:
             df[col] = pd.Categorical(df[col], categories=_DECLS)
+    for col in ["partner_suit_status", "opp_left_suit_status", "opp_right_suit_status"]:
+        if col in df.columns:
+            df[col] = pd.Categorical(df[col], categories=_SUIT_STATUS)
     for col in [c for c in df.columns if c.startswith("table_") and c.endswith("_rank")]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
@@ -227,8 +232,8 @@ def section_winning_cards(df: pd.DataFrame) -> str:
 
 def section_briscola_selection(df: pd.DataFrame) -> str:
     """Which briscola suit (relative: rank distribution) correlates with better outcomes?"""
-    # For briscola-selector rows only
-    sel = df[df["seat"] == df["briscola_selector_seat"]].copy()
+    # Briscola selector leads the first trick of each round (turn_num=1, play_order=0)
+    sel = df[(df["turn_num"] == 1) & (df["play_order"] == 0)].copy()
 
     # Average round diff by briscola suit (marginal — suit identity is arbitrary, but
     # the distribution of ranks the selector holds in that suit matters more)

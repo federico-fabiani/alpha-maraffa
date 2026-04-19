@@ -26,7 +26,8 @@ TARGET = "round_pts_diff"   # points_my_team - points_opponent_team in this roun
 # Columns excluded from features: identifiers, same-turn outcomes (leak), target components
 _DROP = {
     "game_id",
-    "seat",                                               # redundant with team; causes seat-identity bias
+    "seat",                                               # absolute identifier — redundant with is_my_team encoding
+    "team",                                               # absolute identifier — causes team-identity bias
     "turn_winner_seat", "turn_winner_team", "turn_pts",   # outcome of the same turn
     "round_pts_t1", "round_pts_t2",                       # target components
     "round_pts_player_team",                              # target component

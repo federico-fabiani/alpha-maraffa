@@ -34,8 +34,14 @@ export default function HomeScreen() {
     el.focus()
   }
 
+  const requestFullscreen = () => {
+    const el = document.documentElement
+    if (el.requestFullscreen) el.requestFullscreen()
+  }
+
   const activate = (option: MenuOption) => {
     if (!canProceed) { shakeNameInput(); return }
+    requestFullscreen()
     if (option === 'nuova_partita') {
       createRoom()
     } else {

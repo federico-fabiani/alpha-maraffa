@@ -17,7 +17,7 @@ export default defineConfig({
         description: 'Gioca a Marafone (Beccaccino) online con amici o bot',
         theme_color: '#225522',
         background_color: '#225522',
-        display: 'standalone',
+        display: 'fullscreen',
         orientation: 'landscape',
         lang: 'it',
         icons: [

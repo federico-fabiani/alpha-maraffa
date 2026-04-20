@@ -28,6 +28,37 @@ def _resolve_training_policy_models() -> dict[str, object]:
     return model_map
 
 
+def _resolve_dataset_generation_options(
+    *,
+    bootstrap: bool,
+    policy_models: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Return the effective simulator options for training-dataset generation.
+
+    The bootstrap ``random -> v1`` pass should stay on the cheapest trajectory:
+    no seat-policy mix and no counterfactual rollouts. Both features are useful
+    only once at least one learned policy exists.
+    """
+    if bootstrap:
+        return {
+            "policy_models": None,
+            "seat_policy_mix": None,
+            "counterfactual": False,
+            "counterfactual_prob": 0.0,
+            "counterfactual_alts": 0,
+            "counterfactual_rollouts": 0,
+        }
+
+    return {
+        "policy_models": policy_models,
+        "seat_policy_mix": config.DATASET_POLICY_MIX,
+        "counterfactual": config.COUNTERFACTUAL_ENABLED,
+        "counterfactual_prob": config.COUNTERFACTUAL_PROBABILITY,
+        "counterfactual_alts": config.COUNTERFACTUAL_ALTERNATIVES,
+        "counterfactual_rollouts": config.COUNTERFACTUAL_ROLLOUTS,
+    }
+
+
 def run() -> None:
     src_num, src_model = latest_version()
     if src_model is None:
@@ -43,34 +74,46 @@ def run() -> None:
     importance    = dst_dir / config.IMPORTANCE_FILENAME
     analysis_data = dst_dir / config.ANALYSIS_FILENAME
     report_path   = dst_dir / config.REPORT_FILENAME
+    bootstrap = src_model is None
+    policy_models = _resolve_training_policy_models() if not bootstrap else None
+    dataset_options = _resolve_dataset_generation_options(
+        bootstrap=bootstrap,
+        policy_models=policy_models,
+    )
 
     logger.info("=" * 60)
     logger.info(" Source version : %s", src_label)
     logger.info(" Target version : %s  (%s)", dst_name, dst_dir)
     logger.info(" Dataset games  : %d  (ε=%.2f)", config.DATASET_GAMES, config.DATASET_EPSILON)
-    logger.info(" Dataset policy mix : %s", config.DATASET_POLICY_MIX)
-    logger.info(" Counterfactual : %s  (p=%.2f, alts=%d, rollouts=%d, weight=%.2f)",
-                config.COUNTERFACTUAL_ENABLED, config.COUNTERFACTUAL_PROBABILITY,
-                config.COUNTERFACTUAL_ALTERNATIVES, config.COUNTERFACTUAL_ROLLOUTS,
-                config.COUNTERFACTUAL_WEIGHT)
+    if dataset_options["seat_policy_mix"] is None:
+        logger.info(" Dataset policy mix : disabled (bootstrap random self-play fast path)")
+    else:
+        logger.info(" Dataset policy mix : %s", dataset_options["seat_policy_mix"])
+    if dataset_options["counterfactual"]:
+        logger.info(" Counterfactual : %s  (p=%.2f, alts=%d, rollouts=%d, weight=%.2f)",
+                    dataset_options["counterfactual"], dataset_options["counterfactual_prob"],
+                    dataset_options["counterfactual_alts"], dataset_options["counterfactual_rollouts"],
+                    config.COUNTERFACTUAL_WEIGHT)
+    else:
+        logger.info(" Counterfactual : False  (disabled for bootstrap random self-play)")
     logger.info(" Analysis games : %d  (ε=0.0)", config.ANALYSIS_GAMES)
     logger.info(" Tourney games  : %d", config.TOURNEY_GAMES)
     logger.info("=" * 60)
 
     logger.info("[1/5] Generate training dataset")
-    policy_models = _resolve_training_policy_models()
     simulator.simulate(
         n_games=config.DATASET_GAMES,
         model_path=src_model,
         epsilon=config.DATASET_EPSILON,
         exploration_top_k=config.DATASET_EXPLORATION_TOP_K,
-        policy_models=policy_models,
-        seat_policy_mix=config.DATASET_POLICY_MIX,
+        policy_models=dataset_options["policy_models"],
+        seat_policy_mix=dataset_options["seat_policy_mix"],
         output_path=dataset_path,
-        counterfactual=config.COUNTERFACTUAL_ENABLED,
-        counterfactual_prob=config.COUNTERFACTUAL_PROBABILITY,
-        counterfactual_alts=config.COUNTERFACTUAL_ALTERNATIVES,
-        counterfactual_rollouts=config.COUNTERFACTUAL_ROLLOUTS,
+        counterfactual=dataset_options["counterfactual"],
+        counterfactual_prob=dataset_options["counterfactual_prob"],
+        counterfactual_alts=dataset_options["counterfactual_alts"],
+        counterfactual_rollouts=dataset_options["counterfactual_rollouts"],
+        n_workers=config.SIMULATE_N_WORKERS,
     )
 
     logger.info("[2/5] Train model")
@@ -83,6 +126,7 @@ def run() -> None:
         epsilon=0.0,
         exploration_top_k=config.DATASET_EXPLORATION_TOP_K,
         output_path=analysis_data,
+        n_workers=config.SIMULATE_N_WORKERS,
     )
 
     logger.info("[4/5] Analyze model")

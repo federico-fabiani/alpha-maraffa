@@ -17,6 +17,7 @@ This file deliberately bundles schema, tracker, game-state, simulator, and the
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import random
 import time
@@ -43,6 +44,23 @@ from aimaraffa.ml_agent import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ── Rollout booster helper ─────────────────────────────────────────────────────
+
+def _make_cpu_booster(booster: xgb.Booster) -> xgb.Booster:
+    """Return a CPU-only copy of *booster* for fast rollout inference.
+
+    Rollout predictions are tiny (1-5 rows). Creating a DMatrix and
+    triggering a GPU transfer for each one costs ~5-20 ms per call.
+    A CPU booster + ``inplace_predict`` avoids both overheads entirely.
+    """
+    cpu = xgb.Booster()
+    cpu.load_model(bytearray(booster.save_raw("ubj")))
+    cfg = _json.loads(cpu.save_config())
+    cfg["learner"]["generic_param"]["device"] = "cpu"
+    cpu.load_config(_json.dumps(cfg))
+    return cpu
 
 
 # ── Constants ──────────────────────────────────────────────────────────────────
@@ -447,6 +465,14 @@ def _sample_policy_label(rng: random.Random, normalized_mix: List[Tuple[str, flo
     return normalized_mix[-1][0]
 
 
+def _policy_mix_has_learned_model(
+    policy_models: Dict[str, Optional[Path]],
+    seat_policy_mix: List[Tuple[str, float]],
+) -> bool:
+    """Return True when at least one label in the active mix has a real model."""
+    return any(policy_models.get(label) is not None for label, _ in seat_policy_mix)
+
+
 # ── Simulator ──────────────────────────────────────────────────────────────────
 
 class Simulator:
@@ -480,6 +506,7 @@ class Simulator:
         if self.random_mode:
             self.agent = None
             self._booster = None
+            self._rollout_booster = None
             self._feature_sel: Optional[np.ndarray] = None
             self._feat_names = _COL_NAMES
             self._feat_types = _COL_TYPES
@@ -497,6 +524,8 @@ class Simulator:
             self._feature_sel = np.array([_COL_IDX[n] for n in model_names], dtype=np.int32)
             self._feat_names = model_names
             self._feat_types = model_types
+        # CPU-only copy for rollout inference (avoids GPU transfer on tiny arrays).
+        self._rollout_booster = _make_cpu_booster(self._booster)
 
     # ── ε-greedy pick ─────────────────────────────────────────────────────────
 
@@ -833,8 +862,12 @@ class Simulator:
         state: Optional[_GameState] = None,
         seat: Optional[int] = None,
     ) -> np.ndarray:
-        """Model prediction used inside counterfactual rollouts."""
-        return self._predict_matrix(arr)
+        """Fast CPU inference for counterfactual rollouts (avoids GPU round-trip)."""
+        if self._rollout_booster is None:
+            return np.zeros(arr.shape[0], dtype=np.float32)
+        if self._feature_sel is not None:
+            arr = arr[:, self._feature_sel]
+        return self._rollout_booster.inplace_predict(arr, validate_features=False)
 
     def _rollout_single_decision(
         self,
@@ -1220,18 +1253,20 @@ class Simulator:
         output_path: Optional[Path] = None,
         flush_every_rounds: int = 5,
         progress_every: int = 0,
+        game_id_offset: int = 0,
     ) -> np.ndarray:
         """Simulate ``n_games``; return ``(n_games, 2)`` int16 final totals.
 
         If ``output_path`` is set, also stream a per-play Parquet dataset.
+        ``game_id_offset`` shifts game IDs so parallel workers produce unique IDs.
         """
         rng = random.Random(seed)
         self._rng = random.Random(None if seed is None else (seed ^ 0x9E3779B9))
         emit_rows = output_path is not None
         states = [
             _GameState(
-                game_id=f"G{i:07d}",
-                tracker=GameTracker(f"G{i:07d}") if emit_rows else None,
+                game_id=f"G{i + game_id_offset:07d}",
+                tracker=GameTracker(f"G{i + game_id_offset:07d}") if emit_rows else None,
             )
             for i in range(n_games)
         ]
@@ -1470,6 +1505,13 @@ class PolicyMixSimulator(Simulator):
         # Base Simulator.run() calls self.agent.reset_round() between rounds.
         self.agent = self._feature_agent
 
+        # CPU-only rollout kits: (cpu_booster, sel) — avoids GPU transfer on
+        # the tiny per-decision arrays used in counterfactual rollouts.
+        self._rollout_kits: Dict[str, Tuple[xgb.Booster, Optional[np.ndarray]]] = {
+            label: (_make_cpu_booster(booster), sel)
+            for label, (booster, sel, _names, _types) in self._kits.items()
+        }
+
     def _prepare_states(self, states: List[_GameState]) -> None:
         for state in states:
             state.seat_policy = {
@@ -1492,20 +1534,27 @@ class PolicyMixSimulator(Simulator):
         state: Optional[_GameState] = None,
         seat: Optional[int] = None,
     ) -> np.ndarray:
-        """Policy-aware prediction for counterfactual rollouts.
+        """Policy-aware fast CPU inference for counterfactual rollouts.
 
-        Uses the policy kit assigned to *seat* in the cloned state so that
-        CF rollouts are evaluated under the same policy population that
-        generated the parent trajectory.
+        Uses the CPU rollout kit for the policy assigned to *seat* in the
+        cloned state — same policy population as the parent trajectory, but
+        with ``inplace_predict`` on CPU to avoid GPU transfer overhead on
+        the tiny per-decision arrays.
         """
+        key: Optional[str] = None
         if state is not None and seat is not None:
             key = self._policy_key_for_seat(state, seat)
-            if key in self._kits:
-                return self._predict_with_kit(key, arr)
-        # Fallback: first available kit (or zeros when no model loaded).
-        for key in self._kits:
-            return self._predict_with_kit(key, arr)
-        return np.zeros(arr.shape[0], dtype=np.float32)
+        if key and key in self._rollout_kits:
+            rb, sel = self._rollout_kits[key]
+        else:
+            # Fallback: first available CPU kit (or zeros when no model).
+            for rb, sel in self._rollout_kits.values():
+                break
+            else:
+                return np.zeros(arr.shape[0], dtype=np.float32)
+        if sel is not None:
+            arr = arr[:, sel]
+        return rb.inplace_predict(arr, validate_features=False)
 
     def _select_briscolas(self, states: List[_GameState], round_num: int) -> None:
         groups: Dict[str, List[_GameState]] = {}
@@ -1696,6 +1745,8 @@ def simulate(
     counterfactual_prob: float = 0.3,
     counterfactual_alts: int = 2,
     counterfactual_rollouts: int = 1,
+    n_workers: int = 1,
+    _game_id_offset: int = 0,
 ) -> np.ndarray:
     """Run ``n_games`` self-play games. Returns ``(n_games, 2)`` final totals.
 
@@ -1714,7 +1765,81 @@ def simulate(
         counterfactual_prob: probability of sampling alternatives per decision.
         counterfactual_alts: number of alternative actions per sampled decision.
         counterfactual_rollouts: number of rollouts per alternative (averaged).
+        n_workers:   number of parallel worker processes. Each worker simulates an
+                     independent chunk; results are merged before returning.
+                     Requires ``n_workers == 1`` inside a worker (no nesting).
+        _game_id_offset: internal — start offset for ``game_id`` labels. Used by
+                         multiprocessing workers to ensure unique IDs across chunks.
     """
+    # ── Parallel dispatch ─────────────────────────────────────────────────────
+    if n_workers > 1 and n_games > 1:
+        import multiprocessing as _mp
+
+        n_workers = min(n_workers, n_games)
+        chunk_size = n_games // n_workers
+        chunk_args: List[dict] = []
+        offset = _game_id_offset
+        for wi in range(n_workers):
+            ng = chunk_size if wi < n_workers - 1 else n_games - (offset - _game_id_offset)
+            chunk_out: Optional[str] = None
+            if output_path is not None:
+                chunk_out = str(
+                    output_path.with_name(f"_chunk{wi:04d}_{output_path.name}")
+                )
+            chunk_args.append({
+                "n_games": ng,
+                "game_id_offset": offset,
+                "seed": None if seed is None else (seed + wi * 999_983),
+                "output_path": chunk_out,
+                "model_path": str(model_path) if model_path is not None else None,
+                "epsilon": epsilon,
+                "exploration_top_k": exploration_top_k,
+                "policy_models": (
+                    {k: (str(v) if v is not None else None) for k, v in policy_models.items()}
+                    if policy_models is not None else None
+                ),
+                "seat_policy_mix": (
+                    list(seat_policy_mix) if seat_policy_mix is not None else None
+                ),
+                "counterfactual": counterfactual,
+                "counterfactual_prob": counterfactual_prob,
+                "counterfactual_alts": counterfactual_alts,
+                "counterfactual_rollouts": counterfactual_rollouts,
+            })
+            offset += ng
+
+        ctx = _mp.get_context("spawn")
+        logger.info(
+            "Parallel simulation — %d workers × ~%d games each",
+            n_workers, chunk_size,
+        )
+        t0 = time.perf_counter()
+        with ctx.Pool(n_workers) as pool:
+            results = pool.map(_simulate_chunk, chunk_args)
+
+        totals = np.concatenate([np.array(r, dtype=np.int16) for r in results])
+
+        if output_path is not None:
+            chunk_paths = [c["output_path"] for c in chunk_args if c["output_path"]]
+            tables = [pq.read_table(p) for p in chunk_paths]
+            merged = pa.concat_tables(tables)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            pq.write_table(merged, str(output_path), compression="snappy")
+            for p in chunk_paths:
+                Path(p).unlink(missing_ok=True)
+
+        dt = time.perf_counter() - t0
+        team1_wins = int((totals[:, 0] > totals[:, 1]).sum())
+        logger.info(
+            "Done (parallel) in %.1fs (%.1f ms/game) — %d workers — "
+            "team1=%d team2=%d  means t1=%.2f t2=%.2f",
+            dt, 1e3 * dt / max(1, n_games), n_workers,
+            team1_wins, n_games - team1_wins,
+            float(totals[:, 0].mean()), float(totals[:, 1].mean()),
+        )
+        return totals
+
+    # ── Single-process path ───────────────────────────────────────────────────
     cf_kw = dict(counterfactual=counterfactual,
                  counterfactual_prob=counterfactual_prob,
                  counterfactual_alts=counterfactual_alts,
@@ -1723,17 +1848,30 @@ def simulate(
         resolved_policy_models = {label: None for label, _ in seat_policy_mix}
         if policy_models is not None:
             resolved_policy_models.update(policy_models)
-        logger.info(
-            "Mixed-policy self-play — %d games  ε=%.2f  mix=%s  cf=%s",
-            n_games, epsilon, seat_policy_mix, counterfactual,
-        )
-        sim: Simulator = PolicyMixSimulator(
-            policy_models=resolved_policy_models,
-            seat_policy_mix=seat_policy_mix,
-            epsilon=epsilon,
-            exploration_top_k=exploration_top_k,
-            **cf_kw,
-        )
+        if _policy_mix_has_learned_model(resolved_policy_models, seat_policy_mix):
+            logger.info(
+                "Mixed-policy self-play — %d games  ε=%.2f  mix=%s  cf=%s",
+                n_games, epsilon, seat_policy_mix, counterfactual,
+            )
+            sim = PolicyMixSimulator(
+                policy_models=resolved_policy_models,
+                seat_policy_mix=seat_policy_mix,
+                epsilon=epsilon,
+                exploration_top_k=exploration_top_k,
+                **cf_kw,
+            )
+        else:
+            logger.info(
+                "Mixed-policy self-play requested, but all labels resolve to random; "
+                "using random self-play fast path for %d games  cf=%s",
+                n_games, counterfactual,
+            )
+            sim = Simulator(
+                None,
+                epsilon=epsilon,
+                exploration_top_k=exploration_top_k,
+                **cf_kw,
+            )
     elif model_path is None:
         logger.info("Random self-play — %d games  cf=%s", n_games, counterfactual)
         sim = Simulator(model_path, epsilon=epsilon,
@@ -1753,6 +1891,7 @@ def simulate(
         output_path=output_path,
         flush_every_rounds=5,
         progress_every=1,
+        game_id_offset=_game_id_offset,
     )
     dt = time.perf_counter() - t0
     team1_wins = int((totals[:, 0] > totals[:, 1]).sum())
@@ -1771,3 +1910,45 @@ def simulate(
             1e3 * sim._cf_elapsed / sim._cf_count,
         )
     return totals
+
+
+# ── Multiprocessing worker ─────────────────────────────────────────────────────
+# Must be a top-level function — not nested — so Python's ``spawn`` start method
+# can pickle it on Windows.
+
+def _simulate_chunk(kwargs: dict) -> list:
+    """Worker entry point: reconstruct args, call simulate(), return totals list.
+
+    All model loading happens inside the spawned process.  Nothing is shared
+    with the parent — each worker loads its own copy of the model.
+    """
+    from pathlib import Path as _Path
+
+    out          = kwargs.get("output_path")
+    model_path   = kwargs.get("model_path")
+    policy_models_raw = kwargs.get("policy_models")
+
+    policy_models: Optional[Dict[str, Optional[Path]]] = None
+    if policy_models_raw is not None:
+        policy_models = {
+            label: (_Path(p) if p is not None else None)
+            for label, p in policy_models_raw.items()
+        }
+
+    totals = simulate(
+        n_games             = kwargs["n_games"],
+        model_path          = _Path(model_path) if model_path is not None else None,
+        epsilon             = kwargs.get("epsilon", 0.0),
+        exploration_top_k   = kwargs.get("exploration_top_k", 3),
+        seed                = kwargs.get("seed"),
+        output_path         = _Path(out) if out is not None else None,
+        policy_models       = policy_models,
+        seat_policy_mix     = kwargs.get("seat_policy_mix"),
+        counterfactual      = kwargs.get("counterfactual", False),
+        counterfactual_prob = kwargs.get("counterfactual_prob", 0.3),
+        counterfactual_alts = kwargs.get("counterfactual_alts", 2),
+        counterfactual_rollouts = kwargs.get("counterfactual_rollouts", 1),
+        n_workers           = 1,                         # no recursive spawning
+        _game_id_offset     = kwargs.get("game_id_offset", 0),
+    )
+    return totals.tolist()

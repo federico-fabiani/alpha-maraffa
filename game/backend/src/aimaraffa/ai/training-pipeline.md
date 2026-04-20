@@ -292,6 +292,7 @@ Se non passa:
 Se non esiste alcun modello sorgente:
 
 - il dataset di training viene generato con self-play random;
+- il bootstrap disattiva automaticamente policy mix e counterfactual sampling, cosi' il percorso `random -> v1` resta il piu' veloce possibile;
 - il primo modello viene addestrato;
 - non si gioca alcun tournament;
 - la nuova versione viene promossa automaticamente.

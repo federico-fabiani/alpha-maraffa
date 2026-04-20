@@ -44,7 +44,7 @@ DATASET_POLICY_MIX = (
 # Counterfactual action sampling — training dataset only.
 # When enabled, the simulator forks alternative actions at a subset of decision
 # points and rolls out the rest of the round to get a contrastive target.
-COUNTERFACTUAL_ENABLED      = True
+COUNTERFACTUAL_ENABLED      = False
 COUNTERFACTUAL_PROBABILITY  = 0.30   # chance of sampling alternatives per decision
 COUNTERFACTUAL_ALTERNATIVES = 2      # how many alternative actions to evaluate
 COUNTERFACTUAL_ROLLOUTS     = 3      # rollouts per alternative (averaged → less noise)
@@ -59,6 +59,12 @@ TOURNEY_SEED    = 42
 # decisively against the source. The lower bound of the Wilson 95% CI is
 # what gates promotion — point estimate alone is too noisy at TOURNEY_GAMES.
 PROMOTE_MIN_CI_LOWER = 0.51
+
+# Parallel simulation workers.
+# Each worker spawns a separate process that loads its own model copy and
+# simulates an independent chunk of games. Set to 1 to disable (single process).
+# With a GPU model each worker needs its own GPU context; keep an eye on VRAM.
+SIMULATE_N_WORKERS = 4
 
 # ── Training hyperparameters ───────────────────────────────────────────────────
 TARGET         = "future_pts_diff"

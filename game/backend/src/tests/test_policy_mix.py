@@ -1,8 +1,15 @@
 """Tests for mixed-policy training self-play helpers."""
 
 import random
+from pathlib import Path
 
-from aimaraffa.ai.simulator import _GameState, _normalize_policy_mix, _sample_policy_label, PolicyMixSimulator
+from aimaraffa.ai.simulator import (
+    PolicyMixSimulator,
+    _GameState,
+    _normalize_policy_mix,
+    _policy_mix_has_learned_model,
+    _sample_policy_label,
+)
 
 
 def test_normalize_policy_mix_drops_non_positive_weights():
@@ -32,3 +39,15 @@ def test_prepare_states_assigns_fixed_policy_when_mix_is_degenerate():
     simulator._prepare_states(states)
 
     assert all(set(state.seat_policy.values()) == {"latest"} for state in states)
+
+
+def test_policy_mix_has_learned_model_only_when_active_label_has_model():
+    assert not _policy_mix_has_learned_model(
+        {"latest": None, "random": None},
+        [("latest", 0.9), ("random", 0.1)],
+    )
+
+    assert _policy_mix_has_learned_model(
+        {"latest": Path("v3.joblib"), "random": None},
+        [("latest", 0.9), ("random", 0.1)],
+    )

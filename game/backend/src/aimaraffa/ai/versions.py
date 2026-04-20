@@ -25,6 +25,32 @@ from .config import (
 _VER_RE = re.compile(r"^v(\d+)$")
 
 
+def recent_versions(limit: int | None = None) -> list[tuple[int, Path]]:
+    """Return trained versions sorted from newest to oldest.
+
+    The loose production model is exposed as version ``0`` when present so
+    callers can build fallback pools even before the repository has ``v<N>``
+    directories.
+    """
+    found: list[tuple[int, Path]] = []
+    if TRAINING_ARTIFACTS_DIR.exists():
+        for child in TRAINING_ARTIFACTS_DIR.iterdir():
+            if not child.is_dir():
+                continue
+            m = _VER_RE.match(child.name)
+            if not m:
+                continue
+            model_path = child / MODEL_FILENAME
+            if model_path.exists():
+                found.append((int(m.group(1)), model_path))
+    found.sort(key=lambda item: item[0], reverse=True)
+    if PRODUCTION_MODEL_PATH.exists() and not any(num == 0 for num, _ in found):
+        found.append((0, PRODUCTION_MODEL_PATH))
+    if limit is not None:
+        return found[:limit]
+    return found
+
+
 def latest_version() -> tuple[int, Path | None]:
     """Return ``(num, model_path)`` for the latest trained ``v<N>`` directory.
 
@@ -35,23 +61,9 @@ def latest_version() -> tuple[int, Path | None]:
          trains on data generated from this baseline.
       3. Nothing → ``(0, None)``: bootstrap from random self-play.
     """
-    best_num = 0
-    best_path: Path | None = None
-    if TRAINING_ARTIFACTS_DIR.exists():
-        for child in TRAINING_ARTIFACTS_DIR.iterdir():
-            if not child.is_dir():
-                continue
-            m = _VER_RE.match(child.name)
-            if not m:
-                continue
-            n = int(m.group(1))
-            if n > best_num and (child / MODEL_FILENAME).exists():
-                best_num = n
-                best_path = child / MODEL_FILENAME
-    if best_path is not None:
-        return best_num, best_path
-    if PRODUCTION_MODEL_PATH.exists():
-        return 0, PRODUCTION_MODEL_PATH
+    found = recent_versions(limit=1)
+    if found:
+        return found[0]
     return 0, None
 
 

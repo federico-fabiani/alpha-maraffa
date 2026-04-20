@@ -27,6 +27,9 @@ _BASE_DROP = {
     "round_pts_player_team",
     "round_pts_diff",
     "future_pts_diff",
+    "decision_id",
+    "is_executed_action",
+    "action_source",
 }
 
 _SUITS       = ["bastoni", "coppe", "denara", "spade"]
@@ -56,20 +59,32 @@ def _encode(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _load(path: Path) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
+def _load(path: Path) -> tuple[pd.DataFrame, pd.Series, pd.Series, np.ndarray]:
     logger.info("Loading %s …", path)
     df = pd.read_parquet(path)
     logger.info("  %d rows × %d columns", len(df), len(df.columns))
 
     y = df[config.TARGET].astype(np.float32)
     game_ids = df["game_id"]
+
+    # Build per-row sample weights: executed actions get 1.0, CF rows get a
+    # configurable discount so they don't dominate the loss.
+    if "is_executed_action" in df.columns:
+        is_exec = df["is_executed_action"].values.astype(np.float32)
+        w = np.where(is_exec == 1, 1.0, config.COUNTERFACTUAL_WEIGHT).astype(np.float32)
+        n_cf = int((is_exec == 0).sum())
+        logger.info("  Executed rows: %d  CF rows: %d  (CF weight=%.2f)",
+                    len(df) - n_cf, n_cf, config.COUNTERFACTUAL_WEIGHT)
+    else:
+        w = np.ones(len(df), dtype=np.float32)
+
     X = _encode(df.drop(columns=[c for c in _BASE_DROP if c in df.columns]))
-    return X, y, game_ids
+    return X, y, game_ids, w
 
 
 def train(data_path: Path, model_out: Path, importance_out: Path) -> None:
     """Train, evaluate, and persist a model + feature-importance CSV."""
-    X, y, game_ids = _load(data_path)
+    X, y, game_ids, sample_weights = _load(data_path)
 
     # Split by game_id so rows from the same game stay in one fold.
     unique_games = np.asarray(game_ids.unique())
@@ -81,11 +96,12 @@ def train(data_path: Path, model_out: Path, importance_out: Path) -> None:
         train_mask = game_ids.isin(train_games)
         X_train, X_test = X[train_mask], X[~train_mask]
         y_train, y_test = y[train_mask], y[~train_mask]
+        w_train, w_test = sample_weights[train_mask], sample_weights[~train_mask]
         logger.info("Train: %d rows  Test: %d rows", len(X_train), len(X_test))
     else:
         logger.warning("Few games (%d) — falling back to row-level split.", len(unique_games))
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=config.TEST_SIZE, random_state=42
+        X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
+            X, y, sample_weights, test_size=config.TEST_SIZE, random_state=42
         )
 
     model = XGBRegressor(
@@ -104,14 +120,19 @@ def train(data_path: Path, model_out: Path, importance_out: Path) -> None:
     )
 
     logger.info("Training (device=%s, early stopping=50) …", config.DEVICE)
-    model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=100)
+    model.fit(X_train, y_train,
+              sample_weight=w_train,
+              eval_set=[(X_test, y_test)],
+              sample_weight_eval_set=[w_test],
+              verbose=100)
 
-    for split, Xs, ys in [("train", X_train, y_train), ("test", X_test, y_test)]:
+    for split, Xs, ys, ws in [("train", X_train, y_train, w_train),
+                               ("test",  X_test,  y_test,  w_test)]:
         preds = model.predict(Xs)
-        mae  = mean_absolute_error(ys, preds)
-        rmse = mean_squared_error(ys, preds) ** 0.5
-        r2   = r2_score(ys, preds)
-        logger.info("[%s]  MAE=%.3f  RMSE=%.3f  R²=%.4f", split, mae, rmse, r2)
+        mae  = mean_absolute_error(ys, preds, sample_weight=ws)
+        rmse = mean_squared_error(ys, preds, sample_weight=ws) ** 0.5
+        r2   = r2_score(ys, preds, sample_weight=ws)
+        logger.info("[%s]  MAE=%.3f  RMSE=%.3f  R²=%.4f  (weighted)", split, mae, rmse, r2)
 
     model_out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, model_out)

@@ -17,6 +17,7 @@ train_next_model.bat
 La pipeline non ha flag CLI: i parametri stanno tutti in `config.py`.
 
 Per l'uso operativo quotidiano, vedi anche `training-runbook.md`.
+Per la strategia di copertura del dataset introdotta dopo la review, vedi anche `action-coverage.md`.
 
 ## Obiettivo
 
@@ -92,6 +93,7 @@ Comportamento:
 - se `model_path is None`, il self-play e' random uniforme sulle mosse legali;
 - se `model_path` esiste, il self-play usa `MLAgent` e inferenza XGBoost;
 - in modalita' ML e' possibile esplorare con epsilon-greedy;
+- nella generazione del dataset di training, i seat possono essere campionati da un mix di policy (`latest`, `prev1`, `prev2`, `random`) definito in `config.py`;
 - quando `output_path` e' presente, ogni giocata viene serializzata in Parquet.
 
 Dettagli importanti del simulatore:
@@ -314,6 +316,8 @@ Quelli piu' importanti sono:
 
 - `DATASET_GAMES`: quante partite generare per il training;
 - `DATASET_EPSILON`: quanta esplorazione usare durante il self-play di training;
+- `DATASET_EXPLORATION_TOP_K`: ampiezza del top-K usato quando scatta l'esplorazione epsilon-greedy;
+- `DATASET_POLICY_MIX`: mix di policy usato per assegnare partner e avversari durante il dataset self-play;
 - `ANALYSIS_GAMES`: quante partite usare per l'analisi;
 - `TOURNEY_GAMES`: quante partite giocare nel confronto head-to-head;
 - `PROMOTE_MIN_CI_LOWER`: soglia statistica di promozione;

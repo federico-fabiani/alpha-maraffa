@@ -29,6 +29,26 @@ PRODUCTION_POINTER    = _SRC_ROOT / "scripts" / "artifacts" / "PRODUCTION"
 # ── Pipeline knobs ─────────────────────────────────────────────────────────────
 DATASET_GAMES   = 10_000   # self-play games used to train v<N+1>
 DATASET_EPSILON = 0.10     # ε-greedy exploration during dataset self-play
+DATASET_EXPLORATION_TOP_K = 3
+
+# Seat-level policy mix used only while generating the training dataset.
+# Labels resolve to the latest model, one/two previous versions when available,
+# or random play when a referenced older checkpoint does not exist yet.
+DATASET_POLICY_MIX = (
+	("latest", 0.60),
+	("prev1", 0.20),
+	("prev2", 0.10),
+	("random", 0.10),
+)
+
+# Counterfactual action sampling — training dataset only.
+# When enabled, the simulator forks alternative actions at a subset of decision
+# points and rolls out the rest of the round to get a contrastive target.
+COUNTERFACTUAL_ENABLED      = True
+COUNTERFACTUAL_PROBABILITY  = 0.30   # chance of sampling alternatives per decision
+COUNTERFACTUAL_ALTERNATIVES = 2      # how many alternative actions to evaluate
+COUNTERFACTUAL_ROLLOUTS     = 3      # rollouts per alternative (averaged → less noise)
+COUNTERFACTUAL_WEIGHT       = 0.5    # sample_weight for CF rows (1.0 = same as executed)
 
 ANALYSIS_GAMES  = 2_000    # ε=0 self-play used by analyze.py to study v<N+1>
 

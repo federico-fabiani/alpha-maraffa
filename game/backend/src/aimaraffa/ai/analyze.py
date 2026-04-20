@@ -26,6 +26,9 @@ _DROP = {
     "round_pts_player_team",
     "round_pts_diff",
     TARGET,
+    "decision_id",
+    "is_executed_action",
+    "action_source",
 }
 _SUITS       = ["bastoni", "coppe", "denara", "spade"]
 _DECLS       = ["busso", "striscio", "volo"]

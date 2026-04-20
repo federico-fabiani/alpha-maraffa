@@ -69,7 +69,7 @@ _FIELDNAMES: List[str] = (  # noqa: E501
     [
         "turn_winner_seat", "turn_winner_team", "turn_pts",
         "round_pts_t1", "round_pts_t2",
-        "round_pts_player_team", "round_pts_diff",
+        "round_pts_player_team", "round_pts_diff", "future_pts_diff",
     ]
 )
 
@@ -121,6 +121,7 @@ _DTYPE_MAP: Dict[str, str] = {
     "round_pts_t2":             "int8",
     "round_pts_player_team":    "int8",
     "round_pts_diff":           "int16",
+    "future_pts_diff":          "int16",
 }
 
 
@@ -290,6 +291,7 @@ class GameTracker:
                 "round_pts_t2": None,
                 "round_pts_player_team": None,
                 "round_pts_diff": None,
+                "future_pts_diff": None,
             }
 
             self._round_history[f"{card['suit']}_{card['rank']}"] = (
@@ -312,10 +314,17 @@ class GameTracker:
             for row in self._pending_round:
                 team = row["team"]
                 opp  = 3 - team
+                final_diff = rpts[team] - rpts[opp]
+                # round_score_t1/t2 snapshot the points accrued in previously
+                # completed turns → subtract to get points earned from this
+                # turn onwards (the local per-play reward signal).
+                pre_turn_diff = (row["round_score_t1"] - row["round_score_t2"]) if team == 1 \
+                                else (row["round_score_t2"] - row["round_score_t1"])
                 row["round_pts_t1"]          = rpts[1]
                 row["round_pts_t2"]          = rpts[2]
                 row["round_pts_player_team"] = rpts[team]
-                row["round_pts_diff"]        = rpts[team] - rpts[opp]
+                row["round_pts_diff"]        = final_diff
+                row["future_pts_diff"]       = int(final_diff - pre_turn_diff)
             self.rows.extend(self._pending_round)
             self._pending_round.clear()
             self._total_scores = {k: v for k, v in d["total_scores"].items()}
@@ -590,7 +599,7 @@ def main() -> None:
     parser.add_argument("--games",   type=int,  default=1,
                         help="Number of games to simulate (default: 1)")
     parser.add_argument("--output",  type=Path,
-                        default=Path("src/scripts/artifacts/marafone_dataset.parquet"),
+                        default=Path("artifacts/training/marafone_dataset.parquet"),
                         help="Output Parquet path")
     parser.add_argument("--verbose", action="store_true",
                         help="Print play-by-play log for the first game")

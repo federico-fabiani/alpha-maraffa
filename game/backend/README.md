@@ -20,21 +20,42 @@ uv run pytest
 uv run python src/scripts/simulate_game.py
 ```
 
+## AI training
+
+Run the full training pipeline with:
+
+```bash
+uv run python -m aimaraffa.ai
+```
+
+Main references:
+
+- [src/aimaraffa/ai/training-pipeline.md](src/aimaraffa/ai/training-pipeline.md) - full architecture, stages, artifacts, promotion logic, and feature schema.
+- [src/aimaraffa/ai/training-runbook.md](src/aimaraffa/ai/training-runbook.md) - short operational guide for launching a run and reading the output.
+
+Training outputs live under `artifacts/training/`.
+The production model slot used by the server stays under `src/scripts/artifacts/`.
+
 ## Structure
 
 ```
 src/
-├── aimaraffa/          # main package
-│   ├── config.py       # pydantic-settings configuration
-│   ├── names.py        # random Italian name generator
-│   ├── engine.py       # game logic, room management, bot AI
-│   └── api.py          # FastAPI app (REST + WebSocket)
+├── aimaraffa/              # main package
+│   ├── config.py           # pydantic-settings configuration
+│   ├── names.py            # random Italian name generator
+│   ├── engine.py           # game logic, room management, bot AI
+│   ├── api.py              # FastAPI app (REST + WebSocket)
+│   └── ai/                 # training pipeline, analysis, tournament, docs
 ├── tests/
 │   ├── conftest.py
 │   ├── test_engine.py  # unit tests
 │   └── test_api.py     # integration tests (REST + WS + full game flow)
 └── scripts/
-    └── simulate_game.py
+  ├── simulate_game.py
+  └── artifacts/          # production model slot used by the runtime
+
+artifacts/
+└── training/              # versioned datasets, candidate models, reports, logs
 ```
 
 ## Game rules (Marafone)

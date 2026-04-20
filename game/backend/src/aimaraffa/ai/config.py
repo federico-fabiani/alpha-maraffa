@@ -1,0 +1,54 @@
+"""Single source of truth for the training pipeline.
+
+No CLI args — constants here are the contract between pipeline stages.
+Tweak a value, re-run ``python -m aimaraffa.ai``.
+"""
+
+from pathlib import Path
+
+# ── Paths ──────────────────────────────────────────────────────────────────────
+# Training outputs live outside ``src`` so generated datasets and reports don't
+# sit inside the importable source tree.
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]  # …/backend
+TRAINING_ARTIFACTS_DIR = _BACKEND_ROOT / "artifacts" / "training"
+
+# The runtime model stays in the legacy location because Docker and the server
+# config still treat it as the stable production slot.
+_SRC_ROOT = Path(__file__).resolve().parents[2]      # …/backend/src
+
+MODEL_FILENAME        = "marafone_model.joblib"
+DATASET_FILENAME      = "marafone_dataset.parquet"
+ANALYSIS_FILENAME     = "marafone_analysis_dataset.parquet"
+IMPORTANCE_FILENAME   = "marafone_importance.csv"
+REPORT_FILENAME       = "strategy_report.md"
+
+# What Docker ships: a stable file path + a pointer telling which v<N> it came from.
+PRODUCTION_MODEL_PATH = _SRC_ROOT / "scripts" / "artifacts" / MODEL_FILENAME
+PRODUCTION_POINTER    = _SRC_ROOT / "scripts" / "artifacts" / "PRODUCTION"
+
+# ── Pipeline knobs ─────────────────────────────────────────────────────────────
+DATASET_GAMES   = 10_000   # self-play games used to train v<N+1>
+DATASET_EPSILON = 0.10     # ε-greedy exploration during dataset self-play
+
+ANALYSIS_GAMES  = 2_000    # ε=0 self-play used by analyze.py to study v<N+1>
+
+TOURNEY_GAMES   = 2_000    # head-to-head new vs source version
+TOURNEY_SEED    = 42
+
+# Promote (= copy to PRODUCTION_MODEL_PATH) only when the new model wins
+# decisively against the source. The lower bound of the Wilson 95% CI is
+# what gates promotion — point estimate alone is too noisy at TOURNEY_GAMES.
+PROMOTE_MIN_CI_LOWER = 0.51
+
+# ── Training hyperparameters ───────────────────────────────────────────────────
+TARGET         = "future_pts_diff"
+TEST_SIZE      = 0.20
+N_ESTIMATORS   = 2_000
+LEARNING_RATE  = 0.05
+MAX_DEPTH      = 6
+SUBSAMPLE      = 0.8
+DEVICE         = "cuda"   # "cpu" or "cuda"
+
+# ── Analysis ───────────────────────────────────────────────────────────────────
+ANALYSIS_TOP_FEATURES = 30
+ANALYSIS_SHAP         = False

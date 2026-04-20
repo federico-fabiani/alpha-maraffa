@@ -30,17 +30,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/6] Verifico se Cloud Run service "%SERVICE_NAME%" esiste...
-call gcloud run services describe "%SERVICE_NAME%" --project "%PROJECT_ID%" --region "%REGION%" >nul 2>&1
-if errorlevel 1 (
-    set "SERVICE_EXISTS=0"
-    echo Service non trovato. Lo creero dopo la build.
-) else (
-    set "SERVICE_EXISTS=1"
-    echo Service trovato.
-)
-
-echo [2/6] Build frontend...
+echo [1/5] Build frontend...
 pushd "%FRONTEND_DIR%" || goto :error
 if not exist "node_modules" (
     call npm ci
@@ -49,14 +39,14 @@ if not exist "node_modules" (
 call npm run build
 if errorlevel 1 goto :error
 
-echo [3/6] Copio il frontend in game\backend\src\aimaraffa\static...
+echo [2/5] Copio il frontend in game\backend\src\aimaraffa\static...
 if exist "%STATIC_DIR%" rmdir /s /q "%STATIC_DIR%"
 mkdir "%STATIC_DIR%"
 xcopy "%FRONTEND_DIR%\dist\*" "%STATIC_DIR%\" /e /i /y >nul
 if errorlevel 1 goto :error
 popd
 
-echo [4/6] Build immagine Docker...
+echo [3/5] Build immagine Docker...
 pushd "%BACKEND_DIR%" || goto :error
 echo Assicuro che la repository Artifact Registry "%AR_REPO%" esista...
 call gcloud artifacts repositories describe "%AR_REPO%" --project "%PROJECT_ID%" --location "%REGION%" >nul 2>&1
@@ -69,22 +59,18 @@ if errorlevel 1 goto :error
 docker build -t "%IMAGE_URI%" .
 if errorlevel 1 goto :error
 
-echo [5/6] Push immagine Docker...
+echo [4/5] Push immagine Docker...
 docker push "%IMAGE_URI%"
 if errorlevel 1 goto :error
 
-echo [6/6] Deploy su Cloud Run...
-if "%SERVICE_EXISTS%"=="1" (
-    echo Aggiorno il service esistente "%SERVICE_NAME%".
-) else (
-    echo Creo il service "%SERVICE_NAME%".
-)
+echo [5/5] Deploy su Cloud Run...
 call gcloud run deploy "%SERVICE_NAME%" ^
     --image "%IMAGE_URI%" ^
     --project "%PROJECT_ID%" ^
     --region "%REGION%" ^
     --platform managed ^
     --allow-unauthenticated ^
+    --memory 1Gi ^
     --quiet
 if errorlevel 1 goto :error
 

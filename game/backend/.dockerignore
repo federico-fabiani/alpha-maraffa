@@ -1,0 +1,3 @@
+src/scripts/artifacts/**
+!src/scripts/artifacts/marafone_model.joblib
+!src/scripts/artifacts/PRODUCTION

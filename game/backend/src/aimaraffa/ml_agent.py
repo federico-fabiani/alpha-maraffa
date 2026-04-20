@@ -1,6 +1,7 @@
 """ML-based bot: uses a trained XGBoost model to evaluate every legal move."""
 
 import logging
+import random
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -102,10 +103,21 @@ class MLAgent:
       - select_card(ctx, briscola)  called when this bot must play a card
     """
 
-    def __init__(self, model_path: Path):
+    def __init__(self, model_path: Path, epsilon: float = 0.0,
+                 exploration_top_k: int = 3, seed: Optional[int] = None):
+        """
+        Args:
+          epsilon: with probability ε, pick uniformly among the top-K candidates
+                   instead of argmax (ε-greedy exploration for self-play diversity).
+          exploration_top_k: K for the top-K sampling pool (min(K, n_valid)).
+          seed:    seed for the exploration RNG. None → system entropy.
+        """
         self.model = joblib.load(model_path)
+        self.epsilon = float(epsilon)
+        self.exploration_top_k = max(2, int(exploration_top_k))
+        self._rng = random.Random(seed)
         self._history: Dict[str, tuple] = {}  # "suit_rank" → (seat, turn_num, decl)
-        logger.info("MLAgent: model loaded from %s", model_path)
+        logger.info("MLAgent: model loaded from %s (epsilon=%.2f)", model_path, self.epsilon)
 
     # ── Round state management ─────────────────────────────────────────────────
 
@@ -121,7 +133,7 @@ class MLAgent:
     # ── Public selectors ───────────────────────────────────────────────────────
 
     def select_briscola(self, ctx: dict) -> Suit:
-        """Choose the best briscola suit by averaging predictions over all first plays."""
+        """Choose the briscola whose best opening line has the highest predicted value."""
         hand = ctx["hand"]
         best_suit, best_val = None, float("-inf")
 
@@ -131,8 +143,8 @@ class MLAgent:
                 hand_after = [c for c in hand if c != card]
                 for decl in get_valid_declarations(hand_after, card.suit):
                     rows.append(self._build_np_row(card, decl, suit, ctx, force_lead=True))
-            val = float(np.mean(self._predict(rows)))
-            logger.debug("  briscola %s → avg_diff=%.3f", suit.value, val)
+            val = float(np.max(self._predict(rows)))
+            logger.debug("  briscola %s → best_opening_diff=%.3f", suit.value, val)
             if val > best_val:
                 best_val, best_suit = val, suit
 
@@ -156,10 +168,24 @@ class MLAgent:
 
         preds = self._predict([self._build_np_row(c, d, briscola, ctx)
                                for c, d in candidates])
-        best_card, best_decl = candidates[int(np.argmax(preds))]
-        logger.debug("select_card → %s  decl=%s  score=%.3f",
-                     best_card, best_decl, float(np.max(preds)))
+        pick = self._pick_index(preds)
+        best_card, best_decl = candidates[pick]
+        logger.debug("select_card → %s  decl=%s  score=%.3f  (argmax=%d, picked=%d)",
+                     best_card, best_decl, float(preds[pick]),
+                     int(np.argmax(preds)), pick)
         return best_card, best_decl
+
+    # ── ε-greedy sampling ──────────────────────────────────────────────────────
+
+    def _pick_index(self, preds: np.ndarray) -> int:
+        """Return argmax, or (with prob ε) a random pick from the top-K predictions."""
+        n = len(preds)
+        if n <= 1 or self.epsilon <= 0.0 or self._rng.random() >= self.epsilon:
+            return int(np.argmax(preds))
+        k = min(self.exploration_top_k, n)
+        # -preds ⇒ smallest = best; take first K indices by partition
+        top_k_idx = np.argpartition(-preds, k - 1)[:k]
+        return int(self._rng.choice(top_k_idx.tolist()))
 
     # ── Feature construction ───────────────────────────────────────────────────
 

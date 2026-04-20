@@ -175,3 +175,4 @@ game/backend/src/aimaraffa/static/workbox-*.js
 game/backend/src/aimaraffa/static/icons/
 /.claude/settings.local.json
 /game/backend/src/scripts/artifacts
+/game/backend/artifacts

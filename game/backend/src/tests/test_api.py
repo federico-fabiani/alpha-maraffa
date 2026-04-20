@@ -10,6 +10,11 @@ from aimaraffa.api import app
 client = TestClient(app)
 
 
+def _login(name: str = "Tester") -> dict:
+    """Register a session and return ``{"uuid": ..., "player_name": ...}``."""
+    return client.post("/api/login", json={"player_name": name}).json()
+
+
 # ── REST: POST /api/rooms ──────────────────────────────────────────────────────
 
 def test_create_room_returns_room_id():
@@ -66,8 +71,9 @@ def test_get_room_case_insensitive():
 
 def test_ws_join_receives_joined_message():
     """A player connecting via WebSocket must receive a 'joined' message."""
+    user = _login("Alice")
     room_id = client.post("/api/rooms", json={}).json()["room_id"]
-    with client.websocket_connect(f"/ws/{room_id}?player_name=Alice") as ws:
+    with client.websocket_connect(f"/ws/{room_id}?player_name={user['player_name']}&uuid={user['uuid']}") as ws:
         msg = json.loads(ws.receive_text())
         assert msg["type"] == "joined"
         assert msg["data"]["seat"] == 0
@@ -83,11 +89,13 @@ def test_ws_join_nonexistent_room_returns_error():
 
 def test_ws_two_players_get_different_seats():
     """Two players joining the same room must be assigned different seats."""
+    alice = _login("Alice")
+    bob = _login("Bob")
     room_id = client.post("/api/rooms", json={}).json()["room_id"]
-    with client.websocket_connect(f"/ws/{room_id}?player_name=Alice") as ws1:
+    with client.websocket_connect(f"/ws/{room_id}?player_name={alice['player_name']}&uuid={alice['uuid']}") as ws1:
         seat1 = json.loads(ws1.receive_text())["data"]["seat"]
 
-        with client.websocket_connect(f"/ws/{room_id}?player_name=Bob") as ws2:
+        with client.websocket_connect(f"/ws/{room_id}?player_name={bob['player_name']}&uuid={bob['uuid']}") as ws2:
             # ws1 receives a player_joined notification
             notif = json.loads(ws1.receive_text())
             assert notif["type"] == "player_joined"
@@ -100,11 +108,12 @@ def test_ws_two_players_get_different_seats():
 
 def test_ws_room_full_returns_error():
     """Connecting to a full room (4 players) must return an error."""
+    users = [_login(f"Player{i}") for i in range(5)]
     room_id = client.post("/api/rooms", json={}).json()["room_id"]
     connections = []
     try:
-        for i in range(4):
-            ws = client.websocket_connect(f"/ws/{room_id}?player_name=Player{i}")
+        for u in users[:4]:
+            ws = client.websocket_connect(f"/ws/{room_id}?player_name={u['player_name']}&uuid={u['uuid']}")
             ws.__enter__()
             msg = json.loads(ws.receive_text())
             # Drain any player_joined notifications that accumulate
@@ -112,7 +121,8 @@ def test_ws_room_full_returns_error():
             connections.append(ws)
 
         # Fifth player should be rejected
-        with client.websocket_connect(f"/ws/{room_id}?player_name=Overflow") as ws5:
+        u5 = users[4]
+        with client.websocket_connect(f"/ws/{room_id}?player_name={u5['player_name']}&uuid={u5['uuid']}") as ws5:
             msg = json.loads(ws5.receive_text())
             assert msg["type"] == "error"
     finally:
@@ -125,11 +135,14 @@ def test_ws_room_full_returns_error():
 
 def test_ws_ping_returns_pong():
     """Sending a ping message must elicit a pong response."""
+    user = _login("Pinger")
     room_id = client.post("/api/rooms", json={}).json()["room_id"]
-    with client.websocket_connect(f"/ws/{room_id}?player_name=Pinger") as ws:
-        # Drain 'joined' + the 'player_joined' broadcast the joining player receives
-        for _ in range(2):
-            ws.receive_text()
+    with client.websocket_connect(f"/ws/{room_id}?player_name={user['player_name']}&uuid={user['uuid']}") as ws:
+        joined = json.loads(ws.receive_text())
+        assert joined["type"] == "joined"
+        # Drain the player_joined broadcast the server sends to all slots
+        _notif = json.loads(ws.receive_text())
+        assert _notif["type"] == "player_joined"
         ws.send_text(json.dumps({"type": "ping"}))
         pong = json.loads(ws.receive_text())
         assert pong["type"] == "pong"
@@ -171,10 +184,11 @@ def test_only_owner_can_start_game():
 
 def test_ws_full_game_reaches_game_over():
     """Starting a game with 1 human and 3 bots must eventually emit game_over."""
+    user = _login("Solo")
     room_id = client.post("/api/rooms", json={}).json()["room_id"]
     received: list[dict] = []
 
-    with client.websocket_connect(f"/ws/{room_id}?player_name=Solo") as ws:
+    with client.websocket_connect(f"/ws/{room_id}?player_name={user['player_name']}&uuid={user['uuid']}") as ws:
         joined = json.loads(ws.receive_text())
         assert joined["type"] == "joined"
         my_seat: int = joined["data"]["seat"]

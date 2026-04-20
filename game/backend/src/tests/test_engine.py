@@ -166,7 +166,8 @@ def test_bot_selects_majority_suit_as_briscola():
 def test_bot_follows_lead_suit():
     """Bot card selection must respect the lead-suit constraint."""
     hand = [Card(Suit.BASTONI, 1), Card(Suit.COPPE, 5)]
-    assert bot_select_card(hand, Suit.BASTONI, Suit.SPADE).suit == Suit.BASTONI
+    card, _decl = bot_select_card(hand, Suit.BASTONI, Suit.SPADE)
+    assert card.suit == Suit.BASTONI
 
 
 # ── PlayerSlot ────────────────────────────────────────────────────────────────

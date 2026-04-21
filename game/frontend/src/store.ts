@@ -161,7 +161,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
         body: JSON.stringify({ player_name: get().playerName }),
       })
       if (!res.ok) {
-        set({ error: 'Server pieno, riprova pi\u00f9 tardi' })
+        set({ error: 'Impossibile raggiungere il server' })
         return
       }
       const { uuid, player_name } = (await res.json()) as { uuid: string; player_name: string }
@@ -180,6 +180,11 @@ const useGameStore = create<State & Actions>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ player_name: playerName }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        set({ error: (body as { detail?: string }).detail ?? 'Impossibile creare la stanza' })
+        return
+      }
       const { room_id } = (await res.json()) as { room_id: string }
       set({ roomId: room_id })
       LS.save(get().uuid, get().playerName, room_id)

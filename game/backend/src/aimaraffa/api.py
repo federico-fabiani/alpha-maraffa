@@ -61,15 +61,12 @@ if STATIC_DIR.exists():
 class UserRegistry:
     """Tracks active sessions and banned UUIDs."""
 
-    def __init__(self, max_users: int):
-        self.max_users = max_users
+    def __init__(self):
         self._active: dict[str, str] = {}   # uuid → display name
         self._banned: set[str] = set()
 
     def login(self, requested_name: str) -> tuple[str, str]:
-        """Create a new session. Raises ValueError when the server is full."""
-        if len(self._active) >= self.max_users:
-            raise ValueError("Server pieno")
+        """Create a new session."""
         uid = str(uuid_module.uuid4())
         genre = Genre.MASCULINE if uid[-1] in "01234567" else Genre.FEMININE
         title = "Nonno" if genre == Genre.MASCULINE else "Nonna"
@@ -91,7 +88,7 @@ class UserRegistry:
         self._banned.add(uid)
 
 
-registry = UserRegistry(max_users=settings.max_users)
+registry = UserRegistry()
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────
@@ -117,10 +114,7 @@ class LogoutBody(BaseModel):
 @app.post("/api/login")
 async def login(body: LoginBody):
     """Register a new session. Returns uuid + assigned player name."""
-    try:
-        uid, name = registry.login(body.player_name)
-    except ValueError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    uid, name = registry.login(body.player_name)
     logger.info("Login: %s (%s)", name, uid)
     return {"uuid": uid, "player_name": name}
 
@@ -135,6 +129,9 @@ async def logout(body: LogoutBody):
 @app.post("/api/rooms")
 async def create_room(body: CreateRoomBody):
     """Create a new game room and return its ID."""
+    rooms.purge_finished()
+    if len(rooms.rooms) >= settings.max_rooms:
+        raise HTTPException(status_code=503, detail="Server pieno: troppe stanze aperte, riprova pi\u00f9 tardi")
     room = rooms.create()
     logger.info("Room created: %s", room.room_id)
     return {"room_id": room.room_id}

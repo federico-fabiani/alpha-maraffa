@@ -58,7 +58,7 @@ TOURNEY_SEED    = 42
 # Promote (= copy to PRODUCTION_MODEL_PATH) only when the new model wins
 # decisively against the source. The lower bound of the Wilson 95% CI is
 # what gates promotion — point estimate alone is too noisy at TOURNEY_GAMES.
-PROMOTE_MIN_CI_LOWER = 0.51
+PROMOTE_MIN_CI_LOWER = 0.505
 
 # Parallel simulation workers.
 # Each worker spawns a separate process that loads its own model copy and

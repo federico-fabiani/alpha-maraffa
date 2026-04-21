@@ -126,8 +126,8 @@ def _generate_report(state: dict) -> str:
         "",
         "## Results",
         "",
-        "| # | Version | Source | Status | Win Rate | 95% CI | Margin | Promoted | Duration |",
-        "|--:|---------|--------|:------:|----------|--------|-------:|:--------:|---------:|",
+        "| # | Version | Source | Opponent | Status | Win Rate | 95% CI | Margin | Promoted | Duration |",
+        "|--:|---------|--------|----------|:------:|----------|--------|-------:|:--------:|---------:|",
     ]
 
     for i, it in enumerate(iters, 1):
@@ -139,6 +139,7 @@ def _generate_report(state: dict) -> str:
 
         tour = it.get("tournament")
         if tour and tour.get("win_rate") is not None:
+            opponent = tour.get("opponent", "?")
             wr = f"{tour['win_rate']:.1f}%"
             ci = f"{tour['ci_lo']:.1f}% – {tour['ci_hi']:.1f}%"
             margin = (
@@ -147,12 +148,14 @@ def _generate_report(state: dict) -> str:
                 else "—"
             )
         elif it.get("status") == "ok" and src == "random":
+            opponent = "—"
             wr, ci, margin = "—", "bootstrap", "—"
         else:
+            opponent = "—"
             wr, ci, margin = "—", "—", "—"
 
         lines.append(
-            f"| {i} | {ver} | {src} | {status} | {wr} | {ci} | {margin} | {promoted} | {dur} |"
+            f"| {i} | {ver} | {src} | {opponent} | {status} | {wr} | {ci} | {margin} | {promoted} | {dur} |"
         )
 
     lines.append("")
@@ -220,6 +223,15 @@ def run_batch(n_iterations: int = 5, reset: bool = False) -> None:
     if state.get("target_version") is not None:
         # Resume
         target = state["target_version"]
+        # Extend target if a larger --n was requested
+        original_start = target - state.get("n_requested", target)
+        new_target = original_start + n_iterations
+        if new_target > target:
+            target = new_target
+            state["target_version"] = target
+            state["n_requested"] = n_iterations
+            _save_state(state)
+            logger.info("Extending batch target to v%d (%d total iterations).", target, n_iterations)
         # Drop last entry if it was an error — we're retrying that version
         if state.get("iterations") and state["iterations"][-1].get("status") == "error":
             failed = state["iterations"].pop()

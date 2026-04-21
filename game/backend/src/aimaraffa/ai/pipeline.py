@@ -6,6 +6,7 @@ import logging
 import re
 
 from . import analyze, config, simulator, train, tournament
+from .config import PRODUCTION_MODEL_PATH
 from .versions import (
     latest_version,
     next_version_dir,
@@ -132,18 +133,26 @@ def run() -> None:
     logger.info("[4/5] Analyze model")
     analyze.analyze(analysis_data, model_path, report_path)
 
-    logger.info("[5/5] Tournament %s vs %s", dst_name, src_label)
-    if src_model is None:
-        # First model ever — auto-promote, nothing to play against.
+    # Resolve champion: the current production model (may differ from src_model
+    # if a previous iteration was not promoted).
+    champ_ver = production_version()
+    champ_model = (
+        PRODUCTION_MODEL_PATH if (champ_ver and PRODUCTION_MODEL_PATH.exists()) else None
+    )
+    champ_label = champ_ver or "(none)"
+
+    logger.info("[5/5] Tournament %s vs champion (%s)", dst_name, champ_label)
+    if src_model is None or champ_model is None:
+        # First model ever — auto-promote, no champion to beat.
         promote(dst_name, dst_dir)
-        logger.info("PROMOTED %s → %s (bootstrap, no source to compare).",
-                    dst_name, config.PRODUCTION_MODEL_PATH)
+        logger.info("PROMOTED %s → %s (no champion to compare against).",
+                    dst_name, PRODUCTION_MODEL_PATH)
         return
 
-    res = tournament.tournament(model_path, src_model,
+    res = tournament.tournament(model_path, champ_model,
                                 games=config.TOURNEY_GAMES, seed=config.TOURNEY_SEED)
-    report = tournament.format_report(dst_name, src_label, res)
-    log_safe = re.sub(r'[<>:"/\\|?*,()]+', '_', src_label).strip('_')
+    report = tournament.format_report(dst_name, champ_label, res)
+    log_safe = re.sub(r'[<>:"/\\|?*,()]+', '_', champ_label).strip('_')
     log_path = dst_dir / f"tournament_vs_{log_safe.replace(' ', '_')}.txt"
     log_path.write_text(report, encoding="utf-8")
     print(report)
@@ -151,11 +160,10 @@ def run() -> None:
     if res["ci95_lo"] >= config.PROMOTE_MIN_CI_LOWER:
         promote(dst_name, dst_dir)
         logger.info("PROMOTED %s → %s  (CI lower %.3f ≥ %.3f).",
-                    dst_name, config.PRODUCTION_MODEL_PATH,
+                    dst_name, PRODUCTION_MODEL_PATH,
                     res["ci95_lo"], config.PROMOTE_MIN_CI_LOWER)
     else:
-        prod = production_version() or "(none)"
         logger.info("NOT promoted: %s win-rate=%.1f%% "
                     "(CI lower %.3f < %.3f). Production stays at %s.",
                     dst_name, res["win_rate_a"] * 100,
-                    res["ci95_lo"], config.PROMOTE_MIN_CI_LOWER, prod)
+                    res["ci95_lo"], config.PROMOTE_MIN_CI_LOWER, champ_label)

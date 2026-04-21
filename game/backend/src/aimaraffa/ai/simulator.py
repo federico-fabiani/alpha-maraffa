@@ -1922,7 +1922,13 @@ def _simulate_chunk(kwargs: dict) -> list:
     All model loading happens inside the spawned process.  Nothing is shared
     with the parent — each worker loads its own copy of the model.
     """
+    import logging as _logging
     from pathlib import Path as _Path
+
+    _logging.basicConfig(
+        level=_logging.INFO,
+        format="[worker %(process)d] %(levelname)s %(name)s: %(message)s",
+    )
 
     out          = kwargs.get("output_path")
     model_path   = kwargs.get("model_path")

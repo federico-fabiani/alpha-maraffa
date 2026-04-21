@@ -12,6 +12,7 @@ from .versions import (
     next_version_dir,
     production_version,
     promote,
+    promoted_versions,
     recent_versions,
 )
 
@@ -19,14 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_training_policy_models() -> dict[str, object]:
-    recent = recent_versions(limit=3)
-    model_map = {
-        "latest": recent[0][1] if len(recent) >= 1 else None,
-        "prev1": recent[1][1] if len(recent) >= 2 else None,
-        "prev2": recent[2][1] if len(recent) >= 3 else None,
+    # Use promoted versions so the dataset pool is anchored to models that
+    # have been validated via the tournament, avoiding quality regression when
+    # unpromoted (poor) models dominate the mix.
+    pool = promoted_versions(limit=3)
+    if not pool:
+        # First-run fallback: no promotion history yet, use recent trained.
+        pool = recent_versions(limit=3)
+    return {
+        "latest": pool[0][1] if len(pool) >= 1 else None,
+        "prev1":  pool[1][1] if len(pool) >= 2 else None,
+        "prev2":  pool[2][1] if len(pool) >= 3 else None,
         "random": None,
     }
-    return model_map
 
 
 def _resolve_dataset_generation_options(

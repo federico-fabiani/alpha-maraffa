@@ -648,6 +648,73 @@ def _section_strategy_ace_discharge(df: pd.DataFrame) -> str:
 
 
 
+def _section_strategy_busso_high_card_response(df: pd.DataFrame) -> str:
+    """Strategy 9 — when partner has bussed, open the round with a high card in that suit.
+
+    A 'high card' is rank 1, 2, or 3 (asso, due, tre) — the cards that confirm
+    'I have what you asked for' and maximise point yield.
+    """
+    if "partner_suit_status" not in df.columns:
+        return ""
+    # Lead plays on the lead suit when partner has bussed on it earlier.
+    after_busso = df[
+        (df["play_order"] == 0)
+        & (df["card_is_lead"] == 1)
+        & (df["partner_suit_status"].astype(str) == "busso")
+    ].copy()
+    if after_busso.empty:
+        return _h(2, "Strategia 9 — Carta alta dopo busso del compagno") + "> Nessun dato.\n\n"
+
+    after_busso["is_high"] = (after_busso["card_rank"].isin([1, 2, 3])).astype(int)
+
+    # Baseline: lead plays on any suit when partner's status is unknown or "has".
+    baseline = df[
+        (df["play_order"] == 0)
+        & (df["card_is_lead"] == 1)
+        & (df["partner_suit_status"].astype(str).isin(["unknown", "has"]))
+    ].copy()
+    baseline["is_high"] = (baseline["card_rank"].isin([1, 2, 3])).astype(int)
+
+    n = len(after_busso)
+    n_high = int(after_busso["is_high"].sum())
+    pct = n_high / n * 100 if n > 0 else 0.0
+
+    n_base = len(baseline)
+    n_base_high = int(baseline["is_high"].sum())
+    base_pct = n_base_high / n_base * 100 if n_base > 0 else 0.0
+
+    tbl_summary = pd.DataFrame({
+        "Situazione": [
+            "Partner ha bussato (rispondo nel seme)",
+            "Baseline (partner sconosciuto / ha carte)",
+        ],
+        "N lead": [n, n_base],
+        "Carta alta (1/2/3)": [n_high, n_base_high],
+        "% alta": [round(pct, 1), round(base_pct, 1)],
+    })
+
+    # Rank distribution when responding to partner's busso.
+    rank_counts = (
+        after_busso.groupby("card_rank")
+        .size()
+        .reset_index(name="N")
+        .sort_values("card_rank")
+        .rename(columns={"card_rank": "Rango", "N": "N giocate"})
+    )
+
+    out  = _h(2, "Strategia 9 — Carta alta dopo busso del compagno")
+    out += (
+        "Quando il compagno ha dichiarato 'busso' su un seme in questo round e\n"
+        "hai il lead su quel seme, con che frequenza giochi una carta alta "
+        "(asso/2/3).\n"
+        "Una carta alta segnala al compagno 'ho risposto con forza' e massimizza i punti.\n\n"
+    )
+    out += _table(tbl_summary) + "\n"
+    out += "**Distribuzione ranghi giocati dopo busso del compagno:**\n\n"
+    out += _table(rank_counts) + "\n"
+    return out
+
+
 def _section_strategy_ace_discharge_on_void(df: pd.DataFrame) -> str:
     """Strategy 8 — discharge aces when partner has voided the lead suit (will play briscola)."""
     if "partner_suit_status" not in df.columns:
@@ -720,6 +787,7 @@ def analyze(data_path: Path, model_path: Path, out_path: Path) -> None:
         _section_strategy_selector_last_briscola(df),
         _section_strategy_busso_with_2(df),
         _section_strategy_partner_after_busso(df),
+        _section_strategy_busso_high_card_response(df),
         _section_strategy_ace_discharge(df),
         _section_strategy_ace_discharge_on_void(df),
     ]

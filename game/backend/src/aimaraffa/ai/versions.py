@@ -19,6 +19,7 @@ from .config import (
     MODEL_FILENAME,
     PRODUCTION_MODEL_PATH,
     PRODUCTION_POINTER,
+    PROMOTION_LOG,
     TRAINING_ARTIFACTS_DIR,
 )
 
@@ -83,6 +84,41 @@ def production_version() -> str | None:
     return PRODUCTION_POINTER.read_text(encoding="utf-8").strip() or None
 
 
+def promoted_versions(limit: int | None = None) -> list[tuple[int, Path]]:
+    """Return promoted versions sorted from newest to oldest.
+
+    Reads from ``PROMOTION_LOG`` (one version name per line, oldest first).
+    Falls back to the single entry in ``PRODUCTION_POINTER`` when the log
+    doesn't exist yet — ensures backward compatibility with existing setups.
+    """
+    if not PROMOTION_LOG.exists():
+        # Bootstrap: treat the current production version as the only entry.
+        current = production_version()
+        if current:
+            m = _VER_RE.match(current)
+            if m:
+                p = TRAINING_ARTIFACTS_DIR / current / MODEL_FILENAME
+                if p.exists():
+                    return [(int(m.group(1)), p)]
+        return []
+
+    entries: list[tuple[int, Path]] = []
+    for line in PROMOTION_LOG.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        m = _VER_RE.match(line)
+        if not m:
+            continue
+        p = TRAINING_ARTIFACTS_DIR / line / MODEL_FILENAME
+        if p.exists():
+            entries.append((int(m.group(1)), p))
+    # Deduplicate (keep latest occurrence) and sort newest→oldest.
+    seen: dict[int, Path] = {}
+    for num, path in entries:
+        seen[num] = path
+    result = sorted(seen.items(), key=lambda x: x[0], reverse=True)
+    return result[:limit] if limit is not None else result
+
+
 def promote(version_name: str, version_dir: Path) -> None:
     """Copy ``v<N>``'s model into the production slot and update the pointer."""
     src = version_dir / MODEL_FILENAME
@@ -91,3 +127,7 @@ def promote(version_name: str, version_dir: Path) -> None:
     PRODUCTION_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, PRODUCTION_MODEL_PATH)
     PRODUCTION_POINTER.write_text(version_name + "\n", encoding="utf-8")
+    # Append to the promotion log so promoted_versions() can reconstruct history.
+    PROMOTION_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with PROMOTION_LOG.open("a", encoding="utf-8") as f:
+        f.write(version_name + "\n")

@@ -25,6 +25,8 @@ REPORT_FILENAME       = "strategy_report.md"
 # What Docker ships: a stable file path + a pointer telling which v<N> it came from.
 PRODUCTION_MODEL_PATH = _SRC_ROOT / "scripts" / "artifacts" / MODEL_FILENAME
 PRODUCTION_POINTER    = _SRC_ROOT / "scripts" / "artifacts" / "PRODUCTION"
+# Append-only log of every promotion: one version name per line, oldest first.
+PROMOTION_LOG         = _SRC_ROOT / "scripts" / "artifacts" / "PROMOTION_LOG"
 
 # ── Pipeline knobs ─────────────────────────────────────────────────────────────
 DATASET_GAMES   = 10_000   # self-play games used to train v<N+1>
@@ -45,7 +47,7 @@ DATASET_POLICY_MIX = (
 # When enabled, the simulator forks alternative actions at a subset of decision
 # points and rolls out the rest of the round to get a contrastive target.
 COUNTERFACTUAL_ENABLED      = False
-COUNTERFACTUAL_PROBABILITY  = 0.30   # chance of sampling alternatives per decision
+COUNTERFACTUAL_PROBABILITY  = 0.20   # chance of sampling alternatives per decision
 COUNTERFACTUAL_ALTERNATIVES = 2      # how many alternative actions to evaluate
 COUNTERFACTUAL_ROLLOUTS     = 3      # rollouts per alternative (averaged → less noise)
 COUNTERFACTUAL_WEIGHT       = 0.5    # sample_weight for CF rows (1.0 = same as executed)

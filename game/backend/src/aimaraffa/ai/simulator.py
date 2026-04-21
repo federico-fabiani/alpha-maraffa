@@ -37,6 +37,8 @@ from aimaraffa.engine import (
     determine_turn_winner,
     get_valid_cards, get_valid_declarations,
 )
+from aimaraffa.agents.base import BaseAgent
+from aimaraffa.agents.heuristic_agent import HeuristicAgent
 from aimaraffa.ml_agent import (
     MLAgent,
     _COL_IDX, _COL_NAMES, _COL_TYPES, _ROW_TEMPLATE,
@@ -486,13 +488,14 @@ class Simulator:
     per-game inference cost ~1000-fold.
     """
 
-    def __init__(self, model_path: Optional[Path], epsilon: float = 0.0,
+    def __init__(self, model_path: Optional[Path] = None, epsilon: float = 0.0,
                  exploration_top_k: int = 3, *,
+                 agent: Optional[BaseAgent] = None,
                  counterfactual: bool = False,
                  counterfactual_prob: float = 0.3,
                  counterfactual_alts: int = 2,
                  counterfactual_rollouts: int = 1):
-        self.random_mode = model_path is None
+        # ── Common fields ──────────────────────────────────────────────────────
         self.epsilon = float(epsilon)
         self.exploration_top_k = max(2, int(exploration_top_k))
         self._counterfactual = bool(counterfactual)
@@ -503,7 +506,13 @@ class Simulator:
         self._cf_count = 0      # total CF rollouts executed
         self._rng: random.Random = random.Random()  # re-seeded per run()
 
-        if self.random_mode:
+        # ── Heuristic agent path ───────────────────────────────────────────────
+        # When an explicit BaseAgent is supplied, delegate all game decisions to
+        # it per-game (no cross-game batching).  Currently only HeuristicAgent
+        # uses this path; MLAgent and RandomAgent use the fast batched paths.
+        if agent is not None and isinstance(agent, HeuristicAgent):
+            self._heuristic_agent: Optional[HeuristicAgent] = agent
+            self.random_mode = False
             self.agent = None
             self._booster = None
             self._rollout_booster = None
@@ -512,6 +521,20 @@ class Simulator:
             self._feat_types = _COL_TYPES
             return
 
+        self._heuristic_agent = None
+
+        # ── Random path ────────────────────────────────────────────────────────
+        self.random_mode = model_path is None
+        if self.random_mode:
+            self.agent = None
+            self._booster = None
+            self._rollout_booster = None
+            self._feature_sel = None
+            self._feat_names = _COL_NAMES
+            self._feat_types = _COL_TYPES
+            return
+
+        # ── ML batched path ────────────────────────────────────────────────────
         self.agent = MLAgent(model_path)
         self._booster = self.agent.model.get_booster()
         model_names = self._booster.feature_names
@@ -558,11 +581,13 @@ class Simulator:
             "round_num": round_num,
             "turn_num": turn_num,
             "briscola_selector_seat": state.briscola_selector,
+            "briscola": state.briscola,
             "table_cards": list(state.table_tuples),
             "round_scores": {1: round(state.round_scores[1], 2),
                              2: round(state.round_scores[2], 2)},
             "total_scores": dict(state.total_scores),
             "hand": state.hands[seat],
+            "round_history": dict(state.round_history),
         }
 
     @staticmethod
@@ -578,6 +603,15 @@ class Simulator:
                 if state.done:
                     continue
                 state.briscola = self._rng.choice(suits)
+            return
+
+        if getattr(self, "_heuristic_agent", None) is not None:
+            for state in states:
+                if state.done:
+                    continue
+                seat = state.briscola_selector
+                ctx = self._build_ctx(state, seat, round_num, turn_num=0)
+                state.briscola = self._heuristic_agent.select_briscola(ctx)
             return
 
         rows: List[np.ndarray] = []
@@ -621,11 +655,39 @@ class Simulator:
 
     # ── Card selection per position ───────────────────────────────────────────
 
+    def _heuristic_decisions(
+        self, states: List[_GameState], round_num: int, turn_num: int, position: int
+    ) -> Dict[int, Tuple[Card, Optional[str]]]:
+        """Per-game dispatch to the heuristic agent — no cross-game batching."""
+        is_lead_pos = (position == 0)
+        decisions: Dict[int, Tuple[Card, Optional[str]]] = {}
+        for gi, state in enumerate(states):
+            if state.done:
+                continue
+            seat = self._seat_at_position(state, position)
+            hand = state.hands[seat]
+            lead_suit = state.table_tuples[0][1].suit if state.table_tuples else None
+
+            # Maraffa forced — mechanical constraint, not a strategic choice.
+            if state.maraffa_forced and seat == state.briscola_selector and lead_suit is None:
+                forced = Card(state.briscola, 1)
+                decls = get_valid_declarations([c for c in hand if c != forced], forced.suit)
+                decisions[gi] = (forced, self._rng.choice(decls))
+                continue
+
+            ctx = self._build_ctx(state, seat, round_num, turn_num)
+            card, decl = self._heuristic_agent.select_card(ctx, state.briscola)
+            decisions[gi] = (card, decl if is_lead_pos else None)
+        return decisions
+
     def _select_cards_per_position(
         self, states: List[_GameState], round_num: int, turn_num: int, position: int
     ) -> Dict[int, Tuple[Card, Optional[str]]]:
         if self.random_mode:
             return self._random_decisions(states, position)
+
+        if getattr(self, "_heuristic_agent", None) is not None:
+            return self._heuristic_decisions(states, round_num, turn_num, position)
 
         all_rows: List[np.ndarray] = []
         slices: List[Tuple[int, int]] = []
@@ -1317,7 +1379,9 @@ class Simulator:
                     state.table_dicts = []
                     state.maraffa_forced = False
 
-                if self.agent is not None:
+                if getattr(self, "_heuristic_agent", None) is not None:
+                    self._heuristic_agent.reset_round()
+                elif self.agent is not None:
                     self.agent.reset_round()
 
                 # ── Briscola (batched) ───────────────────────────────────────
@@ -1483,6 +1547,7 @@ class PolicyMixSimulator(Simulator):
         self._cf_elapsed = 0.0
         self._cf_count = 0
         self._rng: random.Random = random.Random()
+        self._heuristic_agent = None  # PolicyMixSimulator always uses ML/random paths
         self._policy_models = dict(policy_models)
         self._seat_policy_mix = _normalize_policy_mix(seat_policy_mix)
         self._agents: Dict[str, MLAgent] = {}
@@ -1746,6 +1811,7 @@ def simulate(
     counterfactual_alts: int = 2,
     counterfactual_rollouts: int = 1,
     n_workers: int = 1,
+    agent: Optional[BaseAgent] = None,
     _game_id_offset: int = 0,
 ) -> np.ndarray:
     """Run ``n_games`` self-play games. Returns ``(n_games, 2)`` final totals.
@@ -1872,6 +1938,17 @@ def simulate(
                 exploration_top_k=exploration_top_k,
                 **cf_kw,
             )
+    elif agent is not None:
+        if n_workers > 1:
+            logger.warning(
+                "n_workers > 1 is not supported with explicit agent=; falling back to n_workers=1"
+            )
+        logger.info(
+            "Heuristic self-play — %d games  agent=%s  cf=%s",
+            n_games, agent.name, counterfactual,
+        )
+        sim = Simulator(None, epsilon=epsilon, exploration_top_k=exploration_top_k,
+                        agent=agent, **cf_kw)
     elif model_path is None:
         logger.info("Random self-play — %d games  cf=%s", n_games, counterfactual)
         sim = Simulator(model_path, epsilon=epsilon,

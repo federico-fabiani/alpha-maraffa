@@ -9,6 +9,7 @@ import joblib
 import numpy as np
 import xgboost as xgb
 
+from aimaraffa.agents.base import BaseAgent
 from aimaraffa.engine import Card, Suit, get_valid_cards, get_valid_declarations
 
 logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ for _col in ("partner_suit_status", "opp_left_suit_status", "opp_right_suit_stat
     _ROW_TEMPLATE[_COL_IDX[_col]] = _STATUS_ENC["unknown"]
 
 
-class MLAgent:
+class MLAgent(BaseAgent):
     """
     Stateful ML bot that mirrors the per-play feature schema used during training.
 
@@ -102,6 +103,10 @@ class MLAgent:
       - select_briscola(ctx)        called when this bot must choose the briscola suit
       - select_card(ctx, briscola)  called when this bot must play a card
     """
+
+    @property
+    def name(self) -> str:
+        return "ml"
 
     def __init__(self, model_path: Path, epsilon: float = 0.0,
                  exploration_top_k: int = 3, seed: Optional[int] = None):

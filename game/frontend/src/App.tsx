@@ -16,26 +16,15 @@ const screens = {
 } as const
 
 export default function App() {
-  const screen = useGameStore(s => s.screen)
-  const login  = useGameStore(s => s.login)
-  const uuid   = useGameStore(s => s.uuid)
+  const screen          = useGameStore(s => s.screen)
+  const restoreSession  = useGameStore(s => s.restoreSession)
 
   const [displayedScreen, setDisplayedScreen] = useState<Screen>(screen)
   const [contentVisible, setContentVisible]   = useState(true)
 
   useEffect(() => {
-    login()
+    restoreSession()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const handleUnload = () => {
-      if (uuid) {
-        navigator.sendBeacon('/api/logout', new Blob([JSON.stringify({ uuid })], { type: 'application/json' }))
-      }
-    }
-    window.addEventListener('beforeunload', handleUnload)
-    return () => window.removeEventListener('beforeunload', handleUnload)
-  }, [uuid])
 
   // Cross-fade between screens: fade out → swap → fade in
   useEffect(() => {

@@ -24,6 +24,26 @@ let _reconnectAttempts = 0
 let _reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null
 const MAX_RECONNECT_ATTEMPTS = 5
 const RECONNECT_BASE_DELAY_MS = 2000
+
+// ── localStorage helpers ─────────────────────────────────────────────────────────────
+const LS = {
+  save: (uuid: string, playerName: string, roomId?: string) => {
+    try {
+      localStorage.setItem('mrf_uuid', uuid)
+      localStorage.setItem('mrf_name', playerName)
+      if (roomId) localStorage.setItem('mrf_room', roomId)
+    } catch { /* ignore quota errors */ }
+  },
+  clearRoom: () => { try { localStorage.removeItem('mrf_room') } catch { /* noop */ } },
+  load: (): { uuid: string; playerName: string; roomId: string } | null => {
+    try {
+      const uuid = localStorage.getItem('mrf_uuid') ?? ''
+      const playerName = localStorage.getItem('mrf_name') ?? ''
+      const roomId = localStorage.getItem('mrf_room') ?? ''
+      return uuid && roomId ? { uuid, playerName, roomId } : null
+    } catch { return null }
+  },
+}
 // ── Types ───────────────────────────────────────────────────────────────────��──
 
 interface State {
@@ -64,6 +84,8 @@ interface State {
   // Connection quality
   pingMs: number | null
   pingStatus: PingStatus
+  // Turn timer
+  turnDeadline: number | null
 }
 
 interface Actions {
@@ -78,6 +100,7 @@ interface Actions {
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card, declaration?: Declaration) => void
   forfeit: () => void
+  restoreSession: () => void
   showNotification: (notification: Notification) => void
   dismissNotification: () => void
   reset: () => void
@@ -120,6 +143,7 @@ export const initialState: State = {
   error: null,
   pingMs: null,
   pingStatus: 'offline',
+  turnDeadline: null,
 }
 
 // ── Store ──────────────────────────────────────────────────────────────────────
@@ -142,6 +166,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
       }
       const { uuid, player_name } = (await res.json()) as { uuid: string; player_name: string }
       set({ uuid, playerName: player_name })
+      LS.save(uuid, player_name)
     } catch {
       set({ error: 'Impossibile raggiungere il server' })
     }
@@ -157,6 +182,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
       })
       const { room_id } = (await res.json()) as { room_id: string }
       set({ roomId: room_id })
+      LS.save(get().uuid, get().playerName, room_id)
       get()._connect(room_id)
     } catch {
       set({ error: 'Impossibile creare la stanza' })
@@ -165,6 +191,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
   joinRoom: (roomId) => {
     set({ roomId })
+    LS.save(get().uuid, get().playerName, roomId)
     get()._connect(roomId)
   },
 
@@ -242,6 +269,18 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'forfeit' }))
   },
 
+  restoreSession: () => {
+    const saved = LS.load()
+    if (!saved) {
+      // No saved session — normal login flow
+      get().login()
+      return
+    }
+    // Restore identity and attempt to rejoin
+    set({ uuid: saved.uuid, playerName: saved.playerName, roomId: saved.roomId })
+    get()._connect(saved.roomId)
+  },
+
   showNotification: (notification) => set({ notification }),
 
   dismissNotification: () => set({ notification: null }),
@@ -253,6 +292,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
       clearTimeout(_reconnectTimeoutId)
       _reconnectTimeoutId = null
     }
+    LS.clearRoom()
     get().ws?.close()
     set({ ...initialState, uuid, playerName })
   },
@@ -262,7 +302,9 @@ const useGameStore = create<State & Actions>((set, get) => ({
     const data = (msg.data ?? {}) as Record<string, unknown>
 
     switch (type) {
-      case 'joined':
+      case 'joined': {
+        const { uuid, playerName, roomId } = get()
+        LS.save(uuid, playerName, roomId)
         set({
           mySeat: data.seat as number,
           lobbyPlayers: data.players as LobbyPlayer[],
@@ -271,6 +313,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           isOwner: (data.seat as number) === (data.owner_seat as number),
         })
         break
+      }
 
       case 'reconnected':
         set({ mySeat: data.seat as number, screen: 'game' })
@@ -301,6 +344,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           round_scores: Record<string, number>
           last_turn_winner: number | null
           current_declaration: Declaration
+          turn_deadline: number | null
         }
         set(state => ({
           phase: d.phase,
@@ -318,6 +362,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           roundScores: d.round_scores,
           lastTurnWinner: d.last_turn_winner,
           currentDeclaration: d.current_declaration ?? null,
+          turnDeadline: d.turn_deadline ?? null,
         }))
         break
       }
@@ -383,7 +428,9 @@ const useGameStore = create<State & Actions>((set, get) => ({
             ...(data.forfeit_by ? { forfeit_by: data.forfeit_by as string } : {}),
           },
           screen: 'gameover',
+          turnDeadline: null,
         })
+        LS.clearRoom()
         break
 
       case 'kicked':
@@ -470,6 +517,20 @@ const useGameStore = create<State & Actions>((set, get) => ({
             p.seat === disconnectedSeat ? { ...p, is_connected: false } : p
           ),
         }))
+        break
+      }
+
+      case 'player_timeout': {
+        const td = data as { name: string; consecutive: number; total: number }
+        const remaining = 3 - td.consecutive
+        set({
+          turnDeadline: null,
+          notification: {
+            text: `${td.name} non ha giocato in tempo`,
+            subtitle: remaining > 0 ? `Ancora ${remaining} pausa${remaining > 1 ? '' : ''} prima dell'espulsione` : undefined,
+            duration: 3000,
+          },
+        })
         break
       }
 

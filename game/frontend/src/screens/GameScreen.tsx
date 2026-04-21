@@ -45,7 +45,7 @@ export default function GameScreen() {
     mySeat, players, myHand, phase,
     briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat, lastTrickCards,
     round, turn, totalScores,
-    notification, briscolaSelectorSeat, currentDeclaration,
+    notification, briscolaSelectorSeat, currentDeclaration, turnDeadline,
   } = useGameStore(useShallow(s => ({
     mySeat: s.mySeat,
     players: s.players,
@@ -63,6 +63,7 @@ export default function GameScreen() {
     notification: s.notification,
     briscolaSelectorSeat: s.briscolaSelectorSeat,
     currentDeclaration: s.currentDeclaration,
+    turnDeadline: s.turnDeadline,
   })))
 
   const playCard        = useGameStore(s => s.playCard)
@@ -72,6 +73,16 @@ export default function GameScreen() {
   const forfeit         = useGameStore(s => s.forfeit)
 
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
+
+  // ── Countdown timer (ticks every 250 ms when a human is on the clock) ───────────
+  const [secsLeft, setSecsLeft] = useState<number | null>(null)
+  useEffect(() => {
+    if (!turnDeadline) { setSecsLeft(null); return }
+    const tick = () => setSecsLeft(Math.max(0, Math.round((turnDeadline * 1000 - Date.now()) / 1000)))
+    tick()
+    const id = setInterval(tick, 250)
+    return () => clearInterval(id)
+  }, [turnDeadline])
 
   // ── Declaration state (local toggle, sent bundled with the card) ─────────────
   const [pendingDeclaration, setPendingDeclaration] = useState<Declaration>(null)
@@ -251,6 +262,19 @@ export default function GameScreen() {
           className={`absolute top-3 right-3 z-10 transform-gpu transition-opacity duration-300 ease-out ${showCornerBriscola ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${cornerToastPop ? 'corner-toast-pop' : ''}`}
         >
           <BriscolaIndicator suit={briscola} />
+        </div>
+      )}
+
+      {/* \u2500\u2500 Turn countdown bar \u2500\u2500 */}
+      {secsLeft !== null && (
+        <div className="absolute top-0 left-0 right-0 z-20 h-1 bg-stone-900/60">
+          <div
+            className="h-full transition-[width] duration-200 ease-linear"
+            style={{
+              width: `${Math.max(0, (secsLeft / 30) * 100)}%`,
+              backgroundColor: secsLeft > 15 ? '#4ade80' : secsLeft > 7 ? '#facc15' : '#f87171',
+            }}
+          />
         </div>
       )}
 

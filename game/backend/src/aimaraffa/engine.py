@@ -3,6 +3,7 @@
 import asyncio
 import json
 import random
+import time
 from collections import defaultdict
 from enum import Enum
 from math import floor
@@ -68,14 +69,25 @@ RANK_TO_VALUE: Dict[int, int] = {
 RANK_TO_POINTS: Dict[int, float] = {
     1: 1.0, 2: 0.34, 3: 0.34, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0.34, 9: 0.34, 10: 0.34,
 }
-KEY_CARD            = Card(Suit.DENARA, 4)   # holder selects the briscola in round 1
-GAME_WIN_THRESHOLD  = 41
-BOT_PLAY_DELAY      = 1.0    # seconds before a bot plays a card
-BOT_THINK_DELAY     = 0.5    # seconds before a bot selects briscola
-TURN_RESULT_PAUSE   = 2.0    # seconds to display who won a turn
-ROUND_END_PAUSE     = 3.5    # seconds to display round summary
+KEY_CARD               = Card(Suit.DENARA, 4)   # holder selects the briscola in round 1
+GAME_WIN_THRESHOLD     = 41
+BOT_PLAY_DELAY         = 1.0    # seconds before a bot plays a card
+BOT_THINK_DELAY        = 0.5    # seconds before a bot selects briscola
+TURN_RESULT_PAUSE      = 2.0    # seconds to display who won a turn
+ROUND_END_PAUSE        = 3.5    # seconds to display round summary
+HUMAN_TURN_TIMEOUT     = 30.0   # seconds a human has to play before auto-play
+MAX_CONSECUTIVE_MISSED = 3      # forfeit if missed this many turns in a row
+MAX_TOTAL_MISSED       = 3      # forfeit if missed this many turns total
 
 _VALID_DECLARATIONS = frozenset({"busso", "striscio", "volo"})
+
+
+class ForfeitError(Exception):
+    """Raised inside the game loop when a player forfeits due to inactivity."""
+
+    def __init__(self, slot: "PlayerSlot"):
+        self.slot = slot
+        super().__init__(f"{slot.name} ha abbandonato per inattivit\u00e0")
 
 # ── Bot strategy selection ─────────────────────────────────────────────────────
 
@@ -197,6 +209,8 @@ class PlayerSlot:
         self.hand: List[Card] = []
         self.websocket = None
         self.input_queue: asyncio.Queue = asyncio.Queue()
+        self.consecutive_missed: int = 0
+        self.total_missed: int = 0
 
     @property
     def team(self) -> int:
@@ -227,6 +241,7 @@ class GameRoom:
         self.current_declaration: Optional[str] = None
         self.phase = "waiting"
         self._maraffa_forced: bool = False  # selector must lead with briscola ace
+        self.current_turn_deadline: Optional[float] = None
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -280,6 +295,7 @@ class GameRoom:
                 "round_scores": {k: round(v, 2) for k, v in self.round_scores.items()},
                 "last_turn_winner": self.last_turn_winner_seat,
                 "current_declaration": self.current_declaration,
+                "turn_deadline": self.current_turn_deadline,
             },
         }
 
@@ -384,8 +400,25 @@ class GameRoom:
                 }
                 return _ml_agent.select_briscola(ctx)
             return bot_select_briscola(slot.hand)
-        payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
-        return Suit(payload["suit"].lower())
+        try:
+            payload = await asyncio.wait_for(slot.input_queue.get(), timeout=HUMAN_TURN_TIMEOUT)
+            slot.consecutive_missed = 0
+            return Suit(payload["suit"].lower())
+        except asyncio.TimeoutError:
+            slot.consecutive_missed += 1
+            slot.total_missed += 1
+            await self.broadcast({
+                "type": "player_timeout",
+                "data": {
+                    "seat": slot.seat,
+                    "name": slot.name,
+                    "consecutive": slot.consecutive_missed,
+                    "total": slot.total_missed,
+                },
+            })
+            if slot.consecutive_missed >= MAX_CONSECUTIVE_MISSED or slot.total_missed >= MAX_TOTAL_MISSED:
+                raise ForfeitError(slot)
+            return bot_select_briscola(slot.hand)
 
     async def _await_card(self, seat: int) -> Tuple[Card, Optional[str]]:
         """Wait for the player's card play; returns (card, declaration) where declaration is
@@ -401,8 +434,25 @@ class GameRoom:
                 await asyncio.sleep(BOT_PLAY_DELAY)
                 return forced_card, None
             # Human: consume their input but silently override the card
-            payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
-            declaration = payload.get("declaration")
+            try:
+                payload = await asyncio.wait_for(slot.input_queue.get(), timeout=HUMAN_TURN_TIMEOUT)
+                slot.consecutive_missed = 0
+                declaration = payload.get("declaration")
+            except asyncio.TimeoutError:
+                slot.consecutive_missed += 1
+                slot.total_missed += 1
+                await self.broadcast({
+                    "type": "player_timeout",
+                    "data": {
+                        "seat": slot.seat,
+                        "name": slot.name,
+                        "consecutive": slot.consecutive_missed,
+                        "total": slot.total_missed,
+                    },
+                })
+                if slot.consecutive_missed >= MAX_CONSECUTIVE_MISSED or slot.total_missed >= MAX_TOTAL_MISSED:
+                    raise ForfeitError(slot)
+                declaration = None
             return forced_card, (declaration if declaration in _VALID_DECLARATIONS else None)
 
         if slot.is_bot:
@@ -420,13 +470,31 @@ class GameRoom:
                 }
                 return _ml_agent.select_card(ctx, self.briscola)
             return bot_select_card(slot.hand, lead_suit, self.briscola)
-        payload = await asyncio.wait_for(slot.input_queue.get(), timeout=120.0)
-        card = dict_to_card(payload.get("card", {}))
-        valid = get_valid_cards(slot.hand, lead_suit)
-        if card not in valid:
-            card = valid[0]
-        declaration = payload.get("declaration")
-        return card, (declaration if declaration in _VALID_DECLARATIONS else None)
+        try:
+            payload = await asyncio.wait_for(slot.input_queue.get(), timeout=HUMAN_TURN_TIMEOUT)
+            slot.consecutive_missed = 0
+            card = dict_to_card(payload.get("card", {}))
+            valid = get_valid_cards(slot.hand, lead_suit)
+            if card not in valid:
+                card = valid[0]
+            declaration = payload.get("declaration")
+            return card, (declaration if declaration in _VALID_DECLARATIONS else None)
+        except asyncio.TimeoutError:
+            slot.consecutive_missed += 1
+            slot.total_missed += 1
+            await self.broadcast({
+                "type": "player_timeout",
+                "data": {
+                    "seat": slot.seat,
+                    "name": slot.name,
+                    "consecutive": slot.consecutive_missed,
+                    "total": slot.total_missed,
+                },
+            })
+            if slot.consecutive_missed >= MAX_CONSECUTIVE_MISSED or slot.total_missed >= MAX_TOTAL_MISSED:
+                raise ForfeitError(slot)
+            valid = get_valid_cards(slot.hand, lead_suit)
+            return random.choice(valid), None
 
     # ── Game loop ──────────────────────────────────────────────────────────────
 
@@ -493,6 +561,8 @@ class GameRoom:
         deck.shuffle()
         for slot in self.slots.values():
             slot.hand = deck.deal(10)
+            if not slot.is_bot:
+                slot.consecutive_missed = 0  # reset per-round; total_missed persists
 
         if first_seat is None:
             self.briscola_selector_seat = None
@@ -505,9 +575,14 @@ class GameRoom:
 
         self.phase = "briscola_selection"
         self.current_player_seat = self.briscola_selector_seat
+        self.current_turn_deadline = (
+            time.time() + HUMAN_TURN_TIMEOUT
+            if not self.slots[self.briscola_selector_seat].is_bot else None
+        )
         await self.broadcast_state()
 
         self.briscola = await self._await_briscola(self.briscola_selector_seat)
+        self.current_turn_deadline = None
 
         await self.broadcast({
             "type": "briscola_set",
@@ -550,9 +625,14 @@ class GameRoom:
 
             for i, seat in enumerate(self._rotate_seats(first_of_turn)):
                 self.current_player_seat = seat
+                self.current_turn_deadline = (
+                    time.time() + HUMAN_TURN_TIMEOUT
+                    if not self.slots[seat].is_bot else None
+                )
                 await self.broadcast_state()
 
                 card, declaration = await self._await_card(seat)
+                self.current_turn_deadline = None
 
                 # Only the lead player's declaration (first card of trick) is recorded
                 if i == 0 and declaration:

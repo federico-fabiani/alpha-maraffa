@@ -178,11 +178,16 @@ async def ws_endpoint(websocket: WebSocket, room_id: str, player_name: str = "Gi
     my_slot: PlayerSlot = None
 
     if room.status == "in_game":
-        # Reconnection: find a disconnected slot with the same name
+        # Reconnection: prefer matching by UUID, fall back to name for backward compatibility
         for slot in room.slots.values():
-            if not slot.is_bot and not slot.is_connected and slot.name == player_name:
+            if not slot.is_bot and not slot.is_connected and slot.uuid == uuid:
                 my_slot = slot
                 break
+        if my_slot is None:
+            for slot in room.slots.values():
+                if not slot.is_bot and not slot.is_connected and slot.name == player_name:
+                    my_slot = slot
+                    break
         if my_slot is None:
             await websocket.send_text(json.dumps({"type": "error", "data": {"message": "Partita già iniziata"}}))
             await websocket.close()

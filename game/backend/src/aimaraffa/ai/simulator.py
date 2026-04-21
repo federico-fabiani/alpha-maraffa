@@ -653,6 +653,25 @@ class Simulator:
     def _prepare_states(self, states: List[_GameState]) -> None:
         """Hook for subclasses that need per-game initialization before the run."""
 
+    def _on_round_start(self, states: List[_GameState]) -> None:
+        """Called after dealing but before briscola selection each round.
+
+        Subclasses can override to reset per-game agent state.
+        """
+
+    def _on_card_played(
+        self,
+        gi: int,
+        card: "Card",
+        seat: int,
+        turn_num: int,
+        declaration: Optional[str],
+    ) -> None:
+        """Called after each card is committed to the game state.
+
+        Subclasses can override to feed per-game agent trackers.
+        """
+
     # ── Card selection per position ───────────────────────────────────────────
 
     def _heuristic_decisions(
@@ -1383,6 +1402,7 @@ class Simulator:
                     self._heuristic_agent.reset_round()
                 elif self.agent is not None:
                     self.agent.reset_round()
+                self._on_round_start(states)
 
                 # ── Briscola (batched) ───────────────────────────────────────
                 self._select_briscolas(states, round_num)
@@ -1443,6 +1463,12 @@ class Simulator:
                             state.table_tuples.append((seat, card))
                             card_dict = {"suit": card.suit.value, "rank": card.rank}
                             state.table_dicts.append({"seat": seat, "card": card_dict})
+
+                            if getattr(self, "_heuristic_agent", None) is not None:
+                                self._heuristic_agent.record_card(
+                                    card, seat, turn_num, declaration
+                                )
+                            self._on_card_played(gi, card, seat, turn_num, declaration)
 
                             if state.tracker is not None:
                                 state.tracker.on_event({"type": "card_played", "data": {

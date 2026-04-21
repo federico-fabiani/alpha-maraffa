@@ -59,4 +59,5 @@ export interface BriscolaAnnouncement {
 export interface GameOverData {
   winner_team: 1 | 2
   scores: Record<string, number>
+  forfeit_by?: string
 }

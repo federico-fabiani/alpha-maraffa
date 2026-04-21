@@ -26,6 +26,11 @@ export default function GameOverScreen() {
           <p className="text-felt-500 mt-2 text-sm">
             Vince il Team {gameOverData.winner_team}
           </p>
+          {gameOverData.forfeit_by && (
+            <p className="text-felt-500 mt-1 text-xs italic">
+              {gameOverData.forfeit_by} ha abbandonato la partita
+            </p>
+          )}
         </div>
 
         {/* Scores */}

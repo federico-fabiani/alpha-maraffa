@@ -355,6 +355,10 @@ async def _handle(room: GameRoom, slot: PlayerSlot, msg: dict) -> None:
     elif t == "ping":
         await room._send(slot.seat, {"type": "pong"})
 
+    elif t == "forfeit":
+        if room.status == "in_game" and not slot.is_bot:
+            await room.forfeit(slot)
+
 
 @app.get("/", include_in_schema=False)
 async def frontend_index():

@@ -342,6 +342,28 @@ class GameRoom:
             if not slot.is_bot and slot.is_connected and slot.websocket:
                 await self._send(seat, self._build_state(seat, phase))
 
+    # ── Forfeit ────────────────────────────────────────────────────────────────
+
+    async def forfeit(self, by_slot: "PlayerSlot") -> None:
+        """Immediately end the game, awarding victory to the opposing team."""
+        if self.status != "in_game":
+            return
+        loser_team = by_slot.team
+        winner_team = 2 if loser_team == 1 else 1
+        self.phase = "game_over"
+        self.status = "game_over"
+        await self.broadcast({
+            "type": "game_over",
+            "data": {
+                "winner_team": winner_team,
+                "scores": self.total_scores,
+                "forfeit_by": by_slot.name,
+                "forfeit_seat": by_slot.seat,
+            },
+        })
+        if self.game_task and not self.game_task.done():
+            self.game_task.cancel()
+
     # ── Input awaiting ─────────────────────────────────────────────────────────
 
     async def _await_briscola(self, seat: int) -> Suit:

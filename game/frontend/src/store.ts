@@ -77,6 +77,7 @@ interface Actions {
   promotePlayer: (seat: number) => void
   selectBriscola: (suit: Suit) => void
   playCard: (card: Card, declaration?: Declaration) => void
+  forfeit: () => void
   showNotification: (notification: Notification) => void
   dismissNotification: () => void
   reset: () => void
@@ -237,6 +238,10 @@ const useGameStore = create<State & Actions>((set, get) => ({
     get().ws?.send(JSON.stringify({ type: 'play_card', data: { card, declaration } }))
   },
 
+  forfeit: () => {
+    get().ws?.send(JSON.stringify({ type: 'forfeit' }))
+  },
+
   showNotification: (notification) => set({ notification }),
 
   dismissNotification: () => set({ notification: null }),
@@ -375,6 +380,7 @@ const useGameStore = create<State & Actions>((set, get) => ({
           gameOverData: {
             winner_team: data.winner_team as 1 | 2,
             scores: data.scores as Record<string, number>,
+            ...(data.forfeit_by ? { forfeit_by: data.forfeit_by as string } : {}),
           },
           screen: 'gameover',
         })

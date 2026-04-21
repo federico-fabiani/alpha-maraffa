@@ -69,6 +69,9 @@ export default function GameScreen() {
   const selectBriscola  = useGameStore(s => s.selectBriscola)
   const showNotification = useGameStore(s => s.showNotification)
   const dismissNotif    = useGameStore(s => s.dismissNotification)
+  const forfeit         = useGameStore(s => s.forfeit)
+
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
 
   // ── Declaration state (local toggle, sent bundled with the card) ─────────────
   const [pendingDeclaration, setPendingDeclaration] = useState<Declaration>(null)
@@ -230,12 +233,18 @@ export default function GameScreen() {
       <div className="game-stage-vignette" />
 
       {/* ── HUD ── */}
-      <div className="absolute top-3 left-3 z-10">
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
         <ScoreBoard
           round={round}
           turn={turn}
           totalScores={totalScores}
         />
+        <button
+          onClick={() => setShowForfeitConfirm(true)}
+          className="self-start px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border border-red-800/60 bg-stone-950/70 text-red-400/80 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/70 transition-all backdrop-blur-sm"
+        >
+          Abbandona
+        </button>
       </div>
       {briscola && (
         <div
@@ -434,6 +443,30 @@ export default function GameScreen() {
             <p className="text-amber-200 font-semibold text-base md:text-lg">
               {briscolaChooserName} sta scegliendo le briscole...
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Forfeit confirm dialog ── */}
+      {showForfeitConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-stone-950/70 backdrop-blur-sm">
+          <div className="bg-felt-900 border border-red-800/60 rounded-2xl px-8 py-7 shadow-2xl flex flex-col items-center gap-5 animate-fade-in max-w-xs mx-4">
+            <p className="text-red-300 font-cinzel font-bold text-lg text-center tracking-wide">Abbandona la partita?</p>
+            <p className="text-felt-400 text-sm text-center">Sei sicuro di voler abbandonare e concedere la partita?</p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setShowForfeitConfirm(false)}
+                className="flex-1 py-2.5 rounded-lg border border-felt-600/60 bg-stone-900/80 text-felt-300 hover:text-white hover:border-felt-400 transition-colors font-semibold text-sm"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => { setShowForfeitConfirm(false); forfeit() }}
+                className="flex-1 py-2.5 rounded-lg bg-red-700/80 hover:bg-red-600/90 border border-red-600/60 text-white font-semibold text-sm transition-colors"
+              >
+                Abbandona
+              </button>
+            </div>
           </div>
         </div>
       )}

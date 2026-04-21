@@ -20,6 +20,10 @@ import type {
 let _pingIntervalId: ReturnType<typeof setInterval> | null = null
 let _lastPingTime = 0
 let _briscolaAnnouncementSeq = 0
+let _reconnectAttempts = 0
+let _reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null
+const MAX_RECONNECT_ATTEMPTS = 5
+const RECONNECT_BASE_DELAY_MS = 2000
 // ── Types ───────────────────────────────────────────────────────────────────��──
 
 interface State {
@@ -170,6 +174,11 @@ const useGameStore = create<State & Actions>((set, get) => ({
     const ws = new WebSocket(url)
 
     ws.onopen = () => {
+      _reconnectAttempts = 0
+      if (_reconnectTimeoutId) {
+        clearTimeout(_reconnectTimeoutId)
+        _reconnectTimeoutId = null
+      }
       set({ connected: true, pingStatus: 'offline', pingMs: null })
       if (_pingIntervalId) clearInterval(_pingIntervalId)
       _pingIntervalId = setInterval(() => {
@@ -186,6 +195,16 @@ const useGameStore = create<State & Actions>((set, get) => ({
       if (_pingIntervalId) {
         clearInterval(_pingIntervalId)
         _pingIntervalId = null
+      }
+      // Auto-reconnect if disconnected during an active game
+      const { screen, roomId: currentRoomId } = get()
+      if (screen === 'game' && _reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        _reconnectAttempts++
+        const delay = RECONNECT_BASE_DELAY_MS * _reconnectAttempts
+        _reconnectTimeoutId = setTimeout(() => {
+          _reconnectTimeoutId = null
+          get()._connect(currentRoomId)
+        }, delay)
       }
     }
     ws.onerror = () => set({ error: 'Errore di connessione' })
@@ -224,6 +243,11 @@ const useGameStore = create<State & Actions>((set, get) => ({
 
   reset: () => {
     const { uuid, playerName } = get()
+    _reconnectAttempts = MAX_RECONNECT_ATTEMPTS // prevent auto-reconnect after intentional reset
+    if (_reconnectTimeoutId) {
+      clearTimeout(_reconnectTimeoutId)
+      _reconnectTimeoutId = null
+    }
     get().ws?.close()
     set({ ...initialState, uuid, playerName })
   },

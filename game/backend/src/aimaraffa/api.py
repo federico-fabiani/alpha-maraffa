@@ -153,6 +153,12 @@ async def get_room(room_id: str):
     }
 
 
+@app.get("/api/ping")
+async def ping():
+    """Liveness probe used by frontend bootstrap."""
+    return {"ok": True}
+
+
 # ── WebSocket endpoint ─────────────────────────────────────────────────────────
 
 @app.websocket("/ws/{room_id}")

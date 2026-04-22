@@ -148,6 +148,13 @@ def test_ws_ping_returns_pong():
         assert pong["type"] == "pong"
 
 
+def test_http_ping_returns_ok():
+    """The REST ping endpoint must return an OK payload."""
+    res = client.get("/api/ping")
+    assert res.status_code == 200
+    assert res.json() == {"ok": True}
+
+
 def test_only_owner_can_start_game():
     """A non-owner start_game message must not transition room status to in_game."""
     owner_login = client.post("/api/login", json={"player_name": "Owner"}).json()

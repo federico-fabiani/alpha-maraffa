@@ -10,6 +10,14 @@ import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
 import type { BriscolaAnnouncement, Card, Declaration, Suit } from '../types'
 
+const GAME_BG_ASPECT_RATIO = 6336 / 2688
+const TABLECLOTH_DEBUG_BOUNDS = {
+  left: 0.2794,
+  top: 0.22,
+  width: 0.437,
+  height: 0.51,
+} as const
+
 const SUIT_ORDER: Record<Suit, number> = {
   bastoni: 0,
   denara: 1,
@@ -99,6 +107,44 @@ export default function GameScreen() {
   const [cornerToastPop, setCornerToastPop] = useState(false)
   const [briscolaReveal, setBriscolaReveal] = useState<(BriscolaAnnouncement & { fadingOut: boolean }) | null>(null)
   const lastBriscolaEventRef = useRef<number | null>(null)
+  const stageRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+
+    const updateBackgroundFrame = () => {
+      const stageWidth = stage.clientWidth
+      const stageHeight = stage.clientHeight
+      if (!stageWidth || !stageHeight) return
+
+      const stageAspectRatio = stageWidth / stageHeight
+      const renderWidth = stageAspectRatio > GAME_BG_ASPECT_RATIO
+        ? stageWidth
+        : stageHeight * GAME_BG_ASPECT_RATIO
+      const renderHeight = stageAspectRatio > GAME_BG_ASPECT_RATIO
+        ? stageWidth / GAME_BG_ASPECT_RATIO
+        : stageHeight
+      const renderLeft = (stageWidth - renderWidth) / 2
+      const renderTop = (stageHeight - renderHeight) / 2
+
+      stage.style.setProperty('--bg-render-left', `${renderLeft}px`)
+      stage.style.setProperty('--bg-render-top', `${renderTop}px`)
+      stage.style.setProperty('--bg-render-width', `${renderWidth}px`)
+      stage.style.setProperty('--bg-render-height', `${renderHeight}px`)
+      stage.style.setProperty('--tablecloth-left', `${TABLECLOTH_DEBUG_BOUNDS.left}`)
+      stage.style.setProperty('--tablecloth-top', `${TABLECLOTH_DEBUG_BOUNDS.top}`)
+      stage.style.setProperty('--tablecloth-width', `${TABLECLOTH_DEBUG_BOUNDS.width}`)
+      stage.style.setProperty('--tablecloth-height', `${TABLECLOTH_DEBUG_BOUNDS.height}`)
+    }
+
+    updateBackgroundFrame()
+
+    const resizeObserver = new ResizeObserver(updateBackgroundFrame)
+    resizeObserver.observe(stage)
+
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const dragDist     = drag ? Math.hypot(drag.x - drag.startX, drag.y - drag.startY) : 0
   const isActiveDrag = dragDist > 8
@@ -232,8 +278,11 @@ export default function GameScreen() {
   const revealMeta = briscolaReveal ? SUIT_META[briscolaReveal.suit] : null
   const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola && !briscolaReveal
 
+  const DEBUG_TABLECLOTH = true
+
   return (
     <div
+      ref={stageRef}
       className="game-stage game-bg relative w-full h-full overflow-hidden select-none touch-none"
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -242,6 +291,13 @@ export default function GameScreen() {
     >
       <div className="game-stage-ambient" />
       <div className="game-stage-vignette" />
+
+      {/* ── DEBUG: tablecloth area ── */}
+      {DEBUG_TABLECLOTH && (
+        <>
+          <div className="tablecloth-debug-area" />
+        </>
+      )}
 
       {/* ── HUD ── */}
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">

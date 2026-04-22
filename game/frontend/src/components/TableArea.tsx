@@ -11,10 +11,10 @@ interface TableAreaProps {
 /** Position offsets for each seat's card on the table (relative to mySeat). */
 function slotStyle(relativeSeat: number): React.CSSProperties {
   switch (relativeSeat) {
-    case 0: return { bottom: '20px',  left: '50%', transform: 'translateX(-50%) rotate(-4deg)' } // me
-    case 1: return { right:  '20px',  top:  '50%', transform: 'translateY(-50%) rotate(6deg)' }  // right
-    case 2: return { top:    '20px',  left: '50%', transform: 'translateX(-50%) rotate(3deg)' }  // opposite
-    case 3: return { left:   '20px',  top:  '50%', transform: 'translateY(-50%) rotate(-6deg)' } // left
+    case 0: return { left: '50%', top: 'calc(50% + var(--table-card-spread-y))', transform: 'translate(-50%, -50%) rotate(-4deg)' }
+    case 1: return { left: 'calc(50% + var(--table-card-spread-x))', top: '50%', transform: 'translate(-50%, -50%) rotate(6deg)' }
+    case 2: return { left: '50%', top: 'calc(50% - var(--table-card-spread-y))', transform: 'translate(-50%, -50%) rotate(3deg)' }
+    case 3: return { left: 'calc(50% - var(--table-card-spread-x))', top: '50%', transform: 'translate(-50%, -50%) rotate(-6deg)' }
     default: return {}
   }
 }
@@ -68,7 +68,7 @@ export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaP
   }, [tableCards, mySeat])
 
   return (
-    <div className="table-area relative w-[38rem] h-[28rem]">
+    <div className="table-area relative w-full h-full">
 
       {/* Live cards */}
       {tableCards.map(({ seat, card }) => {
@@ -79,7 +79,14 @@ export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaP
             className={`absolute table-card-slot animate-card-appear${seat === winnerSeat ? ' winning-card' : ''}`}
             style={slotStyle(relativeSeat)}
           >
-            <Card card={card} size="table" />
+            <Card
+              card={card}
+              size="table"
+              style={{
+                width: 'var(--table-card-width)',
+                height: 'var(--table-card-height)',
+              }}
+            />
           </div>
         )
       })}
@@ -99,7 +106,14 @@ export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaP
               '--card-index': idx,
             } as React.CSSProperties}
           >
-            <Card card={card} size="table" />
+            <Card
+              card={card}
+              size="table"
+              style={{
+                width: 'var(--table-card-width)',
+                height: 'var(--table-card-height)',
+              }}
+            />
           </div>
         )
       })}

@@ -51,9 +51,10 @@ interface CardProps {
   size?: 'sm' | 'md' | 'lg' | 'table'
   onClick?: () => void
   className?: string
+  style?: React.CSSProperties
 }
 
-export function Card({ card, size = 'md', onClick, className = '' }: CardProps) {
+export function Card({ card, size = 'md', onClick, className = '', style }: CardProps) {
   const briscola  = useGameStore(s => s.briscola)
   const meta = SUIT_META[card.suit]
   const sz   = SIZE[size]
@@ -73,6 +74,7 @@ export function Card({ card, size = 'md', onClick, className = '' }: CardProps) 
         '--card-sprite-x': `${coords.xPct}%`,
         '--card-sprite-y': `${coords.yPct}%`,
         '--card-accent': meta.color,
+        ...style,
       } as React.CSSProperties}
       className={`
         card-face card-sprite ${sz.width} ${sz.height}

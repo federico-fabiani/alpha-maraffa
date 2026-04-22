@@ -384,7 +384,19 @@ export default function GameScreen() {
       </div>
 
       {/* ── Centre table ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ alignItems: 'flex-start', paddingTop: '5%' }}>
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          left: 'calc(var(--bg-render-left) + (var(--bg-render-width) * var(--playing-area-left)))',
+          top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * var(--playing-area-top)))',
+          width: 'calc(var(--bg-render-width) * var(--playing-area-width))',
+          height: 'calc(var(--bg-render-height) * var(--playing-area-height))',
+          '--table-card-height': 'min(12rem, calc((var(--bg-render-height) * var(--playing-area-height)) / 2))',
+          '--table-card-width': 'calc(var(--table-card-height) * 0.6667)',
+          '--table-card-spread-x': 'calc(var(--table-card-width) * 1.2)',
+          '--table-card-spread-y': 'calc(var(--table-card-height) * 0.6)',
+        } as React.CSSProperties}
+      >
         <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
 

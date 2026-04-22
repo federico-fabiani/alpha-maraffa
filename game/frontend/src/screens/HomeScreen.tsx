@@ -35,6 +35,12 @@ export default function HomeScreen() {
   }
 
   const requestFullscreen = () => {
+    const isStandalonePwa =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true)
+
+    if (!isStandalonePwa) return
+
     const el = document.documentElement
     if (el.requestFullscreen) el.requestFullscreen()
   }

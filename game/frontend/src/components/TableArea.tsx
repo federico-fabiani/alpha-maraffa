@@ -68,7 +68,7 @@ export default function TableArea({ tableCards, mySeat, winnerSeat }: TableAreaP
   }, [tableCards, mySeat])
 
   return (
-    <div className="table-area relative w-full h-full">
+    <div className="table-area relative w-full h-full z-[2]">
 
       {/* Live cards */}
       {tableCards.map(({ seat, card }) => {

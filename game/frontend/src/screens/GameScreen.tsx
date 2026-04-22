@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import useGameStore from '../store'
 import { Card as CardComponent, SUIT_META } from '../components/Card'
 import PlayerArea from '../components/PlayerArea'
 import TableArea from '../components/TableArea'
+import BriscolaSuitGif from '../components/BriscolaSuitGif'
 import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
-import type { BriscolaAnnouncement, Card, Declaration, Suit } from '../types'
+import type { Card, Declaration, Suit } from '../types'
 
 const GAME_BG_ASPECT_RATIO = 6336 / 2688
 const PLAYING_AREA_BOUNDS = {
   left: 0.2794,
-  top: 0.22,
+  top: 0.20,
   width: 0.437,
   height: 0.51,
 } as const
@@ -45,6 +46,11 @@ function lastTrickSlotStyle(relativeSeat: number): React.CSSProperties {
     default: return {}
   }
 }
+
+type BriscolaIntroState =
+  | { stage: 'idle' }
+  | { stage: 'banner'; suit: Suit; text: string }
+  | { stage: 'gif'; suit: Suit; token: number }
 
 export default function GameScreen() {
   const {
@@ -99,10 +105,19 @@ export default function GameScreen() {
     startX: number
     startY: number
   } | null>(null)
-  const [briscolaReveal, setBriscolaReveal] = useState<(BriscolaAnnouncement & { fadingOut: boolean }) | null>(null)
+  // ── Briscola intro state machine ──────────────────────────────────────────
+  // Single source of truth: covers banner (2s) → gif animation → idle.
+  // briscolaIntroActive = stage !== 'idle' → masks table cards + blocks isMyTurn.
+  const [briscolaIntro, setBriscolaIntro] = useState<BriscolaIntroState>({ stage: 'idle' })
+  // Persists suit+token so GIF stays mounted (frozen last frame) after intro ends.
+  const [briscolaGifMeta, setBriscolaGifMeta] = useState<{ suit: Suit; token: number } | null>(null)
   const lastBriscolaEventRef = useRef<number | null>(null)
+  const fallbackIntroKeyRef = useRef<string | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
-  const handRef = useRef<HTMLDivElement | null>(null)
+
+  const handleBriscolaGifPlaybackComplete = useCallback(() => {
+    setBriscolaIntro(prev => (prev.stage === 'gif' ? { stage: 'idle' } : prev))
+  }, [])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -112,7 +127,6 @@ export default function GameScreen() {
       const stageWidth = stage.clientWidth
       const stageHeight = stage.clientHeight
       if (!stageWidth || !stageHeight) return
-      const handHeight = handRef.current?.clientHeight ?? 176
 
       const stageAspectRatio = stageWidth / stageHeight
       const renderWidth = stageAspectRatio > GAME_BG_ASPECT_RATIO
@@ -132,16 +146,12 @@ export default function GameScreen() {
       stage.style.setProperty('--playing-area-top', `${PLAYING_AREA_BOUNDS.top}`)
       stage.style.setProperty('--playing-area-width', `${PLAYING_AREA_BOUNDS.width}`)
       stage.style.setProperty('--playing-area-height', `${PLAYING_AREA_BOUNDS.height}`)
-      stage.style.setProperty('--hand-height', `${handHeight}px`)
     }
 
     updateBackgroundFrame()
 
     const resizeObserver = new ResizeObserver(updateBackgroundFrame)
     resizeObserver.observe(stage)
-    if (handRef.current) {
-      resizeObserver.observe(handRef.current)
-    }
 
     return () => resizeObserver.disconnect()
   }, [])
@@ -178,7 +188,9 @@ export default function GameScreen() {
 
   const playerBySeat = Object.fromEntries(players.map(p => [p.seat, p]))
 
-  const isMyTurn     = currentPlayerSeat === seat && phase === 'playing'
+  const briscolaIntroActive = briscolaIntro.stage !== 'idle'
+
+  const isMyTurn     = currentPlayerSeat === seat && phase === 'playing' && !briscolaIntroActive
   const needsBriscola = phase === 'briscola_selection' && currentPlayerSeat === seat
 
   // Lead player of the current trick: first card on table, or current player when table is empty
@@ -220,48 +232,51 @@ export default function GameScreen() {
     })
   }, [myHand])
 
+  // Effect 1: react to a new briscola_set event → banner → gif
+  useEffect(() => {
+    if (!briscolaAnnouncement) return
+    if (lastBriscolaEventRef.current === briscolaAnnouncement.eventId) return
+
+    lastBriscolaEventRef.current = briscolaAnnouncement.eventId
+    const { suit } = briscolaAnnouncement
+    const text = `Le briscole sono ${SUIT_META[suit].label}!`
+    setBriscolaIntro({ stage: 'banner', suit, text })
+
+    const token = briscolaAnnouncement.eventId
+    const timer = window.setTimeout(() => {
+      setBriscolaGifMeta({ suit, token })
+      setBriscolaIntro({ stage: 'gif', suit, token })
+    }, 2000)
+
+    return () => window.clearTimeout(timer)
+  }, [briscolaAnnouncement])
+
+  // Effect 2: reset intro and GIF when round ends (briscola cleared)
   useEffect(() => {
     if (!briscola) {
-      setBriscolaReveal(null)
+      setBriscolaIntro({ stage: 'idle' })
+      setBriscolaGifMeta(null)
       lastBriscolaEventRef.current = null
-      return
+      fallbackIntroKeyRef.current = null
     }
+  }, [briscola])
 
-    if (!briscolaAnnouncement) {
-      return
-    }
+  // Effect 3: fallback for reload/rejoin.
+  // If briscola is already known but no briscola_set event arrives in this session,
+  // start directly from GIF to avoid a stuck banner state on reconnect flows.
+  useEffect(() => {
+    if (!briscola || briscolaAnnouncement) return
 
-    if (lastBriscolaEventRef.current === briscolaAnnouncement.eventId) {
-      setBriscolaReveal(null)
-      return
-    }
+    const fallbackKey = `${phase}-${briscola}`
+    if (fallbackIntroKeyRef.current === fallbackKey) return
 
-    setBriscolaReveal({ ...briscolaAnnouncement, fadingOut: false })
+    fallbackIntroKeyRef.current = fallbackKey
+    const token = Date.now()
+    setBriscolaGifMeta({ suit: briscola, token })
+    setBriscolaIntro({ stage: 'gif', suit: briscola, token })
+  }, [briscola, briscolaAnnouncement, phase])
 
-    const fadeTimer = window.setTimeout(() => {
-      setBriscolaReveal(prev => {
-        if (!prev || prev.eventId !== briscolaAnnouncement.eventId) return prev
-        return { ...prev, fadingOut: true }
-      })
-    }, 980)
-
-    const clearCenterTimer = window.setTimeout(() => {
-      setBriscolaReveal(null)
-    }, 1320)
-
-    const rememberEventTimer = window.setTimeout(() => {
-      lastBriscolaEventRef.current = briscolaAnnouncement.eventId
-    }, 1400)
-
-    return () => {
-      window.clearTimeout(fadeTimer)
-      window.clearTimeout(clearCenterTimer)
-      window.clearTimeout(rememberEventTimer)
-    }
-  }, [briscola, briscolaAnnouncement])
-
-  const revealMeta = briscolaReveal ? SUIT_META[briscolaReveal.suit] : null
-  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola && !briscolaReveal
+  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola && !briscolaIntroActive
 
   const DEBUG_TABLECLOTH = true
 
@@ -315,18 +330,7 @@ export default function GameScreen() {
         </div>
       )}
 
-      {briscolaReveal && revealMeta && (
-        <div
-          className={`briscola-reveal ${briscolaReveal.fadingOut ? 'fade-out' : ''}`}
-          style={{ '--briscola-accent': revealMeta.color } as React.CSSProperties}
-        >
-          <p className="briscola-reveal-title">
-            {briscolaReveal.byName} ha scelto come briscola {revealMeta.label.toUpperCase()}
-          </p>
-          <p className="briscola-reveal-subtitle">Briscola scelta</p>
-          <div className="briscola-reveal-icon" aria-hidden="true">{revealMeta.symbol}</div>
-        </div>
-      )}
+
 
       {/* ── Opponent — top ── */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2">
@@ -375,20 +379,29 @@ export default function GameScreen() {
           '--table-card-spread-y': 'calc(var(--table-card-height) * 0.6)',
         } as React.CSSProperties}
       >
-        {briscola && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1]" style={{ transform: 'translate(-50%, -50%) perspective(720px) rotateX(17deg) rotate(-2deg)' }}>
-            <div
-              className="px-4 py-1.5 rounded-full border shadow-[0_8px_18px_rgba(0,0,0,0.42)] backdrop-blur-sm"
+        {/* GIF: shown when intro has triggered (stage gif or idle-post-intro), hidden only during banner */}
+        {briscolaGifMeta && briscolaIntro.stage !== 'banner' && (
+          <div
+            className="absolute left-1/2 top-1/2 z-0"
+            style={{
+              transform: 'translate(-50%, -58%) perspective(500px) rotateX(30deg) rotate(-2deg)',
+              transformOrigin: 'center center',
+            }}
+          >
+            <BriscolaSuitGif
+              suit={briscolaGifMeta.suit}
+              replayToken={briscolaGifMeta.token}
+              onPlaybackComplete={handleBriscolaGifPlaybackComplete}
+              className="block w-auto select-none drop-shadow-[0_10px_18px_rgba(0,0,0,0.5)]"
               style={{
-                borderColor: `${SUIT_META[briscola].color}90`,
-                background: 'rgba(10, 28, 20, 0.72)',
+                height: 'calc((var(--bg-render-height) * var(--playing-area-height)) * 0.78)',
+                maxWidth: 'calc(var(--bg-render-width) * var(--playing-area-width) * 0.90)',
               }}
-            >
-              <span className="text-2xl leading-none" aria-label={`Briscola ${SUIT_META[briscola].label}`}>{SUIT_META[briscola].symbol}</span>
-            </div>
+            />
           </div>
         )}
-        <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
+        {/* Hide table cards during the entire intro sequence (banner + gif) */}
+        <TableArea tableCards={briscolaIntroActive ? [] : tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
 
       {/* ── Last trick (4 cards cross layout) ── */}
@@ -476,10 +489,10 @@ export default function GameScreen() {
       <div
         className={`absolute left-1/2 -translate-x-1/2 z-20 ${isActiveDrag ? 'pointer-events-none' : ''}`}
         style={{
-          bottom: 'min(2.75rem, calc(100% - (var(--bg-render-top) + (var(--bg-render-height) * (var(--playing-area-top) + var(--playing-area-height))) + 1.5rem) - var(--hand-height)))',
+          top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--playing-area-top) + var(--playing-area-height))) + var(--hand-playing-area-delta))',
         }}
       >
-        <div ref={handRef} className="player-hand">
+        <div className="player-hand">
           {sortedHand.map(({ card }, i) => {
             const handOffset = i - (sortedHand.length - 1) / 2
             const isBeingDragged = isActiveDrag
@@ -530,12 +543,14 @@ export default function GameScreen() {
         <BriscolaModal onSelect={selectBriscola} selectorName={playerBySeat[briscolaSelectorSeat ?? seat]?.name} />
       )}
 
-      {/* ── Briscola waiting banner ── */}
-      {isWaitingBriscola && (
+      {/* ── Briscola waiting / announce banner ── */}
+      {(isWaitingBriscola || briscolaIntro.stage === 'banner') && (
         <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center px-6">
           <div className="bg-felt-900/92 border border-amber-800/50 rounded-2xl px-7 py-4 text-center shadow-2xl backdrop-blur-sm animate-fade-in">
             <p className="text-amber-200 font-semibold text-base md:text-lg">
-              {briscolaChooserName} sta scegliendo le briscole...
+              {briscolaIntro.stage === 'banner'
+                ? briscolaIntro.text
+                : `${briscolaChooserName} sta scegliendo le briscole...`}
             </p>
           </div>
         </div>

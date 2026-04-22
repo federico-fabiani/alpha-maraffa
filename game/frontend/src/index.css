@@ -233,7 +233,7 @@ body::before {
   --bg-render-top: 0px;
   --bg-render-width: 100%;
   --bg-render-height: 100%;
-  --hand-height: 176px;
+  --hand-playing-area-delta: 0px;
   --playing-area-left: 0.2794;
   --playing-area-top: 0.22;
   --playing-area-width: 0.437;

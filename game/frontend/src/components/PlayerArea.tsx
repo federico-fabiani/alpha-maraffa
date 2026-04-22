@@ -6,6 +6,7 @@ interface PlayerAreaProps {
   isActive: boolean
   position: 'top' | 'left' | 'right'
   declaration?: Declaration
+  showCards?: boolean
 }
 
 const TEAM_BADGE: Record<number, string> = {
@@ -19,7 +20,7 @@ const DECLARATION_LABEL: Record<string, string> = {
   volo: 'VOLO',
 }
 
-export default function PlayerArea({ player, isActive, position, declaration }: PlayerAreaProps) {
+export default function PlayerArea({ player, isActive, position, declaration, showCards = true }: PlayerAreaProps) {
   const cardCount = player?.cards_count ?? 0
 
   // Orientation of the stacked card fan
@@ -61,7 +62,7 @@ export default function PlayerArea({ player, isActive, position, declaration }: 
       </div>
 
       {/* Stacked face-down cards */}
-      {cardCount > 0 && (
+      {showCards && cardCount > 0 && (
         <div className={`flex ${stackClass}`}>
           {Array.from({ length: Math.min(cardCount, 6) }).map((_, i) => (
             <CardBack

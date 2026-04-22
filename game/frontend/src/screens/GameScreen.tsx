@@ -4,8 +4,6 @@ import useGameStore from '../store'
 import { Card as CardComponent, SUIT_META } from '../components/Card'
 import PlayerArea from '../components/PlayerArea'
 import TableArea from '../components/TableArea'
-import ScoreBoard from '../components/ScoreBoard'
-import BriscolaIndicator from '../components/BriscolaIndicator'
 import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
 import type { BriscolaAnnouncement, Card, Declaration, Suit } from '../types'
@@ -52,7 +50,7 @@ export default function GameScreen() {
   const {
     mySeat, players, myHand, phase,
     briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat, lastTrickCards,
-    round, turn, totalScores,
+    totalScores,
     notification, briscolaSelectorSeat, currentDeclaration, turnDeadline,
   } = useGameStore(useShallow(s => ({
     mySeat: s.mySeat,
@@ -65,8 +63,6 @@ export default function GameScreen() {
     tableCards: s.tableCards,
     turnResultWinnerSeat: s.turnResultWinnerSeat,
     lastTrickCards: s.lastTrickCards,
-    round: s.round,
-    turn: s.turn,
     totalScores: s.totalScores,
     notification: s.notification,
     briscolaSelectorSeat: s.briscolaSelectorSeat,
@@ -103,8 +99,6 @@ export default function GameScreen() {
     startX: number
     startY: number
   } | null>(null)
-  const [showCornerBriscola, setShowCornerBriscola] = useState(false)
-  const [cornerToastPop, setCornerToastPop] = useState(false)
   const [briscolaReveal, setBriscolaReveal] = useState<(BriscolaAnnouncement & { fadingOut: boolean }) | null>(null)
   const lastBriscolaEventRef = useRef<number | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
@@ -229,27 +223,19 @@ export default function GameScreen() {
   useEffect(() => {
     if (!briscola) {
       setBriscolaReveal(null)
-      setShowCornerBriscola(false)
-      setCornerToastPop(false)
       lastBriscolaEventRef.current = null
       return
     }
 
     if (!briscolaAnnouncement) {
-      setShowCornerBriscola(true)
-      setCornerToastPop(false)
       return
     }
 
     if (lastBriscolaEventRef.current === briscolaAnnouncement.eventId) {
       setBriscolaReveal(null)
-      setShowCornerBriscola(true)
-      setCornerToastPop(false)
       return
     }
 
-    setShowCornerBriscola(false)
-    setCornerToastPop(false)
     setBriscolaReveal({ ...briscolaAnnouncement, fadingOut: false })
 
     const fadeTimer = window.setTimeout(() => {
@@ -263,21 +249,14 @@ export default function GameScreen() {
       setBriscolaReveal(null)
     }, 1320)
 
-    const cornerPopTimer = window.setTimeout(() => {
-      setShowCornerBriscola(true)
-      setCornerToastPop(true)
+    const rememberEventTimer = window.setTimeout(() => {
       lastBriscolaEventRef.current = briscolaAnnouncement.eventId
     }, 1400)
-
-    const cornerPopOffTimer = window.setTimeout(() => {
-      setCornerToastPop(false)
-    }, 1850)
 
     return () => {
       window.clearTimeout(fadeTimer)
       window.clearTimeout(clearCenterTimer)
-      window.clearTimeout(cornerPopTimer)
-      window.clearTimeout(cornerPopOffTimer)
+      window.clearTimeout(rememberEventTimer)
     }
   }, [briscola, briscolaAnnouncement])
 
@@ -306,26 +285,22 @@ export default function GameScreen() {
       )}
 
       {/* ── HUD ── */}
-      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-        <ScoreBoard
-          round={round}
-          turn={turn}
-          totalScores={totalScores}
-        />
+      <div className="absolute top-3 left-3 z-10">
+        <div className="bg-felt-900/80 border border-felt-700/60 rounded-xl px-3 py-2 backdrop-blur-sm flex items-center gap-2.5">
+          <span className="font-cinzel font-bold text-lg text-amber-400">{totalScores['1'] ?? 0}</span>
+          <span className="text-felt-500">|</span>
+          <span className="font-cinzel font-bold text-lg text-blue-400">{totalScores['2'] ?? 0}</span>
+        </div>
+      </div>
+
+      <div className="absolute top-3 right-3 z-10">
         <button
           onClick={() => setShowForfeitConfirm(true)}
-          className="self-start px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border border-red-800/60 bg-stone-950/70 text-red-400/80 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/70 transition-all backdrop-blur-sm"
+          className="px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border border-red-800/60 bg-stone-950/70 text-red-400/80 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/70 transition-all backdrop-blur-sm"
         >
           Abbandona
         </button>
       </div>
-      {briscola && (
-        <div
-          className={`absolute top-3 right-3 z-10 transform-gpu transition-opacity duration-300 ease-out ${showCornerBriscola ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${cornerToastPop ? 'corner-toast-pop' : ''}`}
-        >
-          <BriscolaIndicator suit={briscola} />
-        </div>
-      )}
 
       {/* \u2500\u2500 Turn countdown bar \u2500\u2500 */}
       {secsLeft !== null && (
@@ -360,6 +335,7 @@ export default function GameScreen() {
           isActive={currentPlayerSeat === topSeat}
           position="top"
           declaration={leadSeat === topSeat ? currentDeclaration : null}
+          showCards={false}
         />
       </div>
 
@@ -370,6 +346,7 @@ export default function GameScreen() {
           isActive={currentPlayerSeat === leftSeat}
           position="left"
           declaration={leadSeat === leftSeat ? currentDeclaration : null}
+          showCards={false}
         />
       </div>
 
@@ -380,6 +357,7 @@ export default function GameScreen() {
           isActive={currentPlayerSeat === rightSeat}
           position="right"
           declaration={leadSeat === rightSeat ? currentDeclaration : null}
+          showCards={false}
         />
       </div>
 
@@ -397,6 +375,19 @@ export default function GameScreen() {
           '--table-card-spread-y': 'calc(var(--table-card-height) * 0.6)',
         } as React.CSSProperties}
       >
+        {briscola && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1]" style={{ transform: 'translate(-50%, -50%) perspective(720px) rotateX(17deg) rotate(-2deg)' }}>
+            <div
+              className="px-4 py-1.5 rounded-full border shadow-[0_8px_18px_rgba(0,0,0,0.42)] backdrop-blur-sm"
+              style={{
+                borderColor: `${SUIT_META[briscola].color}90`,
+                background: 'rgba(10, 28, 20, 0.72)',
+              }}
+            >
+              <span className="text-2xl leading-none" aria-label={`Briscola ${SUIT_META[briscola].label}`}>{SUIT_META[briscola].symbol}</span>
+            </div>
+          </div>
+        )}
         <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
       </div>
 

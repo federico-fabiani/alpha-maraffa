@@ -62,6 +62,7 @@ def _make_cpu_booster(booster: xgb.Booster) -> xgb.Booster:
     cfg = _json.loads(cpu.save_config())
     cfg["learner"]["generic_param"]["device"] = "cpu"
     cpu.load_config(_json.dumps(cfg))
+    cpu.set_param("device", "cpu")  # belt-and-suspenders: ensure predictor is on CPU
     return cpu
 
 
@@ -1573,7 +1574,9 @@ class PolicyMixSimulator(Simulator):
         self._cf_elapsed = 0.0
         self._cf_count = 0
         self._rng: random.Random = random.Random()
-        self._heuristic_agent = None  # PolicyMixSimulator always uses ML/random paths
+        self._has_heuristic = any(label == "heuristic" for label, _ in seat_policy_mix)
+        self._per_game_agents: List[HeuristicAgent] = []
+        self._heuristic_agent = None  # PolicyMixSimulator uses per-game agents instead
         self._policy_models = dict(policy_models)
         self._seat_policy_mix = _normalize_policy_mix(seat_policy_mix)
         self._agents: Dict[str, MLAgent] = {}
@@ -1609,6 +1612,18 @@ class PolicyMixSimulator(Simulator):
                 seat: _sample_policy_label(self._rng, self._seat_policy_mix)
                 for seat in _SEATS
             }
+        if self._has_heuristic:
+            self._per_game_agents = [HeuristicAgent() for _ in states]
+
+    def _on_round_start(self, states: List[_GameState]) -> None:
+        for agent in self._per_game_agents:
+            agent.reset_round()
+
+    def _on_card_played(
+        self, gi: int, card: Card, seat: int, turn_num: int, declaration: Optional[str]
+    ) -> None:
+        if self._per_game_agents:
+            self._per_game_agents[gi].record_card(card, seat, turn_num, declaration)
 
     def _policy_key_for_seat(self, state: _GameState, seat: int) -> str:
         return state.seat_policy.get(seat, _DEFAULT_POLICY_LABEL)
@@ -1650,11 +1665,15 @@ class PolicyMixSimulator(Simulator):
     def _select_briscolas(self, states: List[_GameState], round_num: int) -> None:
         groups: Dict[str, List[_GameState]] = {}
         suits = list(Suit)
-        for state in states:
+        for gi, state in enumerate(states):
             if state.done:
                 continue
             key = self._policy_key_for_seat(state, state.briscola_selector)
-            groups.setdefault(key, []).append(state)
+            if key == "heuristic" and self._per_game_agents:
+                ctx = self._build_ctx(state, state.briscola_selector, round_num, turn_num=0)
+                state.briscola = self._per_game_agents[gi].select_briscola(ctx)
+            else:
+                groups.setdefault(key, []).append(state)
 
         for key, group in groups.items():
             if key not in self._kits or self._feature_agent is None:
@@ -1703,7 +1722,19 @@ class PolicyMixSimulator(Simulator):
                 continue
             seat = self._seat_at_position(state, position)
             key = self._policy_key_for_seat(state, seat)
-            grouped.setdefault(key, []).append((gi, state))
+            if key == "heuristic" and self._per_game_agents:
+                hand = state.hands[seat]
+                lead_suit = state.table_tuples[0][1].suit if state.table_tuples else None
+                if state.maraffa_forced and seat == state.briscola_selector and lead_suit is None:
+                    forced = Card(state.briscola, 1)
+                    decls = get_valid_declarations([c for c in hand if c != forced], forced.suit)
+                    decisions[gi] = (forced, self._rng.choice(decls))
+                else:
+                    ctx = self._build_ctx(state, seat, round_num, turn_num)
+                    card, decl = self._per_game_agents[gi].select_card(ctx, state.briscola)
+                    decisions[gi] = (card, decl if position == 0 else None)
+            else:
+                grouped.setdefault(key, []).append((gi, state))
 
         for key, indexed_states in grouped.items():
             if key not in self._kits:

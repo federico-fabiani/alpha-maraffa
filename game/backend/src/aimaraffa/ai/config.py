@@ -35,12 +35,12 @@ DATASET_EXPLORATION_TOP_K = 3
 
 # Seat-level policy mix used only while generating the training dataset.
 # Labels resolve to the latest model, one/two previous versions when available,
-# or random play when a referenced older checkpoint does not exist yet.
+# with missing historical slots reallocated to heuristic play.
 DATASET_POLICY_MIX = (
 	("latest", 0.60),
 	("prev1", 0.20),
 	("prev2", 0.10),
-	("random", 0.10),
+	("heuristic", 0.10),
 )
 
 # Counterfactual action sampling — training dataset only.

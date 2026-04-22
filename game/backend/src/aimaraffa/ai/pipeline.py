@@ -7,6 +7,7 @@ import re
 
 from . import analyze, config, simulator, train, tournament
 from .config import PRODUCTION_MODEL_PATH
+from ..agents.heuristic_agent import HeuristicAgent
 from .versions import (
     latest_version,
     next_version_dir,
@@ -28,10 +29,10 @@ def _resolve_training_policy_models() -> dict[str, object]:
         # First-run fallback: no promotion history yet, use recent trained.
         pool = recent_versions(limit=3)
     return {
-        "latest": pool[0][1] if len(pool) >= 1 else None,
-        "prev1":  pool[1][1] if len(pool) >= 2 else None,
-        "prev2":  pool[2][1] if len(pool) >= 3 else None,
-        "random": None,
+        "latest":    pool[0][1] if len(pool) >= 1 else None,
+        "prev1":     pool[1][1] if len(pool) >= 2 else None,
+        "prev2":     pool[2][1] if len(pool) >= 3 else None,
+        "heuristic": None,  # label-based dispatch to per-game HeuristicAgent in simulator
     }
 
 
@@ -50,15 +51,28 @@ def _resolve_dataset_generation_options(
         return {
             "policy_models": None,
             "seat_policy_mix": None,
+            "heuristic_bootstrap": True,
             "counterfactual": False,
             "counterfactual_prob": 0.0,
             "counterfactual_alts": 0,
             "counterfactual_rollouts": 0,
         }
 
+    # Keep heuristic always active in the policy population. When historical
+    # slots (prev1/prev2) are missing, reassign their weight to heuristic
+    # instead of silently falling back to random play.
+    base_mix = list(config.DATASET_POLICY_MIX)
+    active_mix = [
+        (label, weight)
+        for label, weight in base_mix
+        if label == "heuristic" or (policy_models and policy_models.get(label) is not None)
+    ]
+    if not active_mix:
+        active_mix = [("heuristic", 1.0)]
+
     return {
         "policy_models": policy_models,
-        "seat_policy_mix": config.DATASET_POLICY_MIX,
+        "seat_policy_mix": active_mix,
         "counterfactual": config.COUNTERFACTUAL_ENABLED,
         "counterfactual_prob": config.COUNTERFACTUAL_PROBABILITY,
         "counterfactual_alts": config.COUNTERFACTUAL_ALTERNATIVES,
@@ -93,7 +107,7 @@ def run() -> None:
     logger.info(" Target version : %s  (%s)", dst_name, dst_dir)
     logger.info(" Dataset games  : %d  (ε=%.2f)", config.DATASET_GAMES, config.DATASET_EPSILON)
     if dataset_options["seat_policy_mix"] is None:
-        logger.info(" Dataset policy mix : disabled (bootstrap random self-play fast path)")
+        logger.info(" Dataset policy mix : disabled (bootstrap heuristic self-play fast path)")
     else:
         logger.info(" Dataset policy mix : %s", dataset_options["seat_policy_mix"])
     if dataset_options["counterfactual"]:
@@ -102,7 +116,7 @@ def run() -> None:
                     dataset_options["counterfactual_alts"], dataset_options["counterfactual_rollouts"],
                     config.COUNTERFACTUAL_WEIGHT)
     else:
-        logger.info(" Counterfactual : False  (disabled for bootstrap random self-play)")
+        logger.info(" Counterfactual : False  (disabled for bootstrap heuristic self-play)")
     logger.info(" Analysis games : %d  (ε=0.0)", config.ANALYSIS_GAMES)
     logger.info(" Tourney games  : %d", config.TOURNEY_GAMES)
     logger.info("=" * 60)
@@ -110,7 +124,8 @@ def run() -> None:
     logger.info("[1/5] Generate training dataset")
     simulator.simulate(
         n_games=config.DATASET_GAMES,
-        model_path=src_model,
+        model_path=src_model if not bootstrap else None,
+        agent=HeuristicAgent() if bootstrap else None,
         epsilon=config.DATASET_EPSILON,
         exploration_top_k=config.DATASET_EXPLORATION_TOP_K,
         policy_models=dataset_options["policy_models"],
@@ -139,23 +154,17 @@ def run() -> None:
     logger.info("[4/5] Analyze model")
     analyze.analyze(analysis_data, model_path, report_path)
 
-    # Resolve champion: the current production model (may differ from src_model
-    # if a previous iteration was not promoted).
+    # Resolve champion: current production model when present; otherwise keep
+    # heuristic as bootstrap champion until an ML model beats it.
     champ_ver = production_version()
     champ_model = (
         PRODUCTION_MODEL_PATH if (champ_ver and PRODUCTION_MODEL_PATH.exists()) else None
     )
-    champ_label = champ_ver or "(none)"
+    champ_ref = champ_model if champ_model is not None else "heuristic"
+    champ_label = champ_ver or "heuristic"
 
     logger.info("[5/5] Tournament %s vs champion (%s)", dst_name, champ_label)
-    if src_model is None or champ_model is None:
-        # First model ever — auto-promote, no champion to beat.
-        promote(dst_name, dst_dir)
-        logger.info("PROMOTED %s → %s (no champion to compare against).",
-                    dst_name, PRODUCTION_MODEL_PATH)
-        return
-
-    res = tournament.tournament(model_path, champ_model,
+    res = tournament.tournament(model_path, champ_ref,
                                 games=config.TOURNEY_GAMES, seed=config.TOURNEY_SEED)
     report = tournament.format_report(dst_name, champ_label, res)
     log_safe = re.sub(r'[<>:"/\\|?*,()]+', '_', champ_label).strip('_')

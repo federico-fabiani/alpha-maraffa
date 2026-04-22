@@ -183,20 +183,21 @@ body::before {
   --bg-render-top: 0px;
   --bg-render-width: 100%;
   --bg-render-height: 100%;
-  --tablecloth-left: 0.2794;
-  --tablecloth-top: 0.25;
-  --tablecloth-width: 0.437;
-  --tablecloth-height: 0.45;
+  --hand-height: 176px;
+  --playing-area-left: 0.2794;
+  --playing-area-top: 0.22;
+  --playing-area-width: 0.437;
+  --playing-area-height: 0.51;
 }
 
 /* ── DEBUG: tablecloth overlay ──────────────────────────────────────────────── */
 /* Anchored to the rendered cover image, not the viewport. */
 .tablecloth-debug-area {
   position: absolute;
-  left: calc(var(--bg-render-left) + (var(--bg-render-width) * var(--tablecloth-left)));
-  top: calc(var(--bg-render-top) + (var(--bg-render-height) * var(--tablecloth-top)));
-  width: calc(var(--bg-render-width) * var(--tablecloth-width));
-  height: calc(var(--bg-render-height) * var(--tablecloth-height));
+  left: calc(var(--bg-render-left) + (var(--bg-render-width) * var(--playing-area-left)));
+  top: calc(var(--bg-render-top) + (var(--bg-render-height) * var(--playing-area-top)));
+  width: calc(var(--bg-render-width) * var(--playing-area-width));
+  height: calc(var(--bg-render-height) * var(--playing-area-height));
   background: rgba(255, 80, 0, 0.25);
   border: 2px solid rgba(255, 120, 0, 0.9);
   pointer-events: none;

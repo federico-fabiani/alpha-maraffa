@@ -11,7 +11,7 @@ import Notification from '../components/Notification'
 import type { BriscolaAnnouncement, Card, Declaration, Suit } from '../types'
 
 const GAME_BG_ASPECT_RATIO = 6336 / 2688
-const TABLECLOTH_DEBUG_BOUNDS = {
+const PLAYING_AREA_BOUNDS = {
   left: 0.2794,
   top: 0.22,
   width: 0.437,
@@ -108,6 +108,7 @@ export default function GameScreen() {
   const [briscolaReveal, setBriscolaReveal] = useState<(BriscolaAnnouncement & { fadingOut: boolean }) | null>(null)
   const lastBriscolaEventRef = useRef<number | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
+  const handRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const stage = stageRef.current
@@ -117,6 +118,7 @@ export default function GameScreen() {
       const stageWidth = stage.clientWidth
       const stageHeight = stage.clientHeight
       if (!stageWidth || !stageHeight) return
+      const handHeight = handRef.current?.clientHeight ?? 176
 
       const stageAspectRatio = stageWidth / stageHeight
       const renderWidth = stageAspectRatio > GAME_BG_ASPECT_RATIO
@@ -132,16 +134,20 @@ export default function GameScreen() {
       stage.style.setProperty('--bg-render-top', `${renderTop}px`)
       stage.style.setProperty('--bg-render-width', `${renderWidth}px`)
       stage.style.setProperty('--bg-render-height', `${renderHeight}px`)
-      stage.style.setProperty('--tablecloth-left', `${TABLECLOTH_DEBUG_BOUNDS.left}`)
-      stage.style.setProperty('--tablecloth-top', `${TABLECLOTH_DEBUG_BOUNDS.top}`)
-      stage.style.setProperty('--tablecloth-width', `${TABLECLOTH_DEBUG_BOUNDS.width}`)
-      stage.style.setProperty('--tablecloth-height', `${TABLECLOTH_DEBUG_BOUNDS.height}`)
+      stage.style.setProperty('--playing-area-left', `${PLAYING_AREA_BOUNDS.left}`)
+      stage.style.setProperty('--playing-area-top', `${PLAYING_AREA_BOUNDS.top}`)
+      stage.style.setProperty('--playing-area-width', `${PLAYING_AREA_BOUNDS.width}`)
+      stage.style.setProperty('--playing-area-height', `${PLAYING_AREA_BOUNDS.height}`)
+      stage.style.setProperty('--hand-height', `${handHeight}px`)
     }
 
     updateBackgroundFrame()
 
     const resizeObserver = new ResizeObserver(updateBackgroundFrame)
     resizeObserver.observe(stage)
+    if (handRef.current) {
+      resizeObserver.observe(handRef.current)
+    }
 
     return () => resizeObserver.disconnect()
   }, [])
@@ -464,8 +470,13 @@ export default function GameScreen() {
       )}
 
       {/* ── My hand ── */}
-      <div className={`absolute bottom-11 left-1/2 -translate-x-1/2 z-20 ${isActiveDrag ? 'pointer-events-none' : ''}`}>
-        <div className="player-hand">
+      <div
+        className={`absolute left-1/2 -translate-x-1/2 z-20 ${isActiveDrag ? 'pointer-events-none' : ''}`}
+        style={{
+          bottom: 'min(2.75rem, calc(100% - (var(--bg-render-top) + (var(--bg-render-height) * (var(--playing-area-top) + var(--playing-area-height))) + 1.5rem) - var(--hand-height)))',
+        }}
+      >
+        <div ref={handRef} className="player-hand">
           {sortedHand.map(({ card }, i) => {
             const handOffset = i - (sortedHand.length - 1) / 2
             const isBeingDragged = isActiveDrag

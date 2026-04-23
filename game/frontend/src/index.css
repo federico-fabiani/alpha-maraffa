@@ -354,7 +354,7 @@ body::before {
 }
 
 .game-bg {
-  background-image: url("./assets/playing_area/4K_21_9.jpg");
+  background-image: url("./assets/playing_area/background.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: bottom center;

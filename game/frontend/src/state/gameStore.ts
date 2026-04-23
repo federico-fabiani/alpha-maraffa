@@ -22,6 +22,7 @@ import type {
 } from './storeTypes'
 
 let connectionController: ReturnType<typeof createGameConnectionController>
+const INVALID_SESSION_MESSAGE = 'Sessione non valida, ricarica la pagina'
 
 export const initialState: GameStoreState = {
   connected: false,
@@ -134,6 +135,10 @@ const useGameStore = create<GameStore>((set, get) => ({
   restoreSession: () => {
     const savedSession = sessionStorageService.load()
     if (!savedSession) {
+      const storedPlayerName = sessionStorageService.loadPlayerName()
+      if (storedPlayerName) {
+        set({ playerName: storedPlayerName })
+      }
       void get().login()
       return
     }
@@ -416,9 +421,27 @@ const useGameStore = create<GameStore>((set, get) => ({
         break
       }
 
-      case 'error':
-        set({ error: data.message as string })
+      case 'error': {
+        const message = data.message as string
+
+        if (message === INVALID_SESSION_MESSAGE) {
+          const { playerName, backendStatus } = get()
+          connectionController.disconnect({ intentional: true })
+          sessionStorageService.clearSession()
+          set({
+            ...initialState,
+            playerName,
+            backendStatus,
+            displayedScreen: 'home',
+            screenTransitionPhase: 'visible',
+          })
+          void get().login()
+          break
+        }
+
+        set({ error: message })
         break
+      }
     }
   },
 }))

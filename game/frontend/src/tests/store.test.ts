@@ -1,9 +1,12 @@
 /** Unit tests for the Zustand store's message-processing logic. */
 
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as api from '../services/api'
 import useGameStore, { initialState } from '../state/gameStore'
 
 beforeEach(() => {
+  vi.restoreAllMocks()
+  localStorage.clear()
   useGameStore.setState(initialState)
 })
 
@@ -230,6 +233,41 @@ describe('_processMessage: game_over', () => {
     expect(screen).toBe('gameover')
     expect(gameOverData?.winner_team).toBe(1)
     expect(gameOverData?.scores['1']).toBe(44)
+  })
+})
+
+describe('_processMessage: invalid session error', () => {
+  it('clears the stale room, refreshes identity, and keeps the user unblocked', async () => {
+    vi.spyOn(api, 'loginPlayer').mockResolvedValue({ uuid: 'fresh-uuid', playerName: 'Alice' })
+    localStorage.setItem('mrf_uuid', 'stale-uuid')
+    localStorage.setItem('mrf_name', 'Alice')
+    localStorage.setItem('mrf_room', 'ROOM-1')
+    useGameStore.setState({
+      ...initialState,
+      uuid: 'stale-uuid',
+      playerName: 'Alice',
+      roomId: 'ROOM-1',
+      backendStatus: 'ready',
+    })
+
+    useGameStore.getState()._processMessage({
+      type: 'error',
+      data: { message: 'Sessione non valida, ricarica la pagina' },
+    })
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const state = useGameStore.getState()
+    expect(api.loginPlayer).toHaveBeenCalledWith('Alice')
+    expect(state.screen).toBe('home')
+    expect(state.uuid).toBe('fresh-uuid')
+    expect(state.roomId).toBe('')
+    expect(state.playerName).toBe('Alice')
+    expect(state.error).toBeNull()
+    expect(localStorage.getItem('mrf_uuid')).toBe('fresh-uuid')
+    expect(localStorage.getItem('mrf_room')).toBeNull()
+    expect(localStorage.getItem('mrf_name')).toBe('Alice')
   })
 })
 

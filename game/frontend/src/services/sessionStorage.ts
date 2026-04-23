@@ -17,9 +17,28 @@ export const sessionStorageService = {
       localStorage.setItem(STORAGE_KEYS.playerName, playerName)
       if (roomId) {
         localStorage.setItem(STORAGE_KEYS.roomId, roomId)
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.roomId)
       }
     } catch {
       // Ignore quota/storage access errors.
+    }
+  },
+
+  loadPlayerName() {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.playerName) ?? ''
+    } catch {
+      return ''
+    }
+  },
+
+  clearSession() {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.uuid)
+      localStorage.removeItem(STORAGE_KEYS.roomId)
+    } catch {
+      // Ignore storage access errors.
     }
   },
 

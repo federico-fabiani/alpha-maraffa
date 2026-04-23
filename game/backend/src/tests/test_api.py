@@ -5,7 +5,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from aimaraffa.api import app
+from aimaraffa.api import STATIC_DIR, app
 
 client = TestClient(app)
 
@@ -153,6 +153,21 @@ def test_http_ping_returns_ok():
     res = client.get("/api/ping")
     assert res.status_code == 200
     assert res.json() == {"ok": True}
+
+
+def test_frontend_index_requires_revalidation():
+    """The app shell entrypoint must be revalidated so deploys surface immediately."""
+    res = client.get("/")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "no-cache, max-age=0, must-revalidate"
+
+
+def test_frontend_service_worker_requires_revalidation():
+    """The service worker script must not stay stale across deploys."""
+    assert (STATIC_DIR / "sw.js").exists()
+    res = client.get("/sw.js")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "no-cache, max-age=0, must-revalidate"
 
 
 def test_only_owner_can_start_game():

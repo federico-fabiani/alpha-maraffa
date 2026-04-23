@@ -48,6 +48,16 @@ app.add_middleware(
 
 rooms = RoomManager()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+FRONTEND_APP_SHELL_FILES = frozenset({"index.html", "sw.js", "registerSW.js", "manifest.webmanifest"})
+
+
+def _frontend_file_response(file_path: Path) -> FileResponse:
+    cache_control = None
+    if file_path.name in FRONTEND_APP_SHELL_FILES or file_path.suffix == ".html":
+        cache_control = "no-cache, max-age=0, must-revalidate"
+
+    headers = {"Cache-Control": cache_control} if cache_control else None
+    return FileResponse(file_path, headers=headers)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="frontend-static")
@@ -374,7 +384,7 @@ async def frontend_index():
     index_file = STATIC_DIR / "index.html"
     if not index_file.exists():
         raise HTTPException(status_code=404, detail="Frontend static files not found")
-    return FileResponse(index_file)
+    return _frontend_file_response(index_file)
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
@@ -386,10 +396,10 @@ async def frontend_spa_fallback(full_path: str):
 
     requested_file = STATIC_DIR / full_path
     if requested_file.is_file():
-        return FileResponse(requested_file)
+        return _frontend_file_response(requested_file)
 
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return _frontend_file_response(index_file)
 
     raise HTTPException(status_code=404, detail="Frontend static files not found")

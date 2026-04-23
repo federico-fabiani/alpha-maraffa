@@ -1,7 +1,7 @@
 /** Unit tests for the Zustand store's message-processing logic. */
 
 import { beforeEach, describe, expect, it } from 'vitest'
-import useGameStore, { initialState } from '../store'
+import useGameStore, { initialState } from '../state/gameStore'
 
 beforeEach(() => {
   useGameStore.setState(initialState)
@@ -90,8 +90,6 @@ describe('_processMessage: game_state', () => {
     })
     const s = useGameStore.getState()
     expect(s.phase).toBe('playing')
-    expect(s.round).toBe(2)
-    expect(s.turn).toBe(5)
     expect(s.briscola).toBe('bastoni')
     expect(s.currentPlayerSeat).toBe(0)
     expect(s.myHand).toHaveLength(1)

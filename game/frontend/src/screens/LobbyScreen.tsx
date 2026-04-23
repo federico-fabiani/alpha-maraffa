@@ -1,48 +1,61 @@
 import { useState } from 'react'
-import useGameStore from '../store'
+import useGameStore from '../state/gameStore'
 
 const SEAT_AREA = ['bottom', 'right', 'top', 'left'] as const
 const TEAM_COLOR = ['#c8922a', '#8b3a1a', '#c8922a', '#8b3a1a']
 
 export default function LobbyScreen() {
-  const roomId        = useGameStore(s => s.roomId)
-  const mySeat        = useGameStore(s => s.mySeat)
-  const isOwner       = useGameStore(s => s.isOwner)
-  const lobbyPlayers  = useGameStore(s => s.lobbyPlayers)
-  const startGame     = useGameStore(s => s.startGame)
-  const swapSeats     = useGameStore(s => s.swapSeats)
-  const kickPlayer    = useGameStore(s => s.kickPlayer)
-  const promotePlayer = useGameStore(s => s.promotePlayer)
-  const ownerSeat     = useGameStore(s => s.ownerSeat)
-  const reset         = useGameStore(s => s.reset)
+  const roomId = useGameStore(state => state.roomId)
+  const mySeat = useGameStore(state => state.mySeat)
+  const isOwner = useGameStore(state => state.isOwner)
+  const lobbyPlayers = useGameStore(state => state.lobbyPlayers)
+  const startGame = useGameStore(state => state.startGame)
+  const swapSeats = useGameStore(state => state.swapSeats)
+  const kickPlayer = useGameStore(state => state.kickPlayer)
+  const promotePlayer = useGameStore(state => state.promotePlayer)
+  const ownerSeat = useGameStore(state => state.ownerSeat)
+  const reset = useGameStore(state => state.reset)
 
-  const [swapPending, setSwapPending] = useState<number | null>(null)
+  const [swapPendingSeat, setSwapPendingSeat] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const playerBySeat = Object.fromEntries(lobbyPlayers.map(p => [p.seat, p]))
+  const playerBySeat = Object.fromEntries(lobbyPlayers.map(player => [player.seat, player]))
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(roomId).then(() => {
+  const handleCopyRoomId = () => {
+    void navigator.clipboard.writeText(roomId).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      window.setTimeout(() => setCopied(false), 2000)
     })
   }
 
   const handleSeatClick = (seat: number) => {
-    if (!isOwner) return
-    if (swapPending === null) {
-      if (!playerBySeat[seat]) return
-      setSwapPending(seat)
-    } else if (swapPending === seat) {
-      setSwapPending(null)
-    } else {
-      swapSeats(swapPending, seat)
-      setSwapPending(null)
+    if (!isOwner) {
+      return
     }
+
+    if (swapPendingSeat === null) {
+      if (!playerBySeat[seat]) {
+        return
+      }
+
+      setSwapPendingSeat(seat)
+      return
+    }
+
+    if (swapPendingSeat === seat) {
+      setSwapPendingSeat(null)
+      return
+    }
+
+    swapSeats(swapPendingSeat, seat)
+    setSwapPendingSeat(null)
   }
 
+  const rootStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' } as const
+  const actionsStyle = { display: 'flex', flexDirection: 'column' as const, gap: '0.75rem', width: '100%' }
+
   return (
-    <div className="flex items-center justify-center h-full">
+    <div style={rootStyle}>
       <div className="lobby-wrap">
 
         {/* Header */}
@@ -51,7 +64,7 @@ export default function LobbyScreen() {
         </div>
 
         {/* Room code */}
-        <button onClick={handleCopy} title="Clicca per copiare" className="lobby-code-box">
+        <button onClick={handleCopyRoomId} title="Clicca per copiare" className="lobby-code-box">
           <p className="lobby-code-label">{copied ? 'copiato!' : 'codice stanza'}</p>
           <p className="lobby-code-value">{roomId}</p>
         </button>
@@ -62,8 +75,8 @@ export default function LobbyScreen() {
             const player      = playerBySeat[seat]
             const isMe        = seat === mySeat
             const teamColor   = TEAM_COLOR[seat]
-            const isPending   = swapPending === seat
-            const isClickable = isOwner && (!!player || swapPending !== null)
+            const isPending   = swapPendingSeat === seat
+            const isClickable = isOwner && (!!player || swapPendingSeat !== null)
             const area        = SEAT_AREA[seat]
 
             return (
@@ -119,14 +132,14 @@ export default function LobbyScreen() {
         {/* Swap hint */}
         {isOwner && (
           <p className="lobby-hint" style={{ marginTop: '-0.5rem' }}>
-            {swapPending !== null
+            {swapPendingSeat !== null
               ? `Seleziona il secondo posto da scambiare…`
               : 'Clicca due posti per scambiarli.'}
           </p>
         )}
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 w-full">
+        <div style={actionsStyle}>
           <button onClick={startGame} disabled={!isOwner} className="lobby-btn primary">
             INIZIA PARTITA
           </button>

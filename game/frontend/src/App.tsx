@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
-import useGameStore from './store'
+import { useEffect } from 'react'
+import useGameStore from './state/gameStore'
+import { APP_LAYOUT, APP_SHELL_LAYOUT_STYLES, layoutCssVariables } from './layout/layout'
+import { useAppBootstrap } from './hooks/useAppBootstrap'
 import HomeScreen from './screens/HomeScreen'
 import LobbyScreen from './screens/LobbyScreen'
 import GameScreen from './screens/GameScreen'
 import GameOverScreen from './screens/GameOverScreen'
 import ConnectionStatus from './components/ConnectionStatus'
-import type { Screen } from './types'
 import backgroundImg from './assets/background.png'
 
 const screens = {
@@ -16,68 +17,48 @@ const screens = {
 } as const
 
 export default function App() {
-  const screen          = useGameStore(s => s.screen)
-  const restoreSession  = useGameStore(s => s.restoreSession)
-
-  const [displayedScreen, setDisplayedScreen] = useState<Screen>(screen)
-  const [contentVisible, setContentVisible]   = useState(true)
-  const [backendReady, setBackendReady]       = useState(false)
+  const screen = useGameStore(state => state.screen)
+  const displayedScreen = useGameStore(state => state.displayedScreen)
+  const screenTransitionPhase = useGameStore(state => state.screenTransitionPhase)
+  const beginScreenTransition = useGameStore(state => state.beginScreenTransition)
+  const completeScreenTransition = useGameStore(state => state.completeScreenTransition)
+  const backendStatus = useAppBootstrap()
 
   useEffect(() => {
-    let cancelled = false
-    let retryTimer: number | null = null
-
-    const pingBackend = async () => {
-      try {
-        const res = await fetch('/api/ping', { cache: 'no-store' })
-        if (res.ok) {
-          if (cancelled) return
-          setBackendReady(true)
-          restoreSession()
-          return
-        }
-      } catch {
-        // Backend still starting or temporarily unreachable
-      }
-
-      if (cancelled) return
-      retryTimer = window.setTimeout(pingBackend, 1200)
+    if (screen === displayedScreen) {
+      return
     }
 
-    pingBackend()
+    beginScreenTransition()
+    const timerId = window.setTimeout(() => {
+      completeScreenTransition()
+    }, APP_LAYOUT.shell.screenFadeDurationMs)
 
     return () => {
-      cancelled = true
-      if (retryTimer !== null) window.clearTimeout(retryTimer)
+      window.clearTimeout(timerId)
     }
-  }, [restoreSession])
-
-  // Cross-fade between screens: fade out → swap → fade in
-  useEffect(() => {
-    if (screen === displayedScreen) return
-    setContentVisible(false)
-    const timer = setTimeout(() => {
-      setDisplayedScreen(screen)
-      setContentVisible(true)
-    }, 380)
-    return () => clearTimeout(timer)
-  }, [screen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [beginScreenTransition, completeScreenTransition, displayedScreen, screen])
 
   const showRusticBg = displayedScreen === 'home' || displayedScreen === 'lobby'
   const Screen = screens[displayedScreen]
+  const backendReady = backendStatus === 'ready'
+  const contentVisible = screenTransitionPhase === 'visible'
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      <div className={`relative w-full h-full transition-[filter] duration-500 ${backendReady ? 'blur-0' : 'blur-[7px] pointer-events-none select-none'}`}>
+    <div style={{ ...APP_SHELL_LAYOUT_STYLES.root, ...layoutCssVariables }}>
+      <div
+        className={backendReady ? '' : 'pointer-events-none select-none'}
+        style={{
+          ...APP_SHELL_LAYOUT_STYLES.frame,
+          filter: backendReady ? 'none' : `blur(${APP_LAYOUT.shell.inactiveBlurRadius})`,
+        }}
+      >
         {/* Persistent rustic background — visible for home and lobby */}
         <div
-          className="absolute inset-0 z-0"
           style={{
+            ...APP_SHELL_LAYOUT_STYLES.background,
             backgroundImage: `url(${backgroundImg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
             opacity: showRusticBg ? 1 : 0,
-            transition: 'opacity 0.55s ease',
           }}
         />
 
@@ -86,22 +67,25 @@ export default function App() {
 
         {/* Screen content */}
         <div
-          className="screen-content relative w-full h-full z-10"
-          style={{ opacity: contentVisible ? 1 : 0 }}
+          className="screen-content"
+          style={{
+            ...APP_SHELL_LAYOUT_STYLES.content,
+            opacity: contentVisible ? 1 : 0,
+          }}
         >
           <Screen />
         </div>
 
         {displayedScreen !== 'home' && (
-          <div className="absolute bottom-2 right-3 z-50">
+          <div style={APP_SHELL_LAYOUT_STYLES.connection}>
             <ConnectionStatus />
           </div>
         )}
       </div>
 
       {!backendReady && (
-        <div className="startup-loading-overlay absolute inset-0 z-[70] flex items-center justify-center">
-          <div className="startup-loading-card flex flex-col items-center gap-4 px-7 py-6">
+        <div className="startup-loading-overlay" style={APP_SHELL_LAYOUT_STYLES.startupOverlay}>
+          <div className="startup-loading-card" style={APP_SHELL_LAYOUT_STYLES.startupCard}>
             <div className="startup-spinner" aria-hidden="true" />
             <p className="startup-loading-title">Connessione al tavolo</p>
             <p className="startup-loading-subtitle">Attendo risposta del backend...</p>

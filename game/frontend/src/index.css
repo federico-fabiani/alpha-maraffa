@@ -234,10 +234,10 @@ body::before {
   --bg-render-width: 100%;
   --bg-render-height: 100%;
   --hand-playing-area-delta: 0px;
-  --playing-area-left: 0.2794;
-  --playing-area-top: 0.22;
-  --playing-area-width: 0.437;
-  --playing-area-height: 0.51;
+  --playing-area-left: var(--layout-playing-area-left);
+  --playing-area-top: var(--layout-playing-area-top);
+  --playing-area-width: var(--layout-playing-area-width);
+  --playing-area-height: var(--layout-playing-area-height);
 }
 
 /* ── DEBUG: tablecloth overlay ──────────────────────────────────────────────── */
@@ -417,11 +417,11 @@ body::before {
 
 .hand-card-slot {
   position: relative;
-  margin-left: -9px;
+  margin-left: var(--layout-player-hand-overlap);
   transform-origin: bottom center;
   transform:
-    translateY(calc(4px + (var(--hand-offset-abs, 0) * 2.35px)))
-    rotate(calc(var(--hand-offset, 0) * 3.25deg));
+    translateY(calc(var(--layout-player-hand-translate-base) + (var(--hand-offset-abs, 0) * var(--layout-player-hand-translate-offset-factor))))
+    rotate(calc(var(--hand-offset, 0) * var(--layout-player-hand-rotate-factor)));
   transition: transform 0.18s ease, margin 0.18s ease;
 }
 
@@ -431,9 +431,9 @@ body::before {
 
 .hand-card-slot:hover {
   transform:
-    translateY(-14px)
-    rotate(calc(var(--hand-offset, 0) * 1.4deg))
-    scale(1.04);
+    translateY(var(--layout-player-hand-hover-translate))
+    rotate(calc(var(--hand-offset, 0) * var(--layout-player-hand-hover-rotate-factor)))
+    scale(var(--layout-player-hand-hover-scale));
   z-index: 25;
 }
 
@@ -625,7 +625,7 @@ body::before {
 
 @media (max-width: 1100px) {
   .player-hand {
-    transform: scale(0.92);
+    transform: scale(var(--layout-player-hand-tablet-scale));
     transform-origin: bottom center;
   }
 }
@@ -633,18 +633,18 @@ body::before {
 @media (max-width: 800px) {
   .player-hand {
     bottom: 0;
-    transform: scale(0.84);
+    transform: scale(var(--layout-player-hand-mobile-scale));
   }
 
   .hand-card-slot {
-    margin-left: -14px;
+    margin-left: var(--layout-player-hand-overlap-mobile);
   }
 }
 
 /* ── Screen transition ───────────────────────────────────────────────────────── */
 
 .screen-content {
-  transition: opacity 0.38s ease;
+  transition: opacity var(--layout-screen-transition-duration) ease;
 }
 
 /* ── Home screen ─────────────────────────────────────────────────────────────── */
@@ -793,8 +793,8 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  width: min(92vw, 30rem);
+  gap: var(--layout-lobby-panel-gap);
+  width: min(92vw, var(--layout-lobby-panel-max-width));
 }
 
 .lobby-heading {
@@ -859,8 +859,8 @@ body::before {
     "left . right"
     ". bottom .";
   grid-template-columns: 1fr 1.5fr 1fr;
-  grid-template-rows: auto 3.5rem auto;
-  gap: 0.25rem 0.25rem;
+  grid-template-rows: auto var(--layout-lobby-table-middle-row-height) auto;
+  gap: var(--layout-lobby-table-gap) var(--layout-lobby-table-gap);
   width: 100%;
 }
 
@@ -868,8 +868,8 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.3rem;
+  gap: var(--layout-lobby-seat-card-gap);
+  padding: var(--layout-lobby-seat-card-padding-y) var(--layout-lobby-seat-card-padding-x);
   text-align: center;
   border-radius: 0.5rem;
   transition: background 0.15s ease;
@@ -890,8 +890,8 @@ body::before {
 .lobby-seat-right  { grid-area: right; }
 
 .lobby-avatar {
-  width: 52px;
-  height: 52px;
+  width: var(--layout-lobby-avatar-size);
+  height: var(--layout-lobby-avatar-size);
   border-radius: 50%;
   border: 2.5px solid var(--team-color, rgba(120, 48, 18, 0.42));
   background: rgba(255, 248, 218, 0.55);
@@ -952,7 +952,7 @@ body::before {
 
 .lobby-seat-actions {
   display: flex;
-  gap: 0.15rem;
+  gap: var(--layout-lobby-seat-action-gap);
 }
 
 .lobby-action-btn {

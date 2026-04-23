@@ -1,4 +1,5 @@
-import useGameStore from '../store'
+import { APP_LAYOUT } from '../layout/layout'
+import useGameStore from '../state/gameStore'
 
 export default function GameOverScreen() {
   const gameOverData = useGameStore(s => s.gameOverData)
@@ -10,10 +11,13 @@ export default function GameOverScreen() {
   const myTeam    = mySeat !== null ? (mySeat % 2 === 0 ? 1 : 2) : null
   const didWin    = myTeam === gameOverData.winner_team
   const scores    = gameOverData.scores
+  const rootStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' } as const
+  const panelStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.gameOver.panelGap }
+  const actionStyle = { display: 'flex', flexDirection: 'column' as const, gap: '0.75rem', width: APP_LAYOUT.gameOver.actionWidth }
 
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="flex flex-col items-center gap-8 animate-fade-in">
+    <div style={rootStyle}>
+      <div className="animate-fade-in" style={panelStyle}>
 
         {/* Result */}
         <div className="text-center">
@@ -34,7 +38,7 @@ export default function GameOverScreen() {
         </div>
 
         {/* Scores */}
-        <div className="bg-felt-900 border border-felt-700 rounded-2xl p-6 w-72">
+        <div className="bg-felt-900 border border-felt-700 rounded-2xl p-6" style={{ width: APP_LAYOUT.gameOver.scoreWidth }}>
           <p className="text-felt-500 text-xs tracking-widest text-center mb-4">PUNTEGGIO FINALE</p>
           {[1, 2].map(team => (
             <div key={team} className="flex justify-between items-center py-2 border-b border-felt-800 last:border-0">
@@ -49,7 +53,7 @@ export default function GameOverScreen() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 w-64">
+        <div style={actionStyle}>
           <button
             onClick={reset}
             className="bg-amber-600 hover:bg-amber-500 text-white font-semibold

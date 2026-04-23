@@ -1,306 +1,118 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
-import useGameStore from '../store'
-import { Card as CardComponent, SUIT_META } from '../components/Card'
+import {
+  APP_LAYOUT,
+  createBriscolaGifStyle,
+  createDragGhostStyle,
+  createGameDropZoneStyle,
+  createTurnCountdownFillStyle,
+  GAME_SEAT_STYLES,
+  getLastTrickSlotStyle,
+} from '../layout/layout'
+import { Card as CardComponent } from '../components/Card'
 import PlayerArea from '../components/PlayerArea'
 import TableArea from '../components/TableArea'
 import BriscolaSuitGif from '../components/BriscolaSuitGif'
 import BriscolaModal from '../components/BriscolaModal'
 import Notification from '../components/Notification'
-import type { Card, Declaration, Suit } from '../types'
+import { useGameScreenController } from '../hooks/useGameScreenController'
 
-const GAME_BG_ASPECT_RATIO = 6336 / 2688
-const PLAYING_AREA_BOUNDS = {
-  left: 0.2794,
-  top: 0.20,
-  width: 0.437,
-  height: 0.51,
-} as const
-
-const SUIT_ORDER: Record<Suit, number> = {
-  bastoni: 0,
-  denara: 1,
-  spade: 2,
-  coppe: 3,
-}
-
-const CARD_ORDER: Record<number, number> = {
-  3: 9,
-  2: 8,
-  1: 7,
-  10: 6,
-  9: 5,
-  8: 4,
-  7: 3,
-  6: 2,
-  5: 1,
-  4: 0,
-}
-
-function lastTrickSlotStyle(relativeSeat: number): React.CSSProperties {
-  switch (relativeSeat) {
-    case 0: return { bottom: '0px',  left: '50%', transform: 'translateX(-50%)' }
-    case 1: return { right:  '0px',  top:  '50%', transform: 'translateY(-50%)' }
-    case 2: return { top:    '0px',  left: '50%', transform: 'translateX(-50%)' }
-    case 3: return { left:   '0px',  top:  '50%', transform: 'translateY(-50%)' }
-    default: return {}
-  }
-}
-
-type BriscolaIntroState =
-  | { stage: 'idle' }
-  | { stage: 'banner'; suit: Suit; text: string }
-  | { stage: 'gif'; suit: Suit; token: number }
+type HandSlotStyle = React.CSSProperties & Record<'--hand-index' | '--hand-offset' | '--hand-offset-abs', string>
 
 export default function GameScreen() {
   const {
-    mySeat, players, myHand, phase,
-    briscola, briscolaAnnouncement, currentPlayerSeat, tableCards, turnResultWinnerSeat, lastTrickCards,
+    briscola,
+    briscolaChooserName,
+    briscolaGifMeta,
+    briscolaIntro,
+    currentDeclaration,
+    currentPlayerSeat,
+    declarationOptions,
+    dismissNotification,
+    drag,
+    gamePhase,
+    handleBriscolaGifPlaybackComplete,
+    handleCancelForfeit,
+    handleCardClick,
+    handleCardPointerDown,
+    handleConfirmForfeit,
+    handleOpenForfeitConfirm,
+    handlePointerCancel,
+    handlePointerMove,
+    handlePointerUp,
+    handleToggleDeclaration,
+    isActiveDrag,
+    isDragOver,
+    isLeadPlayer,
+    isMyTurn,
+    isWaitingBriscola,
+    lastTrickCards,
+    leadSeat,
+    leftSeat,
+    needsBriscola,
+    notification,
+    pendingDeclaration,
+    playerBySeat,
+    rightSeat,
+    seat,
+    secsLeft,
+    selectBriscola,
+    showForfeitConfirm,
+    sortedHand,
+    stageRef,
+    tableCards,
+    topSeat,
     totalScores,
-    notification, briscolaSelectorSeat, currentDeclaration, turnDeadline,
-  } = useGameStore(useShallow(s => ({
-    mySeat: s.mySeat,
-    players: s.players,
-    myHand: s.myHand,
-    phase: s.phase,
-    briscola: s.briscola,
-    briscolaAnnouncement: s.briscolaAnnouncement,
-    currentPlayerSeat: s.currentPlayerSeat,
-    tableCards: s.tableCards,
-    turnResultWinnerSeat: s.turnResultWinnerSeat,
-    lastTrickCards: s.lastTrickCards,
-    totalScores: s.totalScores,
-    notification: s.notification,
-    briscolaSelectorSeat: s.briscolaSelectorSeat,
-    currentDeclaration: s.currentDeclaration,
-    turnDeadline: s.turnDeadline,
-  })))
+    turnResultWinnerSeat,
+  } = useGameScreenController()
 
-  const playCard        = useGameStore(s => s.playCard)
-  const selectBriscola  = useGameStore(s => s.selectBriscola)
-  const showNotification = useGameStore(s => s.showNotification)
-  const dismissNotif    = useGameStore(s => s.dismissNotification)
-  const forfeit         = useGameStore(s => s.forfeit)
-
-  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
-
-  // ── Countdown timer (ticks every 250 ms when a human is on the clock) ───────────
-  const [secsLeft, setSecsLeft] = useState<number | null>(null)
-  useEffect(() => {
-    if (!turnDeadline) { setSecsLeft(null); return }
-    const tick = () => setSecsLeft(Math.max(0, Math.round((turnDeadline * 1000 - Date.now()) / 1000)))
-    tick()
-    const id = setInterval(tick, 250)
-    return () => clearInterval(id)
-  }, [turnDeadline])
-
-  // ── Declaration state (local toggle, sent bundled with the card) ─────────────
-  const [pendingDeclaration, setPendingDeclaration] = useState<Declaration>(null)
-
-  // ── Drag-to-play state ────────────────────────────────────────────────────────
-  const [drag, setDrag] = useState<{
-    card: Card
-    x: number
-    y: number
-    startX: number
-    startY: number
-  } | null>(null)
-  // ── Briscola intro state machine ──────────────────────────────────────────
-  // Single source of truth: covers banner (2s) → gif animation → idle.
-  // briscolaIntroActive = stage !== 'idle' → masks table cards + blocks isMyTurn.
-  const [briscolaIntro, setBriscolaIntro] = useState<BriscolaIntroState>({ stage: 'idle' })
-  // Persists suit+token so GIF stays mounted (frozen last frame) after intro ends.
-  const [briscolaGifMeta, setBriscolaGifMeta] = useState<{ suit: Suit; token: number } | null>(null)
-  const lastBriscolaEventRef = useRef<number | null>(null)
-  const fallbackIntroKeyRef = useRef<string | null>(null)
-  const stageRef = useRef<HTMLDivElement | null>(null)
-
-  const handleBriscolaGifPlaybackComplete = useCallback(() => {
-    setBriscolaIntro(prev => (prev.stage === 'gif' ? { stage: 'idle' } : prev))
-  }, [])
-
-  useEffect(() => {
-    const stage = stageRef.current
-    if (!stage) return
-
-    const updateBackgroundFrame = () => {
-      const stageWidth = stage.clientWidth
-      const stageHeight = stage.clientHeight
-      if (!stageWidth || !stageHeight) return
-
-      const stageAspectRatio = stageWidth / stageHeight
-      const renderWidth = stageAspectRatio > GAME_BG_ASPECT_RATIO
-        ? stageWidth
-        : stageHeight * GAME_BG_ASPECT_RATIO
-      const renderHeight = stageAspectRatio > GAME_BG_ASPECT_RATIO
-        ? stageWidth / GAME_BG_ASPECT_RATIO
-        : stageHeight
-      const renderLeft = (stageWidth - renderWidth) / 2
-      const renderTop = (stageHeight - renderHeight) / 2
-
-      stage.style.setProperty('--bg-render-left', `${renderLeft}px`)
-      stage.style.setProperty('--bg-render-top', `${renderTop}px`)
-      stage.style.setProperty('--bg-render-width', `${renderWidth}px`)
-      stage.style.setProperty('--bg-render-height', `${renderHeight}px`)
-      stage.style.setProperty('--playing-area-left', `${PLAYING_AREA_BOUNDS.left}`)
-      stage.style.setProperty('--playing-area-top', `${PLAYING_AREA_BOUNDS.top}`)
-      stage.style.setProperty('--playing-area-width', `${PLAYING_AREA_BOUNDS.width}`)
-      stage.style.setProperty('--playing-area-height', `${PLAYING_AREA_BOUNDS.height}`)
-    }
-
-    updateBackgroundFrame()
-
-    const resizeObserver = new ResizeObserver(updateBackgroundFrame)
-    resizeObserver.observe(stage)
-
-    return () => resizeObserver.disconnect()
-  }, [])
-
-  const dragDist     = drag ? Math.hypot(drag.x - drag.startX, drag.y - drag.startY) : 0
-  const isActiveDrag = dragDist > 8
-  const isDragOver   = drag !== null && (drag.startY - drag.y) > 90
-
-  const handleCardPointerDown = (e: React.PointerEvent, card: Card) => {
-    if (!isMyTurn || !card.playable) return
-    setDrag({ card, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY })
-  }
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!drag) return
-    setDrag(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)
-  }
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!drag) return
-    if ((drag.startY - e.clientY) > 90 && drag.card.playable && isMyTurn) {
-      playCard(drag.card, isLeadPlayer ? pendingDeclaration : null)
-      setPendingDeclaration(null)
-    }
-    setDrag(null)
-  }
-
-  const seat = mySeat ?? 0
-
-  // Relative seat positions around the table
-  const topSeat   = (seat + 2) % 4
-  const rightSeat = (seat + 1) % 4
-  const leftSeat  = (seat + 3) % 4
-
-  const playerBySeat = Object.fromEntries(players.map(p => [p.seat, p]))
-
-  const briscolaIntroActive = briscolaIntro.stage !== 'idle'
-
-  const isMyTurn     = currentPlayerSeat === seat && phase === 'playing' && !briscolaIntroActive
-  const needsBriscola = phase === 'briscola_selection' && currentPlayerSeat === seat
-
-  // Lead player of the current trick: first card on table, or current player when table is empty
-  const leadSeat     = tableCards.length > 0 ? tableCards[0].seat : currentPlayerSeat
-  const isLeadPlayer = isMyTurn && tableCards.length === 0
-
-  const briscolaChooserName = currentPlayerSeat != null
-    ? playerBySeat[currentPlayerSeat]?.name ?? 'Un giocatore'
-    : 'Un giocatore'
-
-  const handleCardClick = (card: Card) => {
-    if (!card.playable) {
-      showNotification({
-        text: 'Mossa non valida',
-        subtitle: 'Questa carta non e giocabile in questo turno.',
-        duration: 1400,
-      })
-      return
-    }
-
-    if (isMyTurn) {
-      playCard(card, isLeadPlayer ? pendingDeclaration : null)
-      setPendingDeclaration(null)
-    }
-  }
-
-  const sortedHand = useMemo(() => {
-    return myHand.map((card, index) => ({ card, index })).sort((a, b) => {
-      const suitDiff = SUIT_ORDER[a.card.suit] - SUIT_ORDER[b.card.suit]
-      if (suitDiff !== 0) return suitDiff
-
-      const pointsDiff = CARD_ORDER[b.card.rank] - CARD_ORDER[a.card.rank]
-      if (pointsDiff !== 0) return pointsDiff
-
-      const rankDiff = b.card.rank - a.card.rank
-      if (rankDiff !== 0) return rankDiff
-
-      return a.index - b.index
-    })
-  }, [myHand])
-
-  // Effect 1: react to a new briscola_set event → banner → gif
-  useEffect(() => {
-    if (!briscolaAnnouncement) return
-    if (lastBriscolaEventRef.current === briscolaAnnouncement.eventId) return
-
-    lastBriscolaEventRef.current = briscolaAnnouncement.eventId
-    const { suit } = briscolaAnnouncement
-    const text = `Le briscole sono ${SUIT_META[suit].label}!`
-    setBriscolaIntro({ stage: 'banner', suit, text })
-
-    const token = briscolaAnnouncement.eventId
-    const timer = window.setTimeout(() => {
-      setBriscolaGifMeta({ suit, token })
-      setBriscolaIntro({ stage: 'gif', suit, token })
-    }, 2000)
-
-    return () => window.clearTimeout(timer)
-  }, [briscolaAnnouncement])
-
-  // Effect 2: reset intro and GIF when round ends (briscola cleared)
-  useEffect(() => {
-    if (!briscola) {
-      setBriscolaIntro({ stage: 'idle' })
-      setBriscolaGifMeta(null)
-      lastBriscolaEventRef.current = null
-      fallbackIntroKeyRef.current = null
-    }
-  }, [briscola])
-
-  // Effect 3: fallback for reload/rejoin.
-  // If briscola is already known but no briscola_set event arrives in this session,
-  // start directly from GIF to avoid a stuck banner state on reconnect flows.
-  useEffect(() => {
-    if (!briscola || briscolaAnnouncement) return
-
-    const fallbackKey = `${phase}-${briscola}`
-    if (fallbackIntroKeyRef.current === fallbackKey) return
-
-    fallbackIntroKeyRef.current = fallbackKey
-    const token = Date.now()
-    setBriscolaGifMeta({ suit: briscola, token })
-    setBriscolaIntro({ stage: 'gif', suit: briscola, token })
-  }, [briscola, briscolaAnnouncement, phase])
-
-  const isWaitingBriscola = phase === 'briscola_selection' && !needsBriscola && !briscolaIntroActive
-
-  const DEBUG_TABLECLOTH = true
+  const rootStyle = { position: 'relative', width: '100%', height: '100%', overflow: 'hidden' } as const
+  const hudStyle = { position: 'absolute', top: APP_LAYOUT.game.hudInset, left: APP_LAYOUT.game.hudInset, zIndex: 10 } as const
+  const forfeitStyle = { position: 'absolute', top: APP_LAYOUT.game.hudInset, right: APP_LAYOUT.game.hudInset, zIndex: 10 } as const
+  const turnBarStyle = { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, height: APP_LAYOUT.game.turnBarHeight } as const
+  const tableStyle = {
+    position: 'absolute',
+    pointerEvents: 'none',
+    left: 'calc(var(--bg-render-left) + (var(--bg-render-width) * var(--layout-playing-area-left)))',
+    top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * var(--layout-playing-area-top)))',
+    width: 'calc(var(--bg-render-width) * var(--layout-playing-area-width))',
+    height: 'calc(var(--bg-render-height) * var(--layout-playing-area-height))',
+    '--table-card-height': 'min(12rem, calc((var(--bg-render-height) * var(--layout-playing-area-height)) / 2))',
+    '--table-card-width': 'calc(var(--table-card-height) * 0.6667)',
+    '--table-card-spread-x': `calc(var(--table-card-width) * ${APP_LAYOUT.game.table.spreadXMultiplier})`,
+    '--table-card-spread-y': `calc(var(--table-card-height) * ${APP_LAYOUT.game.table.spreadYMultiplier})`,
+  } as React.CSSProperties
+  const gifWrapStyle = { position: 'absolute', left: '50%', top: '50%', zIndex: 0, transform: APP_LAYOUT.game.table.gifTransform, transformOrigin: 'center center' } as const
+  const lastTrickWrapStyle = { position: 'absolute', top: '50%', left: '50%', transform: `translate(${APP_LAYOUT.game.lastTrick.offsetX}, -50%)`, zIndex: 20, pointerEvents: 'none' } as const
+  const lastTrickGridStyle = { position: 'relative', width: APP_LAYOUT.game.lastTrick.size, height: APP_LAYOUT.game.lastTrick.size } as const
+  const selfPanelStyle = { position: 'absolute', bottom: APP_LAYOUT.game.selfPanel.bottom, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.game.selfPanel.gap } as const
+  const declarationStyle = { display: 'flex', gap: APP_LAYOUT.game.declarationGap } as const
+  const dropZoneLayerStyle = { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 20 } as const
+  const handWrapStyle = { position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 20, top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta))' } as const
+  const announcementOverlayStyle = { position: 'absolute', inset: 0, zIndex: 30, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingInline: APP_LAYOUT.game.announcement.paddingX } as const
+  const dialogOverlayStyle = { position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' } as const
+  const dialogStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.game.dialog.gap, maxWidth: APP_LAYOUT.game.dialog.maxWidth, marginInline: APP_LAYOUT.game.dialog.marginX, padding: `${APP_LAYOUT.game.dialog.paddingY} ${APP_LAYOUT.game.dialog.paddingX}` } as const
+  const dialogActionsStyle = { display: 'flex', gap: APP_LAYOUT.game.dialog.actionGap, width: '100%' } as const
+  const createHandSlotStyle = (index: number, handOffset: number): HandSlotStyle => ({
+    '--hand-index': `${index}`,
+    '--hand-offset': `${handOffset}`,
+    '--hand-offset-abs': `${Math.abs(handOffset)}`,
+  })
 
   return (
     <div
       ref={stageRef}
-      className="game-stage game-bg relative w-full h-full overflow-hidden select-none touch-none"
+      className="game-stage game-bg select-none touch-none"
+      style={rootStyle}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={() => setDrag(null)}
-      onPointerLeave={() => setDrag(null)}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
     >
       <div className="game-stage-ambient" />
       <div className="game-stage-vignette" />
 
-      {/* ── DEBUG: tablecloth area ── */}
-      {DEBUG_TABLECLOTH && (
-        <>
-          <div className="tablecloth-debug-area" />
-        </>
-      )}
+      {APP_LAYOUT.game.debug.showTableclothOverlay && <div className="tablecloth-debug-area" />}
 
-      {/* ── HUD ── */}
-      <div className="absolute top-3 left-3 z-10">
+      <div style={hudStyle}>
         <div className="bg-felt-900/80 border border-felt-700/60 rounded-xl px-3 py-2 backdrop-blur-sm flex items-center gap-2.5">
           <span className="font-cinzel font-bold text-lg text-amber-400">{totalScores['1'] ?? 0}</span>
           <span className="text-felt-500">|</span>
@@ -308,32 +120,22 @@ export default function GameScreen() {
         </div>
       </div>
 
-      <div className="absolute top-3 right-3 z-10">
+      <div style={forfeitStyle}>
         <button
-          onClick={() => setShowForfeitConfirm(true)}
+          onClick={handleOpenForfeitConfirm}
           className="px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border border-red-800/60 bg-stone-950/70 text-red-400/80 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/70 transition-all backdrop-blur-sm"
         >
           Abbandona
         </button>
       </div>
 
-      {/* \u2500\u2500 Turn countdown bar \u2500\u2500 */}
       {secsLeft !== null && (
-        <div className="absolute top-0 left-0 right-0 z-20 h-1 bg-stone-900/60">
-          <div
-            className="h-full transition-[width] duration-200 ease-linear"
-            style={{
-              width: `${Math.max(0, (secsLeft / 30) * 100)}%`,
-              backgroundColor: secsLeft > 15 ? '#4ade80' : secsLeft > 7 ? '#facc15' : '#f87171',
-            }}
-          />
+        <div className="bg-stone-900/60" style={turnBarStyle}>
+          <div className="h-full transition-[width] duration-200 ease-linear" style={createTurnCountdownFillStyle(secsLeft)} />
         </div>
       )}
 
-
-
-      {/* ── Opponent — top ── */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2">
+      <div style={GAME_SEAT_STYLES.top}>
         <PlayerArea
           player={playerBySeat[topSeat]}
           isActive={currentPlayerSeat === topSeat}
@@ -343,8 +145,7 @@ export default function GameScreen() {
         />
       </div>
 
-      {/* ── Opponent — left ── */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2">
+      <div style={GAME_SEAT_STYLES.left}>
         <PlayerArea
           player={playerBySeat[leftSeat]}
           isActive={currentPlayerSeat === leftSeat}
@@ -354,8 +155,7 @@ export default function GameScreen() {
         />
       </div>
 
-      {/* ── Opponent — right ── */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+      <div style={GAME_SEAT_STYLES.right}>
         <PlayerArea
           player={playerBySeat[rightSeat]}
           isActive={currentPlayerSeat === rightSeat}
@@ -365,62 +165,37 @@ export default function GameScreen() {
         />
       </div>
 
-      {/* ── Centre table ── */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          left: 'calc(var(--bg-render-left) + (var(--bg-render-width) * var(--playing-area-left)))',
-          top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * var(--playing-area-top)))',
-          width: 'calc(var(--bg-render-width) * var(--playing-area-width))',
-          height: 'calc(var(--bg-render-height) * var(--playing-area-height))',
-          '--table-card-height': 'min(12rem, calc((var(--bg-render-height) * var(--playing-area-height)) / 2))',
-          '--table-card-width': 'calc(var(--table-card-height) * 0.6667)',
-          '--table-card-spread-x': 'calc(var(--table-card-width) * 1.2)',
-          '--table-card-spread-y': 'calc(var(--table-card-height) * 0.6)',
-        } as React.CSSProperties}
-      >
-        {/* GIF: shown when intro has triggered (stage gif or idle-post-intro), hidden only during banner */}
+      <div style={tableStyle}>
         {briscolaGifMeta && briscolaIntro.stage !== 'banner' && (
-          <div
-            className="absolute left-1/2 top-1/2 z-0"
-            style={{
-              transform: 'translate(-50%, -58%) perspective(500px) rotateX(30deg) rotate(-2deg)',
-              transformOrigin: 'center center',
-            }}
-          >
+          <div style={gifWrapStyle}>
             <BriscolaSuitGif
               suit={briscolaGifMeta.suit}
               replayToken={briscolaGifMeta.token}
               onPlaybackComplete={handleBriscolaGifPlaybackComplete}
               className="block w-auto select-none drop-shadow-[0_10px_18px_rgba(0,0,0,0.5)]"
-              style={{
-                height: 'calc((var(--bg-render-height) * var(--playing-area-height)) * 0.78)',
-                maxWidth: 'calc(var(--bg-render-width) * var(--playing-area-width) * 0.90)',
-              }}
+              style={createBriscolaGifStyle()}
             />
           </div>
         )}
-        {/* Hide table cards during the entire intro sequence (banner + gif) */}
-        <TableArea tableCards={briscolaIntroActive ? [] : tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} />
+        <TableArea tableCards={tableCards} mySeat={seat} winnerSeat={turnResultWinnerSeat} briscolaSuit={briscola} />
       </div>
 
-      {/* ── Last trick (4 cards cross layout) ── */}
       {lastTrickCards.length > 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-y-1/2 translate-x-[11.5rem] sm:translate-x-[12.5rem] z-20 pointer-events-none">
+        <div style={lastTrickWrapStyle}>
           <p className="text-[10px] tracking-[0.12em] uppercase text-amber-900/70 mb-1.5 pl-1 font-semibold drop-shadow-sm">Ultima presa</p>
-          <div className="relative w-28 h-28">
-            {lastTrickCards.map(({ seat: cardSeat, card }, idx) => {
+          <div style={lastTrickGridStyle}>
+            {lastTrickCards.map(({ seat: cardSeat, card }, index) => {
               const relativeSeat = (cardSeat - seat + 4) % 4
               return (
                 <div
-                  key={`last-trick-${idx}-${cardSeat}-${card.suit}-${card.rank}`}
+                  key={`last-trick-${index}-${cardSeat}-${card.suit}-${card.rank}`}
                   className="absolute"
                   style={{
-                    ...lastTrickSlotStyle(relativeSeat),
-                    zIndex: idx + 1,
+                    ...getLastTrickSlotStyle(relativeSeat),
+                    zIndex: index + 1,
                   }}
                 >
-                  <CardComponent card={card} size="sm" className="opacity-95 recent-trick-card" />
+                  <CardComponent card={card} size="sm" className="opacity-95 recent-trick-card" briscolaSuit={briscola} />
                 </div>
               )
             })}
@@ -428,30 +203,27 @@ export default function GameScreen() {
         </div>
       )}
 
-      {/* ── My name badge + declaration toggle buttons ── */}
-      <div className="absolute bottom-[12.5rem] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5">
-        {/* Declaration toggle buttons — visible only when I'm the lead player */}
+      <div style={selfPanelStyle}>
         {isLeadPlayer && (
-          <div className="flex gap-1.5">
-            {(['busso', 'striscio', 'volo'] as const).map(d => (
+          <div style={declarationStyle}>
+            {declarationOptions.map(declaration => (
               <button
-                key={d}
-                onClick={() => setPendingDeclaration(pendingDeclaration === d ? null : d)}
+                key={declaration}
+                onClick={() => handleToggleDeclaration(declaration)}
                 className={`
                   px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all
-                  ${pendingDeclaration === d
+                  ${pendingDeclaration === declaration
                     ? 'bg-amber-700/80 border-amber-400/80 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)]'
                     : 'bg-stone-900/80 border-stone-600/60 text-stone-400 hover:text-amber-400 hover:border-amber-700/50'
                   }
                 `}
               >
-                {d}
+                {declaration}
               </button>
             ))}
           </div>
         )}
 
-        {/* Declaration badge (shown to self while leading a trick) */}
         {leadSeat === seat && currentDeclaration && (
           <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
             {currentDeclaration.toUpperCase()}
@@ -472,47 +244,39 @@ export default function GameScreen() {
         )}
       </div>
 
-      {/* ── Drop zone indicator (appears while dragging) ── */}
       {isActiveDrag && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className={`
-            rounded-full border-2 transition-all duration-200
-            ${isDragOver
-              ? 'w-36 h-36 border-amber-400/75 bg-amber-400/10 shadow-[0_0_32px_rgba(251,191,36,0.2)]'
-              : 'w-28 h-28 border-white/15'
-            }
-          `} />
+        <div style={dropZoneLayerStyle}>
+          <div
+            className={`
+              rounded-full border-2 transition-all duration-200
+              ${isDragOver
+                ? 'border-amber-400/75 bg-amber-400/10 shadow-[0_0_32px_rgba(251,191,36,0.2)]'
+                : 'border-white/15'
+              }
+            `}
+            style={createGameDropZoneStyle(isDragOver)}
+          />
         </div>
       )}
 
-      {/* ── My hand ── */}
-      <div
-        className={`absolute left-1/2 -translate-x-1/2 z-20 ${isActiveDrag ? 'pointer-events-none' : ''}`}
-        style={{
-          top: 'calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--playing-area-top) + var(--playing-area-height))) + var(--hand-playing-area-delta))',
-        }}
-      >
+      <div className={isActiveDrag ? 'pointer-events-none' : ''} style={handWrapStyle}>
         <div className="player-hand">
-          {sortedHand.map(({ card }, i) => {
-            const handOffset = i - (sortedHand.length - 1) / 2
-            const isBeingDragged = isActiveDrag
-              && drag?.card.suit === card.suit
-              && drag?.card.rank === card.rank
-            const isBriscolaIdle = phase === 'briscola_selection' && !card.playable
+          {sortedHand.map(({ card }, index) => {
+            const handOffset = index - (sortedHand.length - 1) / 2
+            const isBeingDragged = isActiveDrag && drag?.card.suit === card.suit && drag?.card.rank === card.rank
+            const isBriscolaIdle = gamePhase === 'briscola_selection' && !card.playable
+
             return (
               <div
                 key={`${card.suit}-${card.rank}`}
                 className="hand-card-slot"
-                style={{
-                  '--hand-index': i,
-                  '--hand-offset': handOffset,
-                  '--hand-offset-abs': Math.abs(handOffset),
-                } as React.CSSProperties}
-                onPointerDown={(e) => handleCardPointerDown(e, card)}
+                style={createHandSlotStyle(index, handOffset)}
+                onPointerDown={(event) => handleCardPointerDown(event, card)}
               >
                 <CardComponent
                   card={card}
                   size="md"
+                  briscolaSuit={briscola}
                   onClick={() => handleCardClick(card)}
                   className={`${isBeingDragged ? 'opacity-0' : ''} ${isBriscolaIdle ? 'idle-floating' : ''}`.trim()}
                 />
@@ -522,30 +286,18 @@ export default function GameScreen() {
         </div>
       </div>
 
-      {/* ── Drag ghost ── */}
       {isActiveDrag && drag && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: drag.x - 44,
-            top: drag.y - 66,
-            transform: `rotate(-4deg) scale(${isDragOver ? 1.1 : 1.04})`,
-            transition: 'transform 0.12s ease, filter 0.12s ease',
-            filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.55))',
-          }}
-        >
-          <CardComponent card={drag.card} size="md" />
+        <div style={createDragGhostStyle(drag.x, drag.y, isDragOver)}>
+          <CardComponent card={drag.card} size="md" briscolaSuit={briscola} />
         </div>
       )}
 
-      {/* ── Briscola selection modal ── */}
       {needsBriscola && (
-        <BriscolaModal onSelect={selectBriscola} selectorName={playerBySeat[briscolaSelectorSeat ?? seat]?.name} />
+        <BriscolaModal onSelect={selectBriscola} selectorName={playerBySeat[seat]?.name} />
       )}
 
-      {/* ── Briscola waiting / announce banner ── */}
       {(isWaitingBriscola || briscolaIntro.stage === 'banner') && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center px-6">
+        <div style={announcementOverlayStyle}>
           <div className="bg-felt-900/92 border border-amber-800/50 rounded-2xl px-7 py-4 text-center shadow-2xl backdrop-blur-sm animate-fade-in">
             <p className="text-amber-200 font-semibold text-base md:text-lg">
               {briscolaIntro.stage === 'banner'
@@ -556,21 +308,20 @@ export default function GameScreen() {
         </div>
       )}
 
-      {/* ── Forfeit confirm dialog ── */}
       {showForfeitConfirm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-stone-950/70 backdrop-blur-sm">
-          <div className="bg-felt-900 border border-red-800/60 rounded-2xl px-8 py-7 shadow-2xl flex flex-col items-center gap-5 animate-fade-in max-w-xs mx-4">
+        <div className="bg-stone-950/70 backdrop-blur-sm" style={dialogOverlayStyle}>
+          <div className="bg-felt-900 border border-red-800/60 rounded-2xl shadow-2xl animate-fade-in" style={dialogStyle}>
             <p className="text-red-300 font-cinzel font-bold text-lg text-center tracking-wide">Abbandona la partita?</p>
             <p className="text-felt-400 text-sm text-center">Sei sicuro di voler abbandonare e concedere la partita?</p>
-            <div className="flex gap-3 w-full">
+            <div style={dialogActionsStyle}>
               <button
-                onClick={() => setShowForfeitConfirm(false)}
+                onClick={handleCancelForfeit}
                 className="flex-1 py-2.5 rounded-lg border border-felt-600/60 bg-stone-900/80 text-felt-300 hover:text-white hover:border-felt-400 transition-colors font-semibold text-sm"
               >
                 Annulla
               </button>
               <button
-                onClick={() => { setShowForfeitConfirm(false); forfeit() }}
+                onClick={handleConfirmForfeit}
                 className="flex-1 py-2.5 rounded-lg bg-red-700/80 hover:bg-red-600/90 border border-red-600/60 text-white font-semibold text-sm transition-colors"
               >
                 Abbandona
@@ -580,13 +331,7 @@ export default function GameScreen() {
         </div>
       )}
 
-      {/* ── Turn notification ── */}
-      {notification && (
-        <Notification
-          notification={notification}
-          onDismiss={dismissNotif}
-        />
-      )}
+      {notification && <Notification notification={notification} onDismiss={dismissNotification} />}
     </div>
   )
 }

@@ -1,19 +1,8 @@
-import useGameStore from '../store'
-import type { Card as CardType } from '../types'
+import { getCardSizeStyle } from '../layout/layout'
+import type { Card as CardType, Suit } from '../types'
+import { RANK_FULL, SUIT_META } from './cardMeta'
 
 // ── Lookup tables ──────────────────────────────────────────────────────────────
-
-export const SUIT_META: Record<string, { symbol: string; label: string; color: string }> = {
-  bastoni: { symbol: '🪵', label: 'Bastoni', color: '#d97706' },
-  denara:  { symbol: '🪙', label: 'Denara',  color: '#16a34a' },
-  spade:   { symbol: '🗡️', label: 'Spade',   color: '#3b82f6' },
-  coppe:   { symbol: '🍷', label: 'Coppe',   color: '#ef4444' },
-}
-
-export const RANK_FULL: Record<number, string> = {
-  1: 'Asso', 2: 'Due', 3: 'Tre', 4: 'Quattro', 5: 'Cinque',
-  6: 'Sei',  7: 'Sette', 8: 'Fante', 9: 'Cavallo', 10: 'Re',
-}
 
 const SUIT_ROW: Record<string, number> = {
   bastoni: 0,
@@ -37,29 +26,23 @@ export function getCardSpriteCoords(card: Pick<CardType, 'suit' | 'rank'>): Card
   return { col, row, xPct, yPct }
 }
 
-const SIZE: Record<string, { width: string; height: string }> = {
-  sm:    { width: 'w-10',        height: 'h-14' },
-  md:    { width: 'w-[5.5rem]',  height: 'h-[8.25rem]' },
-  lg:    { width: 'w-20',        height: 'h-28' },
-  table: { width: 'w-[8rem]',    height: 'h-[12rem]' },
-}
-
 // ── Card face ──────────────────────────────────────────────────────────────────
 
 interface CardProps {
   card: CardType
   size?: 'sm' | 'md' | 'lg' | 'table'
+  briscolaSuit?: Suit | null
   onClick?: () => void
   className?: string
   style?: React.CSSProperties
 }
 
-export function Card({ card, size = 'md', onClick, className = '', style }: CardProps) {
-  const briscola  = useGameStore(s => s.briscola)
+export function Card({ card, size = 'md', briscolaSuit = null, onClick, className = '', style }: CardProps) {
   const meta = SUIT_META[card.suit]
-  const sz   = SIZE[size]
+  const sizeStyle = getCardSizeStyle(size)
   const isPlayable = card.playable === true
   const coords = getCardSpriteCoords(card)
+  const isBriscola = card.suit === briscolaSuit
 
   return (
     <div
@@ -71,15 +54,17 @@ export function Card({ card, size = 'md', onClick, className = '', style }: Card
       data-sprite-coords={`${coords.col},${coords.row}`}
       style={{
         color: meta.color,
+        width: sizeStyle.width,
+        height: sizeStyle.height,
         '--card-sprite-x': `${coords.xPct}%`,
         '--card-sprite-y': `${coords.yPct}%`,
         '--card-accent': meta.color,
         ...style,
       } as React.CSSProperties}
       className={`
-        card-face card-sprite ${sz.width} ${sz.height}
+        card-face card-sprite
         ${isPlayable ? 'playable' : 'opacity-80'}
-        ${card.suit === briscola ? 'briscola-card' : ''}
+        ${isBriscola ? 'briscola-card' : ''}
         ${className}
       `}
     >
@@ -97,8 +82,8 @@ interface CardBackProps {
 }
 
 export function CardBack({ size = 'md', className = '', style }: CardBackProps) {
-  const sz = SIZE[size]
+  const sizeStyle = getCardSizeStyle(size)
   return (
-    <div className={`card-back ${sz.width} ${sz.height} ${className}`} style={style} />
+    <div className={`card-back ${className}`} style={{ width: sizeStyle.width, height: sizeStyle.height, ...style }} />
   )
 }

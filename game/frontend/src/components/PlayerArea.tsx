@@ -1,3 +1,4 @@
+import { APP_LAYOUT } from '../layout/layout'
 import { CardBack } from './Card'
 import type { Declaration, Player } from '../types'
 
@@ -8,6 +9,8 @@ interface PlayerAreaProps {
   declaration?: Declaration
   showCards?: boolean
 }
+
+type HandCardBackStyle = React.CSSProperties & Record<'--hand-index', string>
 
 const TEAM_BADGE: Record<number, string> = {
   1: 'border-amber-500/60 text-amber-300',
@@ -25,14 +28,28 @@ export default function PlayerArea({ player, isActive, position, declaration, sh
 
   // Orientation of the stacked card fan
   const isHorizontal = position === 'top'
-  const stackClass   = isHorizontal ? 'flex-row' : 'flex-col'
-  const offsetClass  = isHorizontal ? '-ml-5 first:ml-0' : '-mt-5 first:mt-0'
 
   const team     = player ? player.team : null
   const badgeCls = team ? TEAM_BADGE[team] : 'border-felt-700 text-felt-500'
+  const stackStyles = isHorizontal
+    ? { display: 'flex', flexDirection: 'row' as const }
+    : { display: 'flex', flexDirection: 'column' as const }
+  const offsetStyle = isHorizontal
+    ? { marginLeft: 'var(--layout-opponent-stack-overlap)' }
+    : { marginTop: 'var(--layout-opponent-stack-overlap)' }
+  const wrapperStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: position === 'top' ? 'center' : position === 'left' ? 'flex-end' : 'flex-start',
+    gap: APP_LAYOUT.playerArea.gap,
+  }
+  const createCardBackStyle = (index: number): HandCardBackStyle => ({
+    ...(index === 0 ? {} : offsetStyle),
+    '--hand-index': `${index}`,
+  })
 
   return (
-    <div className={`flex flex-col items-center gap-2 ${position === 'top' ? '' : position === 'left' ? 'items-end' : 'items-start'}`}>
+    <div style={wrapperStyle}>
       {/* Declaration badge */}
       {declaration && (
         <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
@@ -63,13 +80,13 @@ export default function PlayerArea({ player, isActive, position, declaration, sh
 
       {/* Stacked face-down cards */}
       {showCards && cardCount > 0 && (
-        <div className={`flex ${stackClass}`}>
+        <div style={stackStyles}>
           {Array.from({ length: Math.min(cardCount, 6) }).map((_, i) => (
             <CardBack
               key={i}
               size={position === 'top' ? 'sm' : 'sm'}
-              className={`${i === 0 ? '' : offsetClass} opponent-card-back`}
-              style={{ '--hand-index': i } as React.CSSProperties}
+              className="opponent-card-back"
+              style={createCardBackStyle(i)}
             />
           ))}
         </div>

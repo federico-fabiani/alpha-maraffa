@@ -1,4 +1,5 @@
-import useGameStore from '../store'
+import { APP_LAYOUT } from '../layout/layout'
+import useGameStore from '../state/gameStore'
 import type { PingStatus } from '../types'
 
 const STATUS_CONFIG: Record<PingStatus, { dot: string; label: string }> = {
@@ -18,8 +19,14 @@ export default function ConnectionStatus() {
   const isPulsing = connected && status !== 'offline'
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-felt-400 select-none">
-      <div className={`w-2 h-2 rounded-full ${config.dot} ${isPulsing ? 'animate-pulse' : ''}`} />
+    <div
+      className="text-xs text-felt-400 select-none"
+      style={{ display: 'flex', alignItems: 'center', gap: APP_LAYOUT.connectionStatus.gap }}
+    >
+      <div
+        className={`rounded-full ${config.dot} ${isPulsing ? 'animate-pulse' : ''}`}
+        style={{ width: APP_LAYOUT.connectionStatus.dotSize, height: APP_LAYOUT.connectionStatus.dotSize }}
+      />
       <span>
         {connected && pingMs !== null ? `${pingMs} ms` : config.label}
       </span>

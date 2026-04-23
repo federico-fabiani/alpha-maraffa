@@ -1,91 +1,138 @@
 import { useEffect, useRef, useState } from 'react'
-import useGameStore from '../store'
+import { APP_LAYOUT } from '../layout/layout'
+import useGameStore from '../state/gameStore'
 import arrowImg from '../assets/arrow.png'
 
 type MenuOption = 'nuova_partita' | 'cerca_tavolo'
 
-const MENU_OPTIONS: { key: MenuOption; label: string }[] = [
+const HOME_MENU_OPTIONS: { key: MenuOption; label: string }[] = [
   { key: 'nuova_partita', label: 'Nuova partita' },
   { key: 'cerca_tavolo', label: 'Cerca un tavolo' },
 ]
 
 export default function HomeScreen() {
-  const playerName    = useGameStore(s => s.playerName)
-  const error         = useGameStore(s => s.error)
-  const setPlayerName = useGameStore(s => s.setPlayerName)
-  const createRoom    = useGameStore(s => s.createRoom)
-  const joinRoom      = useGameStore(s => s.joinRoom)
+  const playerName = useGameStore(state => state.playerName)
+  const error = useGameStore(state => state.error)
+  const setPlayerName = useGameStore(state => state.setPlayerName)
+  const createRoom = useGameStore(state => state.createRoom)
+  const joinRoom = useGameStore(state => state.joinRoom)
 
-  const [selected, setSelected] = useState<MenuOption>('nuova_partita')
-  const [showJoin, setShowJoin] = useState(false)
+  const [selectedOption, setSelectedOption] = useState<MenuOption>('nuova_partita')
+  const [showJoinPanel, setShowJoinPanel] = useState(false)
   const [roomCode, setRoomCode] = useState('')
 
-  const nameRef = useRef<HTMLInputElement>(null)
-  const roomRef = useRef<HTMLInputElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const roomInputRef = useRef<HTMLInputElement>(null)
 
   const canProceed = playerName.trim().length > 0
 
   const shakeNameInput = () => {
-    const el = nameRef.current
-    if (!el) return
-    el.classList.remove('shake')
-    void el.offsetWidth // force reflow
-    el.classList.add('shake')
-    el.focus()
+    const element = nameInputRef.current
+    if (!element) {
+      return
+    }
+
+    element.classList.remove('shake')
+    void element.offsetWidth
+    element.classList.add('shake')
+    element.focus()
   }
 
   const requestFullscreen = () => {
     const isStandalonePwa =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      ('standalone' in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true)
+      window.matchMedia('(display-mode: standalone)').matches
+      || ('standalone' in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true)
 
-    if (!isStandalonePwa) return
+    if (!isStandalonePwa) {
+      return
+    }
 
-    const el = document.documentElement
-    if (el.requestFullscreen) el.requestFullscreen()
-  }
-
-  const activate = (option: MenuOption) => {
-    if (!canProceed) { shakeNameInput(); return }
-    requestFullscreen()
-    if (option === 'nuova_partita') {
-      createRoom()
-    } else {
-      setShowJoin(true)
-      setTimeout(() => roomRef.current?.focus(), 40)
+    const rootElement = document.documentElement
+    if (rootElement.requestFullscreen) {
+      void rootElement.requestFullscreen()
     }
   }
 
-  // Keyboard navigation
+  const handleActivateOption = (option: MenuOption) => {
+    if (!canProceed) {
+      shakeNameInput()
+      return
+    }
+
+    requestFullscreen()
+
+    if (option === 'nuova_partita') {
+      void createRoom()
+      return
+    }
+
+    setShowJoinPanel(true)
+    window.setTimeout(() => {
+      roomInputRef.current?.focus()
+    }, 40)
+  }
+
+  const handleJoinRoom = () => {
+    const normalizedRoomCode = roomCode.trim()
+    if (!normalizedRoomCode) {
+      return
+    }
+
+    joinRoom(normalizedRoomCode)
+  }
+
+  const handleCloseJoinPanel = () => {
+    setShowJoinPanel(false)
+    setRoomCode('')
+  }
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (showJoin) return
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelected(prev => prev === 'nuova_partita' ? 'cerca_tavolo' : 'nuova_partita')
-      } else if (e.key === 'Enter' && document.activeElement !== nameRef.current) {
-        activate(selected)
+    const handleKeyboardNavigation = (event: KeyboardEvent) => {
+      if (showJoinPanel) {
+        return
+      }
+
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        setSelectedOption(previousOption => (
+          previousOption === 'nuova_partita' ? 'cerca_tavolo' : 'nuova_partita'
+        ))
+        return
+      }
+
+      if (event.key === 'Enter' && document.activeElement !== nameInputRef.current) {
+        handleActivateOption(selectedOption)
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selected, showJoin, canProceed]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    window.addEventListener('keydown', handleKeyboardNavigation)
+    return () => {
+      window.removeEventListener('keydown', handleKeyboardNavigation)
+    }
+  }, [handleActivateOption, selectedOption, showJoinPanel])
+
+  const rootStyle = { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' } as const
+  const badgeStyle = { position: 'absolute', top: APP_LAYOUT.home.demoBadgeInset.top, right: APP_LAYOUT.home.demoBadgeInset.right, animation: 'var(--animate-demo-blink)' } as const
+  const panelStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.home.panelGap, marginTop: APP_LAYOUT.home.stageOffsetTop }
+  const menuStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.home.menuGap }
+  const joinPanelStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: APP_LAYOUT.home.joinPanelGap }
+  const hiddenSvgStyle = { position: 'absolute', width: 0, height: 0, overflow: 'hidden' } as const
 
   return (
-    <div className="relative flex items-center justify-center h-full">
+    <div style={rootStyle}>
       {/* DEMO badge */}
       <span
-        className="absolute top-4 right-4 font-cinzel font-bold text-xs tracking-widest
+        className="font-cinzel font-bold text-xs tracking-widest
                    px-3 py-1 rounded-full bg-red-800/80 text-amber-100 border border-red-700/50"
-        style={{ animation: 'var(--animate-demo-blink)' }}
+        style={badgeStyle}
       >
         DEMO
       </span>
 
-      <div className="flex flex-col items-center gap-10" style={{ marginTop: '-14vh' }}>
+      <div style={panelStyle}>
         {/* Title – individual animated letters */}
         {/* One SVG filter per letter: unique warp seed + unique grain seed → unique campitura */}
-        <svg aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <svg aria-hidden="true" style={hiddenSvgStyle}>
           <defs>
             {([
               { id: 'ts0', warpSeed: 3,  grainSeed: 19, warpScale: 2.2, grainThresh: -2.1 },
@@ -138,68 +185,69 @@ export default function HomeScreen() {
 
         {/* Name input */}
         <input
-          ref={nameRef}
+          ref={nameInputRef}
           type="text"
           placeholder="Il tuo nome…"
           value={playerName}
           onChange={e => setPlayerName(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && !showJoin) activate(selected)
+            if (e.key === 'Enter' && !showJoinPanel) handleActivateOption(selectedOption)
           }}
           className="home-name-input"
+          style={{ width: APP_LAYOUT.home.inputWidth }}
           maxLength={20}
           autoFocus
         />
 
         {/* Menu options */}
-        {!showJoin ? (
-          <div className="flex flex-col items-center gap-1">
-            {MENU_OPTIONS.map(opt => (
+        {!showJoinPanel ? (
+          <div style={menuStyle}>
+            {HOME_MENU_OPTIONS.map(opt => (
               <div
                 key={opt.key}
                 className={`home-menu-item${!canProceed ? ' disabled' : ''}`}
-                onClick={() => activate(opt.key)}
-                onMouseEnter={() => setSelected(opt.key)}
+                onClick={() => handleActivateOption(opt.key)}
+                onMouseEnter={() => setSelectedOption(opt.key)}
               >
                 <img
                   src={arrowImg}
                   alt=""
                   className="home-arrow home-arrow-left"
-                  style={{ opacity: selected === opt.key ? 1 : 0 }}
+                  style={{ opacity: selectedOption === opt.key ? 1 : 0, width: APP_LAYOUT.home.arrowWidth }}
                 />
                 <span>{opt.label}</span>
                 <img
                   src={arrowImg}
                   alt=""
                   className="home-arrow home-arrow-right"
-                  style={{ opacity: selected === opt.key ? 1 : 0 }}
+                  style={{ opacity: selectedOption === opt.key ? 1 : 0, width: APP_LAYOUT.home.arrowWidth }}
                 />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4 animate-fade-in">
+          <div className="animate-fade-in" style={joinPanelStyle}>
             <input
-              ref={roomRef}
+              ref={roomInputRef}
               type="text"
               placeholder="Codice stanza (es. ROSSO-LUPO-7)"
               value={roomCode}
               onChange={e => setRoomCode(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === 'Enter' && roomCode.trim() && joinRoom(roomCode.trim())}
+              onKeyDown={e => e.key === 'Enter' && roomCode.trim() && handleJoinRoom()}
               className="home-name-input"
-              style={{ fontSize: '0.95rem' }}
+              style={{ width: APP_LAYOUT.home.inputWidth, fontSize: '0.95rem' }}
             />
             <div
               className={`home-menu-item${!roomCode.trim() ? ' disabled' : ''}`}
-              onClick={() => roomCode.trim() && joinRoom(roomCode.trim())}
+              onClick={() => roomCode.trim() && handleJoinRoom()}
             >
-              <img src={arrowImg} alt="" className="home-arrow home-arrow-left" style={{ opacity: 1 }} />
+              <img src={arrowImg} alt="" className="home-arrow home-arrow-left" style={{ opacity: 1, width: APP_LAYOUT.home.arrowWidth }} />
               <span>Unisciti</span>
-              <img src={arrowImg} alt="" className="home-arrow home-arrow-right" style={{ opacity: 1 }} />
+              <img src={arrowImg} alt="" className="home-arrow home-arrow-right" style={{ opacity: 1, width: APP_LAYOUT.home.arrowWidth }} />
             </div>
             <button
               className="home-back-btn"
-              onClick={() => { setShowJoin(false); setRoomCode('') }}
+              onClick={handleCloseJoinPanel}
             >
               ← Indietro
             </button>

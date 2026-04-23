@@ -28,23 +28,37 @@ API calls and WebSocket connections are proxied automatically to `localhost:8000
 
 ```
 src/
-├── types.ts               # Shared TypeScript interfaces (Card, Player, GameState…)
-├── store.ts               # Zustand store: all state + WebSocket communication
-├── App.tsx                # Screen router
-├── index.css              # Tailwind 4 theme (felt palette, suit colours, animations)
+├── App.tsx                # App shell + screen switching
+├── index.css              # Theme, animations, and layout-backed CSS rules
+├── types.ts               # Shared TypeScript interfaces
+├── components/
+│   ├── Card.tsx           # Card face + CardBack
+│   ├── PlayerArea.tsx     # Opponent display (name + face-down cards)
+│   ├── TableArea.tsx      # Centre table with played cards
+│   ├── BriscolaModal.tsx  # Trump suit selection overlay
+│   ├── BriscolaSuitGif.tsx# Briscola intro playback
+│   ├── ConnectionStatus.tsx
+│   └── Notification.tsx   # Auto-dismissing toast
+├── hooks/
+│   ├── useAppBootstrap.ts     # Backend readiness polling
+│   ├── useBriscolaIntro.ts    # Briscola intro flow
+│   ├── useGameScreenController.ts
+│   ├── useGameStageLayout.ts  # Stage geometry -> CSS variables
+│   └── useTurnCountdown.ts    # Turn timer state
+├── layout/
+│   └── layout.ts          # Centralized layout authority
+├── services/
+│   ├── api.ts             # REST calls
+│   ├── gameConnection.ts  # WebSocket lifecycle
+│   └── sessionStorage.ts  # Session persistence
 ├── screens/
 │   ├── HomeScreen.tsx     # Name input + create/join room
 │   ├── LobbyScreen.tsx    # Waiting room with seat grid
 │   ├── GameScreen.tsx     # Main game table
 │   └── GameOverScreen.tsx # Result screen
-├── components/
-│   ├── Card.tsx           # Card face + CardBack
-│   ├── PlayerArea.tsx     # Opponent display (name + face-down cards)
-│   ├── TableArea.tsx      # Centre table with played cards
-│   ├── ScoreBoard.tsx     # HUD: round, turn, scores
-│   ├── BriscolaIndicator  # Active trump suit badge
-│   ├── BriscolaModal.tsx  # Trump suit selection overlay
-│   └── Notification.tsx   # Auto-dismissing toast
+├── state/
+│   ├── gameStore.ts       # Centralized Zustand state model
+│   └── storeTypes.ts      # Store contracts
 └── tests/
     ├── store.test.ts      # 11 tests — Zustand state transitions
     └── Card.test.tsx      # 8 tests  — Card rendering and interaction

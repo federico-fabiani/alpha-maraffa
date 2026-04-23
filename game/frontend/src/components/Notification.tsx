@@ -1,3 +1,4 @@
+import { APP_LAYOUT } from '../layout/layout'
 import { useEffect } from 'react'
 import type { Notification as NotificationType } from '../types'
 
@@ -16,10 +17,17 @@ export default function Notification({ notification, onDismiss }: NotificationPr
 
   return (
     <div
-      className="absolute bottom-44 left-1/2 -translate-x-1/2 z-30
-                 bg-felt-900/95 border border-amber-800/50 rounded-xl
-                 px-6 py-3 text-center shadow-xl animate-slide-up
+      className="bg-felt-900/95 border border-amber-800/50 rounded-xl
+                 text-center shadow-xl animate-slide-up
                  backdrop-blur-sm cursor-pointer"
+      style={{
+        position: 'absolute',
+        bottom: APP_LAYOUT.notification.bottom,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 30,
+        padding: `${APP_LAYOUT.notification.paddingY} ${APP_LAYOUT.notification.paddingX}`,
+      }}
       onClick={onDismiss}
     >
       <p className="text-amber-200 font-semibold">{text}</p>

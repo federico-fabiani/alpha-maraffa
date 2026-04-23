@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { decompressFrames, parseGIF } from 'gifuct-js'
 import type { ParsedFrame, ParsedGif } from 'gifuct-js'
 import type { Suit } from '../types'
@@ -33,7 +33,7 @@ export default function BriscolaSuitGif({ suit, replayToken, onPlaybackComplete,
   const onPlaybackCompleteRef = useRef(onPlaybackComplete)
   const [fallbackToImg, setFallbackToImg] = useState(false)
 
-  const src = useMemo(() => GIF_SRC_BY_SUIT[suit], [suit])
+  const src = GIF_SRC_BY_SUIT[suit]
 
   useEffect(() => {
     onPlaybackCompleteRef.current = onPlaybackComplete

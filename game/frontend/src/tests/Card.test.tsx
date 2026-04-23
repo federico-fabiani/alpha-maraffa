@@ -3,7 +3,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Card, CardBack, RANK_FULL, SUIT_META } from '../components/Card'
+import { Card, CardBack } from '../components/Card'
+import { RANK_FULL, SUIT_META } from '../components/cardMeta'
 
 describe('Card', () => {
   it('renders sprite coordinates on the element data attributes', () => {
@@ -50,6 +51,6 @@ describe('CardBack', () => {
 
   it('applies size classes', () => {
     const { container } = render(<CardBack size="lg" />)
-    expect(container.firstChild).toHaveClass('w-20')
+    expect(container.firstChild).toHaveStyle({ width: '5rem', height: '7rem' })
   })
 })

@@ -1,22 +1,24 @@
-import type { Screen } from '../types'
-import type { GameMessage, GameStoreState } from '../state/storeTypes'
+import type { Screen } from "../types";
+import type { GameMessage, GameStoreState } from "../state/storeTypes";
 
-const MAX_RECONNECT_ATTEMPTS = 5
-const RECONNECT_BASE_DELAY_MS = 2000
-const PING_INTERVAL_MS = 5000
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_BASE_DELAY_MS = 2000;
+const PING_INTERVAL_MS = 5000;
 
-type ConnectionStatePatch = Partial<Pick<GameStoreState, 'connected' | 'pingStatus' | 'pingMs' | 'error'>>
+type ConnectionStatePatch = Partial<
+  Pick<GameStoreState, "connected" | "pingStatus" | "pingMs" | "error">
+>;
 
 interface CreateGameConnectionControllerOptions {
-  onStateChange: (patch: ConnectionStatePatch) => void
-  onMessage: (message: GameMessage) => void
-  getReconnectContext: () => { screen: Screen; roomId: string }
+  onStateChange: (patch: ConnectionStatePatch) => void;
+  onMessage: (message: GameMessage) => void;
+  getReconnectContext: () => { screen: Screen; roomId: string };
 }
 
 interface ConnectParams {
-  roomId: string
-  playerName: string
-  uuid: string
+  roomId: string;
+  playerName: string;
+  uuid: string;
 }
 
 export function createGameConnectionController({
@@ -24,123 +26,135 @@ export function createGameConnectionController({
   onMessage,
   getReconnectContext,
 }: CreateGameConnectionControllerOptions) {
-  let currentSocket: WebSocket | null = null
-  let pingIntervalId: ReturnType<typeof setInterval> | null = null
-  let lastPingTime = 0
-  let reconnectAttempts = 0
-  let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null
-  let briscolaAnnouncementSequence = 0
+  let currentSocket: WebSocket | null = null;
+  let pingIntervalId: ReturnType<typeof setInterval> | null = null;
+  let lastPingTime = 0;
+  let reconnectAttempts = 0;
+  let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let briscolaAnnouncementSequence = 0;
 
   const clearPingInterval = () => {
     if (!pingIntervalId) {
-      return
+      return;
     }
 
-    clearInterval(pingIntervalId)
-    pingIntervalId = null
-  }
+    clearInterval(pingIntervalId);
+    pingIntervalId = null;
+  };
 
   const clearReconnectTimeout = () => {
     if (!reconnectTimeoutId) {
-      return
+      return;
     }
 
-    clearTimeout(reconnectTimeoutId)
-    reconnectTimeoutId = null
-  }
+    clearTimeout(reconnectTimeoutId);
+    reconnectTimeoutId = null;
+  };
 
   const scheduleReconnect = (params: ConnectParams) => {
-    const reconnectContext = getReconnectContext()
-    if (reconnectContext.screen !== 'game' || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      return
+    const reconnectContext = getReconnectContext();
+    if (
+      reconnectContext.screen !== "game" ||
+      reconnectAttempts >= MAX_RECONNECT_ATTEMPTS
+    ) {
+      return;
     }
 
-    reconnectAttempts += 1
-    const delay = RECONNECT_BASE_DELAY_MS * reconnectAttempts
+    reconnectAttempts += 1;
+    const delay = RECONNECT_BASE_DELAY_MS * reconnectAttempts;
     reconnectTimeoutId = setTimeout(() => {
-      reconnectTimeoutId = null
-      connect({ ...params, roomId: reconnectContext.roomId })
-    }, delay)
-  }
+      reconnectTimeoutId = null;
+      connect({ ...params, roomId: reconnectContext.roomId });
+    }, delay);
+  };
 
   const connect = (params: ConnectParams) => {
-    clearReconnectTimeout()
-    clearPingInterval()
+    clearReconnectTimeout();
+    clearPingInterval();
 
-    if (currentSocket && (currentSocket.readyState === WebSocket.OPEN || currentSocket.readyState === WebSocket.CONNECTING)) {
-      currentSocket.close()
+    if (
+      currentSocket &&
+      (currentSocket.readyState === WebSocket.OPEN ||
+        currentSocket.readyState === WebSocket.CONNECTING)
+    ) {
+      currentSocket.close();
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${protocol}//${window.location.host}/ws/${params.roomId}?player_name=${encodeURIComponent(params.playerName)}&uuid=${encodeURIComponent(params.uuid)}`
-    const socket = new WebSocket(url)
-    currentSocket = socket
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const url = `${protocol}//${window.location.host}/ws/${params.roomId}?player_name=${encodeURIComponent(params.playerName)}&uuid=${encodeURIComponent(params.uuid)}`;
+    const socket = new WebSocket(url);
+    currentSocket = socket;
 
     socket.onopen = () => {
-      reconnectAttempts = 0
-      clearReconnectTimeout()
-      onStateChange({ connected: true, pingStatus: 'offline', pingMs: null })
+      reconnectAttempts = 0;
+      clearReconnectTimeout();
+      onStateChange({ connected: true, pingStatus: "offline", pingMs: null });
 
-      clearPingInterval()
+      clearPingInterval();
       pingIntervalId = setInterval(() => {
         if (currentSocket?.readyState !== WebSocket.OPEN) {
-          return
+          return;
         }
 
-        lastPingTime = Date.now()
-        currentSocket.send(JSON.stringify({ type: 'ping' }))
-      }, PING_INTERVAL_MS)
-    }
+        lastPingTime = Date.now();
+        currentSocket.send(JSON.stringify({ type: "ping" }));
+      }, PING_INTERVAL_MS);
+    };
 
     socket.onmessage = (event) => {
-      onMessage(JSON.parse(event.data as string) as GameMessage)
-    }
+      onMessage(JSON.parse(event.data as string) as GameMessage);
+    };
 
     socket.onclose = () => {
       if (currentSocket === socket) {
-        currentSocket = null
+        currentSocket = null;
       }
 
-      clearPingInterval()
-      onStateChange({ connected: false, pingStatus: 'offline' })
-      scheduleReconnect(params)
-    }
+      clearPingInterval();
+      onStateChange({ connected: false, pingStatus: "offline" });
+      scheduleReconnect(params);
+    };
 
     socket.onerror = () => {
-      onStateChange({ error: 'Errore di connessione' })
-    }
-  }
+      onStateChange({ error: "Errore di connessione" });
+    };
+  };
 
   const send = (message: unknown) => {
     if (currentSocket?.readyState !== WebSocket.OPEN) {
-      return
+      return;
     }
 
-    currentSocket.send(JSON.stringify(message))
-  }
+    currentSocket.send(JSON.stringify(message));
+  };
 
-  const disconnect = ({ intentional = false }: { intentional?: boolean } = {}) => {
+  const disconnect = ({
+    intentional = false,
+  }: { intentional?: boolean } = {}) => {
     if (intentional) {
-      reconnectAttempts = MAX_RECONNECT_ATTEMPTS
+      reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
     }
 
-    clearReconnectTimeout()
-    clearPingInterval()
+    clearReconnectTimeout();
+    clearPingInterval();
 
     if (!currentSocket) {
-      onStateChange({ connected: false, pingStatus: 'offline' })
-      return
+      onStateChange({ connected: false, pingStatus: "offline" });
+      return;
     }
 
-    const socketToClose = currentSocket
-    currentSocket = null
+    const socketToClose = currentSocket;
+    currentSocket = null;
 
-    if (socketToClose.readyState === WebSocket.OPEN || socketToClose.readyState === WebSocket.CONNECTING) {
-      socketToClose.close()
+    if (
+      socketToClose.readyState === WebSocket.OPEN ||
+      socketToClose.readyState === WebSocket.CONNECTING
+    ) {
+      socketToClose.close();
     }
 
-    onStateChange({ connected: false, pingStatus: 'offline' })
-  }
+    onStateChange({ connected: false, pingStatus: "offline" });
+  };
 
   return {
     connect,
@@ -148,8 +162,8 @@ export function createGameConnectionController({
     send,
     getLatency: () => Date.now() - lastPingTime,
     nextAnnouncementEventId: () => {
-      briscolaAnnouncementSequence += 1
-      return briscolaAnnouncementSequence
+      briscolaAnnouncementSequence += 1;
+      return briscolaAnnouncementSequence;
     },
-  }
+  };
 }

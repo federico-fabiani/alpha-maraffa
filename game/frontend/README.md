@@ -16,13 +16,13 @@ API calls and WebSocket connections are proxied automatically to `localhost:8000
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start the Vite dev server with hot reload |
-| `npm run build` | Type-check and build for production (`dist/`) |
-| `npm run preview` | Serve the production build locally |
-| `npm run test` | Run unit and component tests with Vitest |
-| `npm run test:ui` | Open the Vitest browser UI |
+| Command           | Description                                   |
+| ----------------- | --------------------------------------------- |
+| `npm run dev`     | Start the Vite dev server with hot reload     |
+| `npm run build`   | Type-check and build for production (`dist/`) |
+| `npm run preview` | Serve the production build locally            |
+| `npm run test`    | Run unit and component tests with Vitest      |
+| `npm run test:ui` | Open the Vitest browser UI                    |
 
 ## Structure
 
@@ -67,6 +67,7 @@ src/
 ## Testing strategy
 
 **Unit/component tests (Vitest + React Testing Library)** cover:
+
 - All WebSocket message handlers (`_processMessage`) — verifies every state transition
 - `Card` rendering — rank label, suit symbol, playable state, click handling
 

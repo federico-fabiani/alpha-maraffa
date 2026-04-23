@@ -25,11 +25,11 @@ Il gioco deve essere **desiderabile**: qualcuno dovrebbe preferire giocare qui p
 
 ## Architettura visiva — tre schermate, tre ambienti
 
-| Schermata | Ambiente | Metafora fisica |
-|---|---|---|
-| Home + Lobby | Tovaglia vista dall'alto | Stai ancora guardando il tavolo da fuori |
-| Transizione | Video AI 2s | Ti siedi: la visuale scende e si inclina |
-| Game | Tavolo di legno in prospettiva | Sei seduto, le carte in mano, il tavolo davanti |
+| Schermata    | Ambiente                       | Metafora fisica                                 |
+| ------------ | ------------------------------ | ----------------------------------------------- |
+| Home + Lobby | Tovaglia vista dall'alto       | Stai ancora guardando il tavolo da fuori        |
+| Transizione  | Video AI 2s                    | Ti siedi: la visuale scende e si inclina        |
+| Game         | Tavolo di legno in prospettiva | Sei seduto, le carte in mano, il tavolo davanti |
 
 Il passaggio non è un cambio di schermata — è un cambio di posizione nello spazio.
 
@@ -37,17 +37,18 @@ Il passaggio non è un cambio di schermata — è un cambio di posizione nello s
 
 ## Assets chiave
 
-| Asset | Uso | Stato |
-|---|---|---|
-| `background.png` | Sfondo home e lobby — tovaglia flat top-down | ✅ In uso |
-| `title.png` | Logo MARAFONE in legno dipinto | ✅ In uso |
-| `arrow.png` | Selettore menu (frecce a rombo) | ✅ In uso |
-| `cards.png` | Sprite sheet mazzo napoletano 10×4, pixel art | ✅ In uso |
-| `table-perspective.png` | Tavolo osteria visto da seduto — sfondo GameScreen | 🔲 Da generare (frame 2 già pronto) |
-| `card-back.png` | Dorso carte — mandala su pergamena ruggine | 🔲 Da integrare (asset già generato) |
-| `intro.webm` | Video transizione lobby→game (2s, AI-interpolato) | 🔲 Da generare (2 frame già pronti) |
+| Asset                   | Uso                                                | Stato                                |
+| ----------------------- | -------------------------------------------------- | ------------------------------------ |
+| `background.png`        | Sfondo home e lobby — tovaglia flat top-down       | ✅ In uso                            |
+| `title.png`             | Logo MARAFONE in legno dipinto                     | ✅ In uso                            |
+| `arrow.png`             | Selettore menu (frecce a rombo)                    | ✅ In uso                            |
+| `cards.png`             | Sprite sheet mazzo napoletano 10×4, pixel art      | ✅ In uso                            |
+| `table-perspective.png` | Tavolo osteria visto da seduto — sfondo GameScreen | 🔲 Da generare (frame 2 già pronto)  |
+| `card-back.png`         | Dorso carte — mandala su pergamena ruggine         | 🔲 Da integrare (asset già generato) |
+| `intro.webm`            | Video transizione lobby→game (2s, AI-interpolato)  | 🔲 Da generare (2 frame già pronti)  |
 
 ### Frame per il video di transizione
+
 - **Frame 1** (inizio): tovaglia top-down, stessa inquadratura della lobby
 - **Frame 2** (fine): tavolo di legno in prospettiva ~30° da seduto, tovaglietta centrale visibile
 - Tool consigliati: Veo 3 (Google AI Studio) o Kling AI
@@ -56,19 +57,19 @@ Il passaggio non è un cambio di schermata — è un cambio di posizione nello s
 
 ## Palette colori
 
-| Ruolo | Token CSS | Valore | Note |
-|---|---|---|---|
-| Rosso ruggine | `--color-rust` | `#5c1a0a` | Testo principale su sfondo chiaro |
-| Rosso hover | `--color-rust-hover` | `#7a2210` | Stato hover/attivo |
-| Crema iuta | `--color-cream` | `#f5e6c4` | Colore base tovaglia e testo su scuro |
-| Parchment input | `--color-parchment` | `rgba(255, 248, 218, 0.62)` | Sfondi input e card |
-| Bordo ruggine | `--color-border` | `rgba(120, 48, 18, 0.42)` | Bordi elementi in home/lobby |
-| Legno scuro | `--color-wood` | `#2a1a0e` | Tavolo osteria (GameScreen background) |
-| Oro ambra | `--color-gold` | `#c8922a` | Accenti attivi — turno corrente, briscola |
-| Oro scuro | `--color-gold-dark` | `#9a6e1a` | Bordi e ombre sugli elementi oro |
-| Inchiostro | `--color-ink` | `#1a0f0a` | Testo su sfondi chiari ad alto contrasto |
-| Team A — Ambra | `--color-team-a` | `#c8922a` | Squadra A |
-| Team B — Terracotta | `--color-team-b` | `#8b3a1a` | Squadra B (rimpiazza il blu — più coerente con l'osteria) |
+| Ruolo               | Token CSS            | Valore                      | Note                                                      |
+| ------------------- | -------------------- | --------------------------- | --------------------------------------------------------- |
+| Rosso ruggine       | `--color-rust`       | `#5c1a0a`                   | Testo principale su sfondo chiaro                         |
+| Rosso hover         | `--color-rust-hover` | `#7a2210`                   | Stato hover/attivo                                        |
+| Crema iuta          | `--color-cream`      | `#f5e6c4`                   | Colore base tovaglia e testo su scuro                     |
+| Parchment input     | `--color-parchment`  | `rgba(255, 248, 218, 0.62)` | Sfondi input e card                                       |
+| Bordo ruggine       | `--color-border`     | `rgba(120, 48, 18, 0.42)`   | Bordi elementi in home/lobby                              |
+| Legno scuro         | `--color-wood`       | `#2a1a0e`                   | Tavolo osteria (GameScreen background)                    |
+| Oro ambra           | `--color-gold`       | `#c8922a`                   | Accenti attivi — turno corrente, briscola                 |
+| Oro scuro           | `--color-gold-dark`  | `#9a6e1a`                   | Bordi e ombre sugli elementi oro                          |
+| Inchiostro          | `--color-ink`        | `#1a0f0a`                   | Testo su sfondi chiari ad alto contrasto                  |
+| Team A — Ambra      | `--color-team-a`     | `#c8922a`                   | Squadra A                                                 |
+| Team B — Terracotta | `--color-team-b`     | `#8b3a1a`                   | Squadra B (rimpiazza il blu — più coerente con l'osteria) |
 
 **Eliminato:** verde feltro (tutte le varianti `felt-*` presenti in `index.css`) — evoca il poker, non l'osteria.
 **Eliminato:** blu squadra `#1d4ed8` — fuori palette, sostituito con terracotta `#8b3a1a`.
@@ -77,11 +78,11 @@ Il passaggio non è un cambio di schermata — è un cambio di posizione nello s
 
 ## Tipografia
 
-| Font | Token CSS | Uso |
-|---|---|---|
-| **Cinzel** | `--font-display` | Titoli, codice stanza, bottoni d'azione — romano inciso, autorità |
-| **IM Fell English** | `--font-body` | Testo interfaccia home/lobby — tipografia a caratteri mobili, rustico |
-| **Outfit** | `--font-ui` | UI di gioco (nomi, HUD, ping) — neutro e leggibile a piccole dimensioni |
+| Font                | Token CSS        | Uso                                                                     |
+| ------------------- | ---------------- | ----------------------------------------------------------------------- |
+| **Cinzel**          | `--font-display` | Titoli, codice stanza, bottoni d'azione — romano inciso, autorità       |
+| **IM Fell English** | `--font-body`    | Testo interfaccia home/lobby — tipografia a caratteri mobili, rustico   |
+| **Outfit**          | `--font-ui`      | UI di gioco (nomi, HUD, ping) — neutro e leggibile a piccole dimensioni |
 
 La gerarchia è intenzionale: Cinzel comanda, IM Fell English racconta, Outfit si fa da parte.
 
@@ -90,17 +91,20 @@ La gerarchia è intenzionale: Cinzel comanda, IM Fell English racconta, Outfit s
 ## Animazioni
 
 ### Home / Lobby
+
 - **`animate-float`** sul titolo — respiro lento 3.2s, evoca qualcosa appeso o incorniciato
 - **Cross-fade 380ms** tra schermate — il `background.png` resta fisso, solo il contenuto dissolve
 - **`input-shake`** sull'input nome se si tenta di procedere a vuoto
 - **`corner-toast-pop`** per la briscola scelta — rimbalzo elastico
 
 ### Transizione lobby → game
+
 - Video `intro.webm` sovrapposto in fullscreen, fade-in su lobby, 2s, fade-out su GameScreen
 - Sotto il video, il layout di gioco è già pronto — il video è il sipario
 - Fallback se video non disponibile: cross-fade diretto 600ms
 
 ### GameScreen
+
 - **Carta giocata**: vola dal basso verso il centro con leggera rotazione, poi "atterra" (micro-rimbalzo + ombra che si espande e ritrae)
 - **Bussata**: stessa animazione, impatto più forte, leggera vibrazione residua del tavolo
 - **Carta vincente**: trillo (wobble 650ms) + glow oro (2s)
@@ -132,6 +136,7 @@ Il valore esatto di `rotateX` si calibra visivamente sull'immagine di sfondo (pu
 **Ombra direzionale**: le carte sul `.piano-gioco` hanno `drop-shadow` verso il basso-destra, coerente con luce dall'alto-sinistra (come nel frame 2).
 
 **Posizioni giocatori** (riferimento a seduto in basso):
+
 - Bottom (io): mano flat in basso, nome + HUD
 - Top (avversario di fronte): badge nome in alto, carte impilate visibili
 - Left / Right (laterali): badge nome laterale, carte impilate con rotazione 90°
@@ -151,6 +156,7 @@ Il valore esatto di `rotateX` si calibra visivamente sull'immagine di sfondo (pu
 - Nessun bottone classico: voci di menu come righe di testo stile arcade/console anni '80
 
 ### LobbyScreen
+
 - Background: stesso `background.png` (nessun flash tra home e lobby)
 - 4 posti al tavolo disposti come sarebbero fisicamente (non griglia 2×2 astratta):
   - Top: posto 2 (avversario di fronte)
@@ -162,6 +168,7 @@ Il valore esatto di `rotateX` si calibra visivamente sull'immagine di sfondo (pu
 - Bottone "Pronto": Cinzel, sfondo ruggine, hover hover-rust; appare solo se tutti i posti occupati o sei host
 
 ### GameScreen (quando `table-perspective.png` disponibile)
+
 - Background: `table-perspective.png` fullscreen cover
 - Overlay scuro trasparente per leggibilità HUD: `rgba(0,0,0,0.15)`
 - `.piano-gioco`: 40vw × 30vw max, centrato verticalmente a ~55% altezza schermo
@@ -171,6 +178,7 @@ Il valore esatto di `rotateX` si calibra visivamente sull'immagine di sfondo (pu
 - PlayerArea avversari: top e laterali, badge flat, no transform
 
 ### GameOverScreen
+
 - Background: stesso `background.png` (ritorno alla tovaglia)
 - Testo vincitore: Cinzel grande, colore team
 - Punteggi: IM Fell English

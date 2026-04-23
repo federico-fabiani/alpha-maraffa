@@ -1,46 +1,46 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties } from "react";
 
-type SeatPosition = 'top' | 'right' | 'bottom' | 'left'
+type SeatPosition = "top" | "right" | "bottom" | "left";
 
 export const APP_LAYOUT = {
   shell: {
-    inactiveBlurRadius: '7px',
+    inactiveBlurRadius: "7px",
     screenFadeDurationMs: 380,
     backgroundFadeDurationMs: 550,
     startupRetryMs: 1200,
     connectionInset: {
-      bottom: '0.5rem',
-      right: '0.75rem',
+      bottom: "0.5rem",
+      right: "0.75rem",
     },
     startupCard: {
-      gap: '1rem',
-      paddingX: '1.75rem',
-      paddingY: '1.5rem',
+      gap: "1rem",
+      paddingX: "1.75rem",
+      paddingY: "1.5rem",
     },
-    startupSpinnerSize: '54px',
+    startupSpinnerSize: "54px",
   },
   home: {
-    stageOffsetTop: '-14vh',
+    stageOffsetTop: "-14vh",
     demoBadgeInset: {
-      top: '1rem',
-      right: '1rem',
+      top: "1rem",
+      right: "1rem",
     },
-    panelGap: '2.5rem',
-    menuGap: '0.25rem',
-    joinPanelGap: '1rem',
-    inputWidth: 'min(82vw, 25rem)',
-    arrowWidth: 'clamp(2.4rem, 4.5vw, 3.8rem)',
+    panelGap: "2.5rem",
+    menuGap: "0.25rem",
+    joinPanelGap: "1rem",
+    inputWidth: "min(82vw, 25rem)",
+    arrowWidth: "clamp(2.4rem, 4.5vw, 3.8rem)",
   },
   lobby: {
-    panelMaxWidth: '30rem',
-    panelGap: '1.5rem',
-    tableGap: '0.25rem',
-    tableMiddleRowHeight: '3.5rem',
-    avatarSize: '52px',
-    seatCardGap: '0.35rem',
-    seatCardPaddingY: '0.5rem',
-    seatCardPaddingX: '0.3rem',
-    seatActionGap: '0.15rem',
+    panelMaxWidth: "30rem",
+    panelGap: "1.5rem",
+    tableGap: "0.25rem",
+    tableMiddleRowHeight: "3.5rem",
+    avatarSize: "52px",
+    seatCardGap: "0.35rem",
+    seatCardPaddingY: "0.5rem",
+    seatCardPaddingX: "0.3rem",
+    seatActionGap: "0.15rem",
   },
   game: {
     backgroundAspectRatio: 6336 / 2688,
@@ -53,83 +53,120 @@ export const APP_LAYOUT = {
       width: 0.437,
       height: 0.51,
     },
-    hudInset: '0.75rem',
+    hudInset: "0.75rem",
     opponentInset: {
-      top: '1.5rem',
-      side: '1rem',
+      top: "1.5rem",
+      side: "1rem",
     },
     selfPanel: {
-      bottom: '12.5rem',
-      gap: '0.375rem',
+      bottom: "12.5rem",
+      gap: "0.375rem",
     },
-    declarationGap: '0.375rem',
-    turnBarHeight: '0.25rem',
+    declarationGap: "0.375rem",
+    turnBarHeight: "0.25rem",
     lastTrick: {
-      offsetX: 'clamp(11.5rem, 32vw, 12.5rem)',
-      size: '7rem',
-      labelMarginBottom: '0.375rem',
+      offsetX: "clamp(11.5rem, 32vw, 12.5rem)",
+      size: "7rem",
+      labelMarginBottom: "0.375rem",
     },
     dropZone: {
-      idleSize: '7rem',
-      activeSize: '9rem',
+      idleSize: "7rem",
+      activeSize: "9rem",
     },
     announcement: {
-      paddingX: '1.5rem',
+      paddingX: "1.5rem",
     },
     dialog: {
-      maxWidth: '20rem',
-      marginX: '1rem',
-      gap: '1.25rem',
-      actionGap: '0.75rem',
-      paddingX: '2rem',
-      paddingY: '1.75rem',
+      maxWidth: "20rem",
+      marginX: "1rem",
+      gap: "1.25rem",
+      actionGap: "0.75rem",
+      paddingX: "2rem",
+      paddingY: "1.75rem",
     },
     table: {
       spreadXMultiplier: 1.2,
       spreadYMultiplier: 0.6,
       gifHeightRatio: 0.78,
       gifMaxWidthRatio: 0.9,
-      gifTransform: 'translate(-50%, -58%) perspective(500px) rotateX(30deg) rotate(-2deg)',
+      gifTransform:
+        "translate(-50%, -58%) perspective(500px) rotateX(30deg) rotate(-2deg)",
       slotStyles: {
-        0: { left: '50%', top: 'calc(50% + var(--table-card-spread-y))', transform: 'translate(-50%, -50%) rotate(-4deg)' },
-        1: { left: 'calc(50% + var(--table-card-spread-x))', top: '50%', transform: 'translate(-50%, -50%) rotate(6deg)' },
-        2: { left: '50%', top: 'calc(50% - var(--table-card-spread-y))', transform: 'translate(-50%, -50%) rotate(3deg)' },
-        3: { left: 'calc(50% - var(--table-card-spread-x))', top: '50%', transform: 'translate(-50%, -50%) rotate(-6deg)' },
+        0: {
+          left: "50%",
+          top: "calc(50% + var(--table-card-spread-y))",
+          transform: "translate(-50%, -50%) rotate(-4deg)",
+        },
+        1: {
+          left: "calc(50% + var(--table-card-spread-x))",
+          top: "50%",
+          transform: "translate(-50%, -50%) rotate(6deg)",
+        },
+        2: {
+          left: "50%",
+          top: "calc(50% - var(--table-card-spread-y))",
+          transform: "translate(-50%, -50%) rotate(3deg)",
+        },
+        3: {
+          left: "calc(50% - var(--table-card-spread-x))",
+          top: "50%",
+          transform: "translate(-50%, -50%) rotate(-6deg)",
+        },
       } satisfies Record<number, CSSProperties>,
       lastTrickSlotStyles: {
-        0: { bottom: '0px', left: '50%', transform: 'translateX(-50%)' },
-        1: { right: '0px', top: '50%', transform: 'translateY(-50%)' },
-        2: { top: '0px', left: '50%', transform: 'translateX(-50%)' },
-        3: { left: '0px', top: '50%', transform: 'translateY(-50%)' },
+        0: { bottom: "0px", left: "50%", transform: "translateX(-50%)" },
+        1: { right: "0px", top: "50%", transform: "translateY(-50%)" },
+        2: { top: "0px", left: "50%", transform: "translateX(-50%)" },
+        3: { left: "0px", top: "50%", transform: "translateY(-50%)" },
       } satisfies Record<number, CSSProperties>,
       collectVectors: {
-        0: { 0: { x: 0, y: 350 }, 1: { x: -200, y: 480 }, 2: { x: 0, y: 600 }, 3: { x: 200, y: 480 } },
-        1: { 0: { x: 520, y: -140 }, 1: { x: 320, y: 0 }, 2: { x: 520, y: 140 }, 3: { x: 700, y: 0 } },
-        2: { 0: { x: 0, y: -600 }, 1: { x: -200, y: -480 }, 2: { x: 0, y: -350 }, 3: { x: 200, y: -480 } },
-        3: { 0: { x: -520, y: -140 }, 1: { x: -700, y: 0 }, 2: { x: -520, y: 140 }, 3: { x: -320, y: 0 } },
+        0: {
+          0: { x: 0, y: 350 },
+          1: { x: -200, y: 480 },
+          2: { x: 0, y: 600 },
+          3: { x: 200, y: 480 },
+        },
+        1: {
+          0: { x: 520, y: -140 },
+          1: { x: 320, y: 0 },
+          2: { x: 520, y: 140 },
+          3: { x: 700, y: 0 },
+        },
+        2: {
+          0: { x: 0, y: -600 },
+          1: { x: -200, y: -480 },
+          2: { x: 0, y: -350 },
+          3: { x: 200, y: -480 },
+        },
+        3: {
+          0: { x: -520, y: -140 },
+          1: { x: -700, y: 0 },
+          2: { x: -520, y: 140 },
+          3: { x: -320, y: 0 },
+        },
       } satisfies Record<number, Record<number, { x: number; y: number }>>,
     },
   },
   cards: {
     sizes: {
-      sm: { width: '2.5rem', height: '3.5rem' },
-      md: { width: '5.5rem', height: '8.25rem' },
-      lg: { width: '5rem', height: '7rem' },
-      table: { width: '8rem', height: '12rem' },
+      sm: { width: "2.5rem", height: "3.5rem" },
+      md: { width: "5.5rem", height: "8.25rem" },
+      lg: { width: "5rem", height: "7rem" },
+      table: { width: "8rem", height: "12rem" },
     },
     hand: {
-      overlap: '-0.5625rem',
-      overlapMobile: '-0.875rem',
-      translateBase: '4px',
-      translateOffsetFactor: '2.35px',
-      rotateFactor: '3.25deg',
-      hoverTranslate: '-14px',
-      hoverRotateFactor: '1.4deg',
+      overlap: "-0.5625rem",
+      overlapMobile: "-0.875rem",
+      translateBase: "4px",
+      translateOffsetFactor: "2.35px",
+      rotateFactor: "3.25deg",
+      hoverTranslate: "-14px",
+      hoverRotateFactor: "1.4deg",
       hoverScale: 1.04,
       tabletScale: 0.92,
       mobileScale: 0.84,
     },
-    opponentStackOverlap: '-1.25rem',
+    opponentStackOverlap: "-1.25rem",
     dragGhost: {
       offsetX: 44,
       offsetY: 66,
@@ -138,177 +175,207 @@ export const APP_LAYOUT = {
     },
   },
   playerArea: {
-    gap: '0.5rem',
+    gap: "0.5rem",
   },
   connectionStatus: {
-    gap: '0.375rem',
-    dotSize: '0.5rem',
+    gap: "0.375rem",
+    dotSize: "0.5rem",
   },
   notification: {
-    bottom: '11rem',
-    paddingX: '1.5rem',
-    paddingY: '0.75rem',
+    bottom: "11rem",
+    paddingX: "1.5rem",
+    paddingY: "0.75rem",
   },
   briscolaModal: {
-    width: '20rem',
-    gridGap: '0.75rem',
+    width: "20rem",
+    gridGap: "0.75rem",
   },
   gameOver: {
-    panelGap: '2rem',
-    scoreWidth: '18rem',
-    actionWidth: '16rem',
+    panelGap: "2rem",
+    scoreWidth: "18rem",
+    actionWidth: "16rem",
   },
-} as const
+} as const;
 
-export type CardSize = keyof typeof APP_LAYOUT.cards.sizes
+export type CardSize = keyof typeof APP_LAYOUT.cards.sizes;
 
 export const APP_SHELL_LAYOUT_STYLES = {
   root: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-    overflow: 'hidden',
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
   } satisfies CSSProperties,
   frame: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
+    position: "relative",
+    width: "100%",
+    height: "100%",
     transition: `filter ${APP_LAYOUT.shell.screenFadeDurationMs}ms ease`,
   } satisfies CSSProperties,
   background: {
-    position: 'absolute',
+    position: "absolute",
     inset: 0,
     zIndex: 0,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
+    backgroundSize: "cover",
+    backgroundPosition: "center",
     transition: `opacity ${APP_LAYOUT.shell.backgroundFadeDurationMs}ms ease`,
   } satisfies CSSProperties,
   content: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
+    position: "relative",
+    width: "100%",
+    height: "100%",
     zIndex: 10,
   } satisfies CSSProperties,
   connection: {
-    position: 'absolute',
+    position: "absolute",
     bottom: APP_LAYOUT.shell.connectionInset.bottom,
     right: APP_LAYOUT.shell.connectionInset.right,
     zIndex: 50,
   } satisfies CSSProperties,
   startupOverlay: {
-    position: 'absolute',
+    position: "absolute",
     inset: 0,
     zIndex: 70,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   } satisfies CSSProperties,
   startupCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
     gap: APP_LAYOUT.shell.startupCard.gap,
     padding: `${APP_LAYOUT.shell.startupCard.paddingY} ${APP_LAYOUT.shell.startupCard.paddingX}`,
   } satisfies CSSProperties,
-} as const
+} as const;
 
 export const layoutCssVariables = {
-  '--layout-screen-transition-duration': `${APP_LAYOUT.shell.screenFadeDurationMs}ms`,
-  '--layout-playing-area-left': `${APP_LAYOUT.game.playingArea.left}`,
-  '--layout-playing-area-top': `${APP_LAYOUT.game.playingArea.top}`,
-  '--layout-playing-area-width': `${APP_LAYOUT.game.playingArea.width}`,
-  '--layout-playing-area-height': `${APP_LAYOUT.game.playingArea.height}`,
-  '--layout-home-stage-offset-top': APP_LAYOUT.home.stageOffsetTop,
-  '--layout-lobby-panel-max-width': APP_LAYOUT.lobby.panelMaxWidth,
-  '--layout-lobby-panel-gap': APP_LAYOUT.lobby.panelGap,
-  '--layout-lobby-table-gap': APP_LAYOUT.lobby.tableGap,
-  '--layout-lobby-table-middle-row-height': APP_LAYOUT.lobby.tableMiddleRowHeight,
-  '--layout-lobby-avatar-size': APP_LAYOUT.lobby.avatarSize,
-  '--layout-lobby-seat-card-gap': APP_LAYOUT.lobby.seatCardGap,
-  '--layout-lobby-seat-card-padding-y': APP_LAYOUT.lobby.seatCardPaddingY,
-  '--layout-lobby-seat-card-padding-x': APP_LAYOUT.lobby.seatCardPaddingX,
-  '--layout-lobby-seat-action-gap': APP_LAYOUT.lobby.seatActionGap,
-  '--layout-player-hand-overlap': APP_LAYOUT.cards.hand.overlap,
-  '--layout-player-hand-overlap-mobile': APP_LAYOUT.cards.hand.overlapMobile,
-  '--layout-player-hand-translate-base': APP_LAYOUT.cards.hand.translateBase,
-  '--layout-player-hand-translate-offset-factor': APP_LAYOUT.cards.hand.translateOffsetFactor,
-  '--layout-player-hand-rotate-factor': APP_LAYOUT.cards.hand.rotateFactor,
-  '--layout-player-hand-hover-translate': APP_LAYOUT.cards.hand.hoverTranslate,
-  '--layout-player-hand-hover-rotate-factor': APP_LAYOUT.cards.hand.hoverRotateFactor,
-  '--layout-player-hand-hover-scale': `${APP_LAYOUT.cards.hand.hoverScale}`,
-  '--layout-player-hand-tablet-scale': `${APP_LAYOUT.cards.hand.tabletScale}`,
-  '--layout-player-hand-mobile-scale': `${APP_LAYOUT.cards.hand.mobileScale}`,
-  '--layout-opponent-stack-overlap': APP_LAYOUT.cards.opponentStackOverlap,
-} as CSSProperties
+  "--layout-screen-transition-duration": `${APP_LAYOUT.shell.screenFadeDurationMs}ms`,
+  "--layout-playing-area-left": `${APP_LAYOUT.game.playingArea.left}`,
+  "--layout-playing-area-top": `${APP_LAYOUT.game.playingArea.top}`,
+  "--layout-playing-area-width": `${APP_LAYOUT.game.playingArea.width}`,
+  "--layout-playing-area-height": `${APP_LAYOUT.game.playingArea.height}`,
+  "--layout-home-stage-offset-top": APP_LAYOUT.home.stageOffsetTop,
+  "--layout-lobby-panel-max-width": APP_LAYOUT.lobby.panelMaxWidth,
+  "--layout-lobby-panel-gap": APP_LAYOUT.lobby.panelGap,
+  "--layout-lobby-table-gap": APP_LAYOUT.lobby.tableGap,
+  "--layout-lobby-table-middle-row-height":
+    APP_LAYOUT.lobby.tableMiddleRowHeight,
+  "--layout-lobby-avatar-size": APP_LAYOUT.lobby.avatarSize,
+  "--layout-lobby-seat-card-gap": APP_LAYOUT.lobby.seatCardGap,
+  "--layout-lobby-seat-card-padding-y": APP_LAYOUT.lobby.seatCardPaddingY,
+  "--layout-lobby-seat-card-padding-x": APP_LAYOUT.lobby.seatCardPaddingX,
+  "--layout-lobby-seat-action-gap": APP_LAYOUT.lobby.seatActionGap,
+  "--layout-player-hand-overlap": APP_LAYOUT.cards.hand.overlap,
+  "--layout-player-hand-overlap-mobile": APP_LAYOUT.cards.hand.overlapMobile,
+  "--layout-player-hand-translate-base": APP_LAYOUT.cards.hand.translateBase,
+  "--layout-player-hand-translate-offset-factor":
+    APP_LAYOUT.cards.hand.translateOffsetFactor,
+  "--layout-player-hand-rotate-factor": APP_LAYOUT.cards.hand.rotateFactor,
+  "--layout-player-hand-hover-translate": APP_LAYOUT.cards.hand.hoverTranslate,
+  "--layout-player-hand-hover-rotate-factor":
+    APP_LAYOUT.cards.hand.hoverRotateFactor,
+  "--layout-player-hand-hover-scale": `${APP_LAYOUT.cards.hand.hoverScale}`,
+  "--layout-player-hand-tablet-scale": `${APP_LAYOUT.cards.hand.tabletScale}`,
+  "--layout-player-hand-mobile-scale": `${APP_LAYOUT.cards.hand.mobileScale}`,
+  "--layout-opponent-stack-overlap": APP_LAYOUT.cards.opponentStackOverlap,
+} as CSSProperties;
 
-export const GAME_SEAT_STYLES: Record<Exclude<SeatPosition, 'bottom'>, CSSProperties> = {
+export const GAME_SEAT_STYLES: Record<
+  Exclude<SeatPosition, "bottom">,
+  CSSProperties
+> = {
   top: {
-    position: 'absolute',
+    position: "absolute",
     top: APP_LAYOUT.game.opponentInset.top,
-    left: '50%',
-    transform: 'translateX(-50%)',
+    left: "50%",
+    transform: "translateX(-50%)",
   },
   left: {
-    position: 'absolute',
+    position: "absolute",
     left: APP_LAYOUT.game.opponentInset.side,
-    top: '50%',
-    transform: 'translateY(-50%)',
+    top: "50%",
+    transform: "translateY(-50%)",
   },
   right: {
-    position: 'absolute',
+    position: "absolute",
     right: APP_LAYOUT.game.opponentInset.side,
-    top: '50%',
-    transform: 'translateY(-50%)',
+    top: "50%",
+    transform: "translateY(-50%)",
   },
-}
+};
 
 export function getCardSizeStyle(size: CardSize): CSSProperties {
-  return APP_LAYOUT.cards.sizes[size]
+  return APP_LAYOUT.cards.sizes[size];
 }
 
 export function getGameTableSlotStyle(relativeSeat: number): CSSProperties {
-  return APP_LAYOUT.game.table.slotStyles[relativeSeat as keyof typeof APP_LAYOUT.game.table.slotStyles] ?? {}
+  return (
+    APP_LAYOUT.game.table.slotStyles[
+      relativeSeat as keyof typeof APP_LAYOUT.game.table.slotStyles
+    ] ?? {}
+  );
 }
 
 export function getLastTrickSlotStyle(relativeSeat: number): CSSProperties {
-  return APP_LAYOUT.game.table.lastTrickSlotStyles[relativeSeat as keyof typeof APP_LAYOUT.game.table.lastTrickSlotStyles] ?? {}
+  return (
+    APP_LAYOUT.game.table.lastTrickSlotStyles[
+      relativeSeat as keyof typeof APP_LAYOUT.game.table.lastTrickSlotStyles
+    ] ?? {}
+  );
 }
 
-export function getCollectVector(winnerRelativeSeat: number, cardRelativeSeat: number): { x: number; y: number } {
-  return APP_LAYOUT.game.table.collectVectors[winnerRelativeSeat as keyof typeof APP_LAYOUT.game.table.collectVectors]?.[cardRelativeSeat as keyof (typeof APP_LAYOUT.game.table.collectVectors)[0]] ?? { x: 0, y: 0 }
+export function getCollectVector(
+  winnerRelativeSeat: number,
+  cardRelativeSeat: number,
+): { x: number; y: number } {
+  return (
+    APP_LAYOUT.game.table.collectVectors[
+      winnerRelativeSeat as keyof typeof APP_LAYOUT.game.table.collectVectors
+    ]?.[
+      cardRelativeSeat as keyof (typeof APP_LAYOUT.game.table.collectVectors)[0]
+    ] ?? { x: 0, y: 0 }
+  );
 }
 
 export function createTurnCountdownFillStyle(secsLeft: number): CSSProperties {
   return {
     width: `${Math.max(0, (secsLeft / 30) * 100)}%`,
-    backgroundColor: secsLeft > 15 ? '#4ade80' : secsLeft > 7 ? '#facc15' : '#f87171',
-  }
+    backgroundColor:
+      secsLeft > 15 ? "#4ade80" : secsLeft > 7 ? "#facc15" : "#f87171",
+  };
 }
 
 export function createBriscolaGifStyle(): CSSProperties {
   return {
     height: `calc((var(--bg-render-height) * var(--layout-playing-area-height)) * ${APP_LAYOUT.game.table.gifHeightRatio})`,
     maxWidth: `calc(var(--bg-render-width) * var(--layout-playing-area-width) * ${APP_LAYOUT.game.table.gifMaxWidthRatio})`,
-  }
+  };
 }
 
 export function createGameDropZoneStyle(isDragOver: boolean): CSSProperties {
-  const size = isDragOver ? APP_LAYOUT.game.dropZone.activeSize : APP_LAYOUT.game.dropZone.idleSize
+  const size = isDragOver
+    ? APP_LAYOUT.game.dropZone.activeSize
+    : APP_LAYOUT.game.dropZone.idleSize;
   return {
     width: size,
     height: size,
-  }
+  };
 }
 
-export function createDragGhostStyle(x: number, y: number, isDragOver: boolean): CSSProperties {
+export function createDragGhostStyle(
+  x: number,
+  y: number,
+  isDragOver: boolean,
+): CSSProperties {
   return {
-    position: 'fixed',
-    pointerEvents: 'none',
+    position: "fixed",
+    pointerEvents: "none",
     zIndex: 50,
     left: x - APP_LAYOUT.cards.dragGhost.offsetX,
     top: y - APP_LAYOUT.cards.dragGhost.offsetY,
     transform: `rotate(-4deg) scale(${isDragOver ? APP_LAYOUT.cards.dragGhost.activeScale : APP_LAYOUT.cards.dragGhost.idleScale})`,
-    transition: 'transform 0.12s ease, filter 0.12s ease',
-    filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.55))',
-  }
+    transition: "transform 0.12s ease, filter 0.12s ease",
+    filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.55))",
+  };
 }

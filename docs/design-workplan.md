@@ -19,6 +19,7 @@ Problema principale da risolvere: la palette `felt-*` (verde) va eliminata e sos
 ### 1.1 — Pulire i token in `index.css`
 
 Rimuovere da `@theme`:
+
 ```css
 /* RIMUOVERE */
 --color-felt-950 … --color-felt-500   /* tutti i verde-feltro */
@@ -26,6 +27,7 @@ Rimuovere da `@theme`:
 ```
 
 Aggiungere in `@theme`:
+
 ```css
 --color-rust: #5c1a0a;
 --color-rust-hover: #7a2210;
@@ -38,9 +40,9 @@ Aggiungere in `@theme`:
 --color-ink: #1a0f0a;
 --color-team-a: #c8922a;
 --color-team-b: #8b3a1a;
---font-display: 'Cinzel', serif;
---font-body: 'IM Fell English', serif;
---font-ui: 'Outfit', sans-serif;
+--font-display: "Cinzel", serif;
+--font-body: "IM Fell English", serif;
+--font-ui: "Outfit", sans-serif;
 ```
 
 ### 1.2 — Aggiornare gli stili globali
@@ -62,13 +64,15 @@ Tutto ciò che usa classi `felt-*` va rimappato a variabili nuove. Grep: `felt-`
 **Obiettivo**: home pulita, stile osteria, nessuna regressione funzionale.
 
 ### Componenti da toccare
+
 - `HomeScreen.tsx` (layout JSX)
 - Sezione home in `index.css`
 
 ### Specifiche
+
 - Background: `background.png` fullscreen, `object-fit: cover`
 - Titolo: `title.png`, max-width 380px, centrato, `animate-float`
-- Input nome: 
+- Input nome:
   - font: `var(--font-body)`, italic
   - background: `var(--color-parchment)`
   - bordo: `1px solid var(--color-border)`
@@ -102,6 +106,7 @@ Tutto ciò che usa classi `felt-*` va rimappato a variabili nuove. Grep: `felt-`
 ```
 
 Implementazione CSS:
+
 ```css
 .lobby-table {
   display: grid;
@@ -115,21 +120,25 @@ Implementazione CSS:
 ```
 
 ### Posto occupato
+
 - Avatar placeholder: cerchio 56px, sfondo crema, bordo colore team
 - Nome: Cinzel, rust o cream a seconda del background
 - Badge team: piccolo rettangolo colorato con lettera (A / B)
 - Indicatore "Pronto": checkmark oro se ready
 
 ### Posto libero
+
 - Cerchio tratteggiato, opacità 0.4
 - Testo "Attesa..." IM Fell English italic, rust 0.5
 
 ### Codice stanza
+
 - Cinzel, size 2rem, lettera-spacing ampio
 - Bordo ruggine, background parchment
 - Click-to-copy: tooltip "Copiato!" che appare 1.5s
 
 ### Bottoni host (kick/start)
+
 - Cinzel, sfondo rust, testo cream, bordo rust-dark
 - hover: rust-hover
 - Start: appare solo quando tutti i posti occupati
@@ -146,18 +155,20 @@ Implementazione CSS:
 
 ```css
 .game-screen {
-  background-image: url('/assets/table-perspective.png'); /* o background.png come fallback */
+  background-image: url("/assets/table-perspective.png"); /* o background.png come fallback */
   background-size: cover;
   background-position: center;
 }
 ```
 
 Overlay per leggibilità:
+
 ```css
 .game-screen::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.15);
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }
 ```
@@ -173,15 +184,17 @@ Overlay per leggibilità:
 ```
 
 Drop shadow direzionale (luce dall'alto-sinistra):
+
 ```css
 .card-face {
-  filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.55));
+  filter: drop-shadow(3px 5px 4px rgba(0, 0, 0, 0.55));
 }
 ```
 
 ### 4.3 — Rimuovere il verde dalla TableArea
 
 In `TableArea.tsx` e `index.css`:
+
 - Rimuovere classi con `felt` e `green`
 - Background `.table-area`: `transparent` — il background del GameScreen fa il lavoro
 
@@ -206,29 +219,52 @@ In `TableArea.tsx` e `index.css`:
 **Obiettivo**: le carte "atterrano" sul tavolo invece di apparire.
 
 ### Animazione attuale
+
 `card-appear`: 350ms, overshoot springy. Buona ma non ha il senso fisico del "lancio".
 
 ### Nuova animazione `card-land`
 
 ```css
 @keyframes card-land {
-  0%   { transform: translateY(60px) scale(0.85) rotate(-3deg); opacity: 0; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
-  65%  { transform: translateY(-4px) scale(1.02) rotate(0.5deg); filter: drop-shadow(6px 8px 8px rgba(0,0,0,0.6)); }
-  80%  { transform: translateY(2px) scale(0.99) rotate(0deg); filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.55)); }
-  100% { transform: translateY(0) scale(1) rotate(var(--card-rotation)); filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.55)); }
+  0% {
+    transform: translateY(60px) scale(0.85) rotate(-3deg);
+    opacity: 0;
+    filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3));
+  }
+  65% {
+    transform: translateY(-4px) scale(1.02) rotate(0.5deg);
+    filter: drop-shadow(6px 8px 8px rgba(0, 0, 0, 0.6));
+  }
+  80% {
+    transform: translateY(2px) scale(0.99) rotate(0deg);
+    filter: drop-shadow(3px 5px 4px rgba(0, 0, 0, 0.55));
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(var(--card-rotation));
+    filter: drop-shadow(3px 5px 4px rgba(0, 0, 0, 0.55));
+  }
 }
 ```
 
 ### Bussata — variante impatto forte
 
 Aggiungere classe `.bussata` alla carta con:
+
 ```css
 @keyframes card-slam {
   /* come card-land ma con vibrazione finale */
-  80% { transform: translateY(3px) scale(0.97); }
-  90% { transform: translateY(-2px) scale(1.01); }
-  95% { transform: translateY(1px); }
-  100% { transform: translateY(0) scale(1); }
+  80% {
+    transform: translateY(3px) scale(0.97);
+  }
+  90% {
+    transform: translateY(-2px) scale(1.01);
+  }
+  95% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 ```
 
@@ -245,21 +281,27 @@ Come sapere quando applicare `.bussata`: la carta ha declaration `busso` nel pay
 ### Quando disponibile `intro.webm`
 
 In `App.tsx` (o nel componente che gestisce il cambio schermata):
+
 ```tsx
 // Prima di mostrare GameScreen
-setScreen('transition');
+setScreen("transition");
 // Mostra <video> fullscreen con autoplay
 // Al termine dell'evento 'ended': setScreen('game')
 ```
 
 CSS:
+
 ```css
 .transition-overlay {
-  position: fixed; inset: 0; z-index: 100;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   animation: fade-in 300ms ease;
 }
 .transition-overlay video {
-  width: 100%; height: 100%; object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 ```
 
@@ -284,11 +326,11 @@ Cross-fade 600ms diretto lobby→game.
 
 ## Dipendenze asset
 
-| Asset | Necessario per | Come generarlo |
-|---|---|---|
+| Asset                   | Necessario per                            | Come generarlo                                          |
+| ----------------------- | ----------------------------------------- | ------------------------------------------------------- |
 | `table-perspective.png` | Fase 4 (GameScreen background definitivo) | Frame 2 già pronto — rinominare e aggiungere agli asset |
-| `card-back.png` | Dorso carte avversari | Asset già generato — da integrare in `Card.tsx` |
-| `intro.webm` | Fase 6 | Veo 3 o Kling AI — interpolare tra frame 1 e frame 2 |
+| `card-back.png`         | Dorso carte avversari                     | Asset già generato — da integrare in `Card.tsx`         |
+| `intro.webm`            | Fase 6                                    | Veo 3 o Kling AI — interpolare tra frame 1 e frame 2    |
 
 **La Fase 4 può partire subito** usando `background.png` come placeholder nel GameScreen. `table-perspective.png` si aggiunge come drop-in quando pronto.
 

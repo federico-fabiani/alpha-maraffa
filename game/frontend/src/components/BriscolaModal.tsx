@@ -1,31 +1,52 @@
-import { APP_LAYOUT } from '../layout/layout'
-import { SUIT_META } from './cardMeta'
-import type { Suit } from '../types'
+import { APP_LAYOUT } from "../layout/layout";
+import { SUIT_META } from "./cardMeta";
+import type { Suit } from "../types";
 
 interface BriscolaModalProps {
-  onSelect: (suit: Suit) => void
-  selectorName?: string
+  onSelect: (suit: Suit) => void;
+  selectorName?: string;
 }
 
-const SUITS: Suit[] = ['bastoni', 'denara', 'spade', 'coppe']
+const SUITS: Suit[] = ["bastoni", "denara", "spade", "coppe"];
 
-export default function BriscolaModal({ onSelect, selectorName }: BriscolaModalProps) {
+export default function BriscolaModal({
+  onSelect,
+  selectorName,
+}: BriscolaModalProps) {
   return (
     <div
       className="bg-felt-950/25 animate-fade-in"
-      style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 20,
+      }}
     >
-      <div className="bg-felt-900 border border-amber-800/40 rounded-2xl p-6 shadow-2xl" style={{ width: APP_LAYOUT.briscolaModal.width }}>
+      <div
+        className="bg-felt-900 border border-amber-800/40 rounded-2xl p-6 shadow-2xl"
+        style={{ width: APP_LAYOUT.briscolaModal.width }}
+      >
         <h3 className="font-cinzel text-center text-amber-400 text-lg font-bold mb-1">
           SCEGLI LA BRISCOLA
         </h3>
         {selectorName && (
-          <p className="text-felt-500 text-xs text-center mb-5">{selectorName}</p>
+          <p className="text-felt-500 text-xs text-center mb-5">
+            {selectorName}
+          </p>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: APP_LAYOUT.briscolaModal.gridGap }}>
-          {SUITS.map(suit => {
-            const meta = SUIT_META[suit]
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: APP_LAYOUT.briscolaModal.gridGap,
+          }}
+        >
+          {SUITS.map((suit) => {
+            const meta = SUIT_META[suit];
             return (
               <button
                 key={suit}
@@ -33,17 +54,25 @@ export default function BriscolaModal({ onSelect, selectorName }: BriscolaModalP
                 className="bg-felt-800 hover:bg-felt-700
                            border border-felt-700 hover:border-current
                            rounded-xl p-3 transition-all group"
-                style={{ display: 'flex', alignItems: 'center', gap: APP_LAYOUT.briscolaModal.gridGap, '--tw-border-opacity': '0.6', color: meta.color } as React.CSSProperties}
+                style={
+                  {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: APP_LAYOUT.briscolaModal.gridGap,
+                    "--tw-border-opacity": "0.6",
+                    color: meta.color,
+                  } as React.CSSProperties
+                }
               >
                 <span className="text-2xl">{meta.symbol}</span>
                 <span className="font-semibold text-sm group-hover:text-current transition-colors text-amber-100">
                   {meta.label}
                 </span>
               </button>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }

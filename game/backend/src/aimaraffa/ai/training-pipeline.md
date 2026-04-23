@@ -117,13 +117,13 @@ Il dataset raw contiene questi gruppi di campi:
 - tavolo corrente: `table_0_*`, `table_1_*`, `table_2_*` per descrivere le carte gia' giocate nel turno;
 - punteggi correnti: `round_score_t1`, `round_score_t2`, `total_score_t1`, `total_score_t2`;
 - mano del giocatore in encoding role-relative:
-    - `hand_briscola_<rank>`;
-    - `hand_lead_<rank>`;
-    - `hand_other_<rank>_count`;
+  - `hand_briscola_<rank>`;
+  - `hand_lead_<rank>`;
+  - `hand_other_<rank>_count`;
 - storia carte gia' viste, per ogni seme e rango:
-    - `hist_<suit>_<rank>_is_my_team`;
-    - `hist_<suit>_<rank>_turn`;
-    - `hist_<suit>_<rank>_decl`;
+  - `hist_<suit>_<rank>_is_my_team`;
+  - `hist_<suit>_<rank>_turn`;
+  - `hist_<suit>_<rank>_decl`;
 - stato dedotto dei semi per partner e avversari: `partner_suit_status`, `opp_left_suit_status`, `opp_right_suit_status`;
 - outcome retrospettivi del turno e del round: `turn_winner_seat`, `turn_winner_team`, `turn_pts`, `round_pts_t1`, `round_pts_t2`, `round_pts_player_team`, `round_pts_diff`;
 - target finale: `future_pts_diff`.

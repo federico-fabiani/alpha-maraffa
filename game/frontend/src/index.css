@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=IM+Fell+English:ital@0;1&family=Outfit:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=IM+Fell+English:ital@0;1&family=Outfit:wght@400;500;700&display=swap");
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'Houstonville';
-  src: url('./assets/Houstonville.otf') format('opentype');
+  font-family: "Houstonville";
+  src: url("./assets/Houstonville.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -36,86 +36,156 @@
   --animate-demo-blink: demo-blink 1s step-start infinite;
 
   /* Fonts */
-  --font-cinzel: 'Cinzel', serif;
-  --font-fell: 'IM Fell English', serif;
-  --font-outfit: 'Outfit', sans-serif;
+  --font-cinzel: "Cinzel", serif;
+  --font-fell: "IM Fell English", serif;
+  --font-outfit: "Outfit", sans-serif;
 }
 
 @keyframes slide-up {
-  from { transform: translateY(14px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 @keyframes card-appear {
-  from { scale: 0.78; translate: 0 14px; opacity: 0; }
-  to   { scale: 1;    translate: 0 0;    opacity: 1; }
+  from {
+    scale: 0.78;
+    translate: 0 14px;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    translate: 0 0;
+    opacity: 1;
+  }
 }
 
 @keyframes demo-blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes card-breathe {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-2px) scale(1.01); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.01);
+  }
 }
 
 @keyframes ambient-pan {
-  0% { transform: translate3d(-2%, -1%, 0); }
-  50% { transform: translate3d(2%, 2%, 0); }
-  100% { transform: translate3d(-2%, -1%, 0); }
+  0% {
+    transform: translate3d(-2%, -1%, 0);
+  }
+  50% {
+    transform: translate3d(2%, 2%, 0);
+  }
+  100% {
+    transform: translate3d(-2%, -1%, 0);
+  }
 }
 
 @keyframes opponent-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 @keyframes startup-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes startup-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 176, 63, 0.2); }
-  50% { box-shadow: 0 0 0 10px rgba(244, 176, 63, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 176, 63, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(244, 176, 63, 0);
+  }
 }
 
 /* ── Global ──────────────────────────────────────────────────────────────────── */
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
   background:
-    radial-gradient(circle at 20% 18%, rgba(249, 180, 48, 0.08), transparent 32%),
-    radial-gradient(circle at 82% 78%, rgba(45, 145, 102, 0.14), transparent 44%),
+    radial-gradient(
+      circle at 20% 18%,
+      rgba(249, 180, 48, 0.08),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 82% 78%,
+      rgba(45, 145, 102, 0.14),
+      transparent 44%
+    ),
     linear-gradient(165deg, #09140f 0%, #10261b 52%, #0b1711 100%);
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
   overflow: hidden;
   color: #f3ead5;
 }
 
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: -10%;
   z-index: -1;
@@ -131,21 +201,61 @@ body::before {
 /* ── CRT overlay ────────────────────────────────────────────────────────────── */
 
 @keyframes crt-flicker {
-  0%, 100% { opacity: 1; }
-  92%       { opacity: 1; }
-  93%       { opacity: 0.85; }
-  94%       { opacity: 1; }
-  97%       { opacity: 1; }
-  98%       { opacity: 0.9; }
-  99%       { opacity: 1; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.85;
+  }
+  94% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 1;
+  }
+  98% {
+    opacity: 0.9;
+  }
+  99% {
+    opacity: 1;
+  }
 }
 
 @keyframes veil-drift {
-  0%   { background-position: 20%  20%,  80% 75%, auto; }
-  25%  { background-position: 70%  45%,  25% 30%, auto; }
-  50%  { background-position: 55%  75%,  80% 20%, auto; }
-  75%  { background-position: 25%  60%,  60% 80%, auto; }
-  100% { background-position: 20%  20%,  80% 75%, auto; }
+  0% {
+    background-position:
+      20% 20%,
+      80% 75%,
+      auto;
+  }
+  25% {
+    background-position:
+      70% 45%,
+      25% 30%,
+      auto;
+  }
+  50% {
+    background-position:
+      55% 75%,
+      80% 20%,
+      auto;
+  }
+  75% {
+    background-position:
+      25% 60%,
+      60% 80%,
+      auto;
+  }
+  100% {
+    background-position:
+      20% 20%,
+      80% 75%,
+      auto;
+  }
 }
 
 .crt-overlay {
@@ -155,22 +265,36 @@ body::before {
   pointer-events: none;
   mix-blend-mode: multiply;
   background-image:
-    radial-gradient(ellipse 60% 55% at 30% 40%, rgba(90, 45, 15, 0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 55% 60% at 70% 60%, rgba(70, 30, 10, 0.32) 0%, transparent 100%),
+    radial-gradient(
+      ellipse 60% 55% at 30% 40%,
+      rgba(90, 45, 15, 0.38) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 55% 60% at 70% 60%,
+      rgba(70, 30, 10, 0.32) 0%,
+      transparent 100%
+    ),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.10) 2px,
-      rgba(0, 0, 0, 0.10) 4px
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
     );
-  background-size: 160% 160%, 160% 160%, auto;
-  background-position: 20% 20%, 80% 75%, auto;
+  background-size:
+    160% 160%,
+    160% 160%,
+    auto;
+  background-position:
+    20% 20%,
+    80% 75%,
+    auto;
   animation: veil-drift 28s ease-in-out infinite;
 }
 
 .crt-overlay::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(
@@ -192,8 +316,14 @@ body::before {
 .startup-loading-card {
   border: 1px solid rgba(240, 196, 120, 0.45);
   border-radius: 14px;
-  background: linear-gradient(165deg, rgba(14, 32, 24, 0.88), rgba(9, 21, 16, 0.95));
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 240, 210, 0.06) inset;
+  background: linear-gradient(
+    165deg,
+    rgba(14, 32, 24, 0.88),
+    rgba(9, 21, 16, 0.95)
+  );
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 240, 210, 0.06) inset;
 }
 
 .startup-spinner {
@@ -203,12 +333,14 @@ body::before {
   border: 3px solid rgba(225, 196, 140, 0.25);
   border-top-color: rgba(245, 195, 92, 0.96);
   border-right-color: rgba(255, 233, 186, 0.8);
-  animation: startup-spin 0.9s linear infinite, startup-glow 1.5s ease-in-out infinite;
+  animation:
+    startup-spin 0.9s linear infinite,
+    startup-glow 1.5s ease-in-out infinite;
 }
 
 .startup-loading-title {
   margin: 0;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   letter-spacing: 0.04em;
   font-size: 1rem;
   font-weight: 700;
@@ -222,7 +354,7 @@ body::before {
 }
 
 .game-bg {
-  background-image: url('./assets/playing_area/4K_21_9.jpg');
+  background-image: url("./assets/playing_area/4K_21_9.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: bottom center;
@@ -244,8 +376,12 @@ body::before {
 /* Anchored to the rendered cover image, not the viewport. */
 .tablecloth-debug-area {
   position: absolute;
-  left: calc(var(--bg-render-left) + (var(--bg-render-width) * var(--playing-area-left)));
-  top: calc(var(--bg-render-top) + (var(--bg-render-height) * var(--playing-area-top)));
+  left: calc(
+    var(--bg-render-left) + (var(--bg-render-width) * var(--playing-area-left))
+  );
+  top: calc(
+    var(--bg-render-top) + (var(--bg-render-height) * var(--playing-area-top))
+  );
   width: calc(var(--bg-render-width) * var(--playing-area-width));
   height: calc(var(--bg-render-height) * var(--playing-area-height));
   background: rgba(255, 80, 0, 0.25);
@@ -259,15 +395,23 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 100%, rgba(60, 25, 5, 0.38), transparent 55%),
-    radial-gradient(ellipse at 50% 0%, rgba(30, 10, 0, 0.30), transparent 45%);
+    radial-gradient(
+      ellipse at 50% 100%,
+      rgba(60, 25, 5, 0.38),
+      transparent 55%
+    ),
+    radial-gradient(ellipse at 50% 0%, rgba(30, 10, 0, 0.3), transparent 45%);
 }
 
 .game-stage-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 30%, rgba(10, 4, 2, 0.72) 100%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    rgba(10, 4, 2, 0.72) 100%
+  );
 }
 
 /* ── Card face ───────────────────────────────────────────────────────────────── */
@@ -280,7 +424,10 @@ body::before {
     0 3px 12px rgba(0, 0, 0, 0.42),
     0 0 0 1px rgba(255, 255, 255, 0.18) inset,
     0 1px 0 rgba(255, 255, 255, 0.45) inset;
-  transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
   position: relative;
   overflow: hidden;
   user-select: none;
@@ -290,7 +437,7 @@ body::before {
   position: absolute;
   inset: 3px;
   border-radius: 0.42rem;
-  background-image: url('./assets/cards.png');
+  background-image: url("./assets/cards.png");
   background-repeat: no-repeat;
   background-size: 1000% 400%;
   background-position: var(--card-sprite-x) var(--card-sprite-y);
@@ -298,10 +445,15 @@ body::before {
 }
 
 .card-sprite::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), transparent 48%, rgba(0, 0, 0, 0.14));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.17),
+    transparent 48%,
+    rgba(0, 0, 0, 0.14)
+  );
   pointer-events: none;
 }
 
@@ -320,17 +472,45 @@ body::before {
 
 /* Single pass: resting → sweep → resting (for hover) */
 @keyframes gold-foil-sweep {
-  0%   { background-position: 120% 50%, 0 0; }
-  50%  { background-position: -20% 50%, 0 0; }
-  100% { background-position: 120% 50%, 0 0; }
+  0% {
+    background-position:
+      120% 50%,
+      0 0;
+  }
+  50% {
+    background-position:
+      -20% 50%,
+      0 0;
+  }
+  100% {
+    background-position:
+      120% 50%,
+      0 0;
+  }
 }
 
 /* Periodic: one sweep in the first ~5.5% of a 45 s cycle, then hold */
 @keyframes gold-foil-periodic {
-  0%    { background-position: 120% 50%, 0 0; }
-  2.78% { background-position: -20% 50%, 0 0; }
-  2.79% { background-position: 120% 50%, 0 0; } /* invisible snap back */
-  100%  { background-position: 120% 50%, 0 0; }
+  0% {
+    background-position:
+      120% 50%,
+      0 0;
+  }
+  2.78% {
+    background-position:
+      -20% 50%,
+      0 0;
+  }
+  2.79% {
+    background-position:
+      120% 50%,
+      0 0;
+  } /* invisible snap back */
+  100% {
+    background-position:
+      120% 50%,
+      0 0;
+  }
 }
 
 .card-face.briscola-card {
@@ -338,12 +518,11 @@ body::before {
     0 3px 12px rgba(0, 0, 0, 0.42),
     0 0 0 1px rgba(255, 255, 255, 0.18) inset,
     0 1px 0 rgba(255, 255, 255, 0.45) inset,
-    /* 0 0 0 1.5px rgba(251, 191, 36, 0.55), */
-    0 0 8px rgba(251, 191, 36, 0.18);
+    /* 0 0 0 1.5px rgba(251, 191, 36, 0.55), */ 0 0 8px rgba(251, 191, 36, 0.18);
 }
 
 .card-face.briscola-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -354,22 +533,26 @@ body::before {
     /* Banda luminosa scorrevole */
     linear-gradient(
       110deg,
-      transparent        30%,
+      transparent 30%,
       rgba(255, 250, 120, 0.55) 44%,
-      rgba(255, 225, 10,  0.90) 50%,
+      rgba(255, 225, 10, 0.9) 50%,
       rgba(255, 250, 120, 0.55) 56%,
-      transparent        70%
+      transparent 70%
     ),
     /* Texture a righe diagonali fini */
     repeating-linear-gradient(
-      58deg,
-      transparent                  0px,
-      rgba(255, 215, 30, 0.13)     1px,
-      transparent                  2px,
-      transparent                  6px
-    );
-  background-size: 300% 100%, 8px 8px;
-  background-position: 120% 50%, 0 0; /* resting: texture on, band off-screen */
+        58deg,
+        transparent 0px,
+        rgba(255, 215, 30, 0.13) 1px,
+        transparent 2px,
+        transparent 6px
+      );
+  background-size:
+    300% 100%,
+    8px 8px;
+  background-position:
+    120% 50%,
+    0 0; /* resting: texture on, band off-screen */
   animation: gold-foil-periodic 30s linear infinite;
 }
 
@@ -419,10 +602,21 @@ body::before {
   position: relative;
   margin-left: var(--layout-player-hand-overlap);
   transform-origin: bottom center;
-  transform:
-    translateY(calc(var(--layout-player-hand-translate-base) + (var(--hand-offset-abs, 0) * var(--layout-player-hand-translate-offset-factor))))
-    rotate(calc(var(--hand-offset, 0) * var(--layout-player-hand-rotate-factor)));
-  transition: transform 0.18s ease, margin 0.18s ease;
+  transform: translateY(
+      calc(
+        var(--layout-player-hand-translate-base) +
+          (
+            var(--hand-offset-abs, 0) *
+              var(--layout-player-hand-translate-offset-factor)
+          )
+      )
+    )
+    rotate(
+      calc(var(--hand-offset, 0) * var(--layout-player-hand-rotate-factor))
+    );
+  transition:
+    transform 0.18s ease,
+    margin 0.18s ease;
 }
 
 .hand-card-slot:first-child {
@@ -430,9 +624,12 @@ body::before {
 }
 
 .hand-card-slot:hover {
-  transform:
-    translateY(var(--layout-player-hand-hover-translate))
-    rotate(calc(var(--hand-offset, 0) * var(--layout-player-hand-hover-rotate-factor)))
+  transform: translateY(var(--layout-player-hand-hover-translate))
+    rotate(
+      calc(
+        var(--hand-offset, 0) * var(--layout-player-hand-hover-rotate-factor)
+      )
+    )
     scale(var(--layout-player-hand-hover-scale));
   z-index: 25;
 }
@@ -440,34 +637,77 @@ body::before {
 /* ── Winning card ───────────────────────────────────────────────────────────── */
 
 @keyframes card-win-trill {
-  0%   { rotate:  0deg; }
-  10%  { rotate: -6deg; translate: -1px -2px; }
-  25%  { rotate:  6deg; translate:  1px -2px; }
-  40%  { rotate: -4deg; translate: -1px  0; }
-  55%  { rotate:  3deg; translate:  1px  0; }
-  70%  { rotate: -2deg; translate:  0    0; }
-  85%  { rotate:  1deg; }
-  100% { rotate:  0deg; translate: 0 0; }
+  0% {
+    rotate: 0deg;
+  }
+  10% {
+    rotate: -6deg;
+    translate: -1px -2px;
+  }
+  25% {
+    rotate: 6deg;
+    translate: 1px -2px;
+  }
+  40% {
+    rotate: -4deg;
+    translate: -1px 0;
+  }
+  55% {
+    rotate: 3deg;
+    translate: 1px 0;
+  }
+  70% {
+    rotate: -2deg;
+    translate: 0 0;
+  }
+  85% {
+    rotate: 1deg;
+  }
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
 }
 
 @keyframes card-win-glow {
-  0%   { filter: drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
-  18%  { filter: drop-shadow(0 0 14px rgba(251,191,36,0.95)) drop-shadow(0 7px 14px rgba(0,0,0,0.5)); }
-  60%  { filter: drop-shadow(0 0 8px rgba(251,191,36,0.55)) drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
-  100% { filter: drop-shadow(0 7px 10px rgba(0,0,0,0.45)); }
+  0% {
+    filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.45));
+  }
+  18% {
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.95))
+      drop-shadow(0 7px 14px rgba(0, 0, 0, 0.5));
+  }
+  60% {
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55))
+      drop-shadow(0 7px 10px rgba(0, 0, 0, 0.45));
+  }
+  100% {
+    filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.45));
+  }
 }
 
 .winning-card {
   animation:
     card-win-trill 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both,
-    card-win-glow  2s ease-in-out both;
+    card-win-glow 2s ease-in-out both;
   z-index: 10;
 }
 
 @keyframes card-collect {
-  0%   { scale: 1;    opacity: 1; translate: 0 0; }
-  18%  { scale: 1.08; opacity: 1; }
-  100% { scale: 0.3;  opacity: 0; translate: var(--collect-x, 0px) var(--collect-y, 0px); }
+  0% {
+    scale: 1;
+    opacity: 1;
+    translate: 0 0;
+  }
+  18% {
+    scale: 1.08;
+    opacity: 1;
+  }
+  100% {
+    scale: 0.3;
+    opacity: 0;
+    translate: var(--collect-x, 0px) var(--collect-y, 0px);
+  }
 }
 
 .collecting-card {
@@ -493,9 +733,8 @@ body::before {
 }
 
 .table-card-slot {
-  filter:
-    drop-shadow(0 10px 18px rgba(0, 0, 0, 0.60))
-    drop-shadow(0 2px 5px rgba(0, 0, 0, 0.40));
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
 }
 
 /* ── Card back ──────────────────────────────────────────────────────────────── */
@@ -504,7 +743,13 @@ body::before {
   border-radius: 0.5rem;
   border: 1.5px solid rgba(232, 185, 102, 0.36);
   background:
-    repeating-linear-gradient(45deg, rgba(232, 185, 102, 0.1) 0, rgba(232, 185, 102, 0.1) 2px, transparent 2px, transparent 10px),
+    repeating-linear-gradient(
+      45deg,
+      rgba(232, 185, 102, 0.1) 0,
+      rgba(232, 185, 102, 0.1) 2px,
+      transparent 2px,
+      transparent 10px
+    ),
     radial-gradient(circle at 50% 50%, rgba(173, 25, 57, 0.4), transparent 65%),
     linear-gradient(135deg, #201125, #5a1431);
   box-shadow: 0 3px 9px rgba(0, 0, 0, 0.46);
@@ -528,14 +773,20 @@ body::before {
   pointer-events: none;
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
-  border: 1px solid color-mix(in srgb, var(--briscola-accent, #fbbf24) 48%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--briscola-accent, #fbbf24) 48%, transparent);
   background:
-    radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--briscola-accent, #fbbf24) 34%, transparent), transparent 56%),
+    radial-gradient(
+      circle at 20% 18%,
+      color-mix(in srgb, var(--briscola-accent, #fbbf24) 34%, transparent),
+      transparent 56%
+    ),
     linear-gradient(160deg, rgba(11, 32, 23, 0.97), rgba(8, 22, 16, 0.95));
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.52),
     0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-    0 0 30px color-mix(in srgb, var(--briscola-accent, #fbbf24) 28%, transparent);
+    0 0 30px
+      color-mix(in srgb, var(--briscola-accent, #fbbf24) 28%, transparent);
   backface-visibility: hidden;
   will-change: transform, opacity;
   transition:
@@ -550,7 +801,7 @@ body::before {
 
 .briscola-reveal-title {
   color: #f3ead5;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.15rem, 2.2vw, 2rem);
   font-weight: 700;
   line-height: 1.15;
@@ -566,7 +817,9 @@ body::before {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--briscola-accent, #fbbf24) 70%, #f3ead5);
-  transition: opacity 220ms ease, margin-top 220ms ease;
+  transition:
+    opacity 220ms ease,
+    margin-top 220ms ease;
 }
 
 .briscola-reveal-icon {
@@ -618,8 +871,16 @@ body::before {
 
 /* ── Text glows ─────────────────────────────────────────────────────────────── */
 
-.glow-gold { text-shadow: 0 0 14px rgba(251, 191, 36, 0.8), 0 0 28px rgba(251, 191, 36, 0.35); }
-.glow-green { text-shadow: 0 0 14px rgba(34, 197, 94, 0.8), 0 0 28px rgba(34, 197, 94, 0.35); }
+.glow-gold {
+  text-shadow:
+    0 0 14px rgba(251, 191, 36, 0.8),
+    0 0 28px rgba(251, 191, 36, 0.35);
+}
+.glow-green {
+  text-shadow:
+    0 0 14px rgba(34, 197, 94, 0.8),
+    0 0 28px rgba(34, 197, 94, 0.35);
+}
 
 /* ── Responsive tuning ──────────────────────────────────────────────────────── */
 
@@ -650,33 +911,69 @@ body::before {
 /* ── Home screen ─────────────────────────────────────────────────────────────── */
 
 @keyframes letter-drift-a {
-  0%   { transform: translate(0,      0); }
-  30%  { transform: translate(1.3px, -5.8px); }
-  65%  { transform: translate(-0.6px, -3.2px); }
-  100% { transform: translate(0,      0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  30% {
+    transform: translate(1.3px, -5.8px);
+  }
+  65% {
+    transform: translate(-0.6px, -3.2px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes letter-drift-b {
-  0%   { transform: translate(0,      0); }
-  35%  { transform: translate(-1.3px, -6.4px); }
-  70%  { transform: translate(1.0px,  -3.8px); }
-  100% { transform: translate(0,      0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  35% {
+    transform: translate(-1.3px, -6.4px);
+  }
+  70% {
+    transform: translate(1px, -3.8px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes letter-drift-c {
-  0%   { transform: translate(0,     0); }
-  20%  { transform: translate(1.0px, -3.0px); }
-  55%  { transform: translate(-1.4px, -6.0px); }
-  80%  { transform: translate(0.5px, -2.0px); }
-  100% { transform: translate(0,     0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(1px, -3px);
+  }
+  55% {
+    transform: translate(-1.4px, -6px);
+  }
+  80% {
+    transform: translate(0.5px, -2px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 @keyframes letter-drift-d {
-  0%   { transform: translate(0,      0); }
-  25%  { transform: translate(-0.8px, -5.0px); }
-  60%  { transform: translate(1.5px,  -2.5px); }
-  85%  { transform: translate(-0.4px, -4.5px); }
-  100% { transform: translate(0,      0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-0.8px, -5px);
+  }
+  60% {
+    transform: translate(1.5px, -2.5px);
+  }
+  85% {
+    transform: translate(-0.4px, -4.5px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .title-word {
@@ -688,7 +985,7 @@ body::before {
 }
 
 .title-letter {
-  font-family: 'Houstonville', serif;
+  font-family: "Houstonville", serif;
   font-size: clamp(4.6rem, 14.95vw, 9.2rem);
   color: #6b1c0e;
   display: inline-block;
@@ -706,13 +1003,15 @@ body::before {
   border-radius: 0.3rem;
   padding: 0.4rem 1rem;
   text-align: center;
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: 1.65rem;
   font-style: italic;
   color: #4a1808;
   outline: none;
   backdrop-filter: blur(6px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .home-name-input::placeholder {
@@ -726,11 +1025,22 @@ body::before {
 }
 
 @keyframes input-shake {
-  0%, 100% { transform: translateX(0); }
-  22%  { transform: translateX(-7px); }
-  44%  { transform: translateX( 7px); }
-  66%  { transform: translateX(-4px); }
-  88%  { transform: translateX( 3px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  22% {
+    transform: translateX(-7px);
+  }
+  44% {
+    transform: translateX(7px);
+  }
+  66% {
+    transform: translateX(-4px);
+  }
+  88% {
+    transform: translateX(3px);
+  }
 }
 
 .home-name-input.shake {
@@ -742,7 +1052,7 @@ body::before {
   align-items: center;
   gap: 1.1rem;
   cursor: pointer;
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: clamp(1.8rem, 4vw, 2.8rem);
   color: #5c1a0a;
   user-select: none;
@@ -772,7 +1082,7 @@ body::before {
 }
 
 .home-back-btn {
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: 1rem;
   font-style: italic;
   color: rgba(100, 40, 14, 0.62);
@@ -798,7 +1108,7 @@ body::before {
 }
 
 .lobby-heading {
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: clamp(1.7rem, 4vw, 2.6rem);
   color: #5c1a0a;
   letter-spacing: 0.04em;
@@ -807,7 +1117,7 @@ body::before {
 }
 
 .lobby-hint {
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: 0.9rem;
   font-style: italic;
   color: rgba(100, 40, 14, 0.62);
@@ -825,7 +1135,9 @@ body::before {
   text-align: center;
   cursor: pointer;
   backdrop-filter: blur(4px);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .lobby-code-box:hover {
@@ -834,7 +1146,7 @@ body::before {
 }
 
 .lobby-code-label {
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: 0.75rem;
   font-style: italic;
   color: rgba(100, 40, 14, 0.52);
@@ -844,7 +1156,7 @@ body::before {
 }
 
 .lobby-code-value {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 1.35rem;
   font-weight: 700;
   color: #5c1a0a;
@@ -869,7 +1181,8 @@ body::before {
   flex-direction: column;
   align-items: center;
   gap: var(--layout-lobby-seat-card-gap);
-  padding: var(--layout-lobby-seat-card-padding-y) var(--layout-lobby-seat-card-padding-x);
+  padding: var(--layout-lobby-seat-card-padding-y)
+    var(--layout-lobby-seat-card-padding-x);
   text-align: center;
   border-radius: 0.5rem;
   transition: background 0.15s ease;
@@ -884,10 +1197,18 @@ body::before {
   outline-offset: 1px;
 }
 
-.lobby-seat-top    { grid-area: top; }
-.lobby-seat-bottom { grid-area: bottom; }
-.lobby-seat-left   { grid-area: left; }
-.lobby-seat-right  { grid-area: right; }
+.lobby-seat-top {
+  grid-area: top;
+}
+.lobby-seat-bottom {
+  grid-area: bottom;
+}
+.lobby-seat-left {
+  grid-area: left;
+}
+.lobby-seat-right {
+  grid-area: right;
+}
 
 .lobby-avatar {
   width: var(--layout-lobby-avatar-size);
@@ -898,7 +1219,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-weight: 700;
   font-size: 1.25rem;
   color: var(--team-color, #5c1a0a);
@@ -921,7 +1242,7 @@ body::before {
 }
 
 .lobby-seat-name {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.68rem;
   font-weight: 600;
   color: #5c1a0a;
@@ -944,7 +1265,7 @@ body::before {
 }
 
 .lobby-seat-empty {
-  font-family: 'IM Fell English', serif;
+  font-family: "IM Fell English", serif;
   font-size: 0.75rem;
   font-style: italic;
   color: rgba(100, 40, 14, 0.36);
@@ -972,7 +1293,7 @@ body::before {
 .lobby-btn {
   width: 100%;
   padding: 0.7rem 1rem;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-weight: 700;
   font-size: 0.88rem;
   letter-spacing: 0.1em;
@@ -982,7 +1303,10 @@ body::before {
   color: #5c1a0a;
   cursor: pointer;
   backdrop-filter: blur(3px);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .lobby-btn:hover:not(:disabled) {
@@ -1006,4 +1330,3 @@ body::before {
   background: rgba(160, 42, 14, 0.88);
   border-color: rgba(160, 42, 14, 0.65);
 }
-

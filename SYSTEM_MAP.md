@@ -5,6 +5,7 @@ Frontend contract for `game/frontend`.
 ## 2.1 State Model
 
 ### Central state model
+
 Authority: `game/frontend/src/state/gameStore.ts`
 
 - `connected`: websocket connectivity flag.
@@ -38,6 +39,7 @@ Authority: `game/frontend/src/state/gameStore.ts`
 - `turnDeadline`: server deadline for the active turn.
 
 ### Allowed local UI state
+
 Authority: hook-local or component-local view state only.
 
 - `HomeScreen.selectedOption`: keyboard/hover menu selection.
@@ -57,6 +59,7 @@ Authority: hook-local or component-local view state only.
 ## 2.2 Component Tree
 
 ### App shell
+
 - `App`
   props: none
   state read: `displayedScreen`, `screenTransitionPhase`, `backendStatus`
@@ -64,6 +67,7 @@ Authority: hook-local or component-local view state only.
   children: `HomeScreen | LobbyScreen | GameScreen | GameOverScreen`, `ConnectionStatus`
 
 ### Home flow
+
 - `HomeScreen`
   props: none
   state read: `playerName`, `error`; local `selectedOption`, `showJoinPanel`, `roomCode`
@@ -71,6 +75,7 @@ Authority: hook-local or component-local view state only.
   children: none
 
 ### Lobby flow
+
 - `LobbyScreen`
   props: none
   state read: `roomId`, `mySeat`, `isOwner`, `ownerSeat`, `lobbyPlayers`; local `swapPendingSeat`, `copied`
@@ -78,6 +83,7 @@ Authority: hook-local or component-local view state only.
   children: none
 
 ### Game flow
+
 - `GameScreen`
   props: none
   state read: `mySeat`, `players`, `myHand`, `phase`, `briscola`, `briscolaAnnouncement`, `currentPlayerSeat`, `tableCards`, `turnResultWinnerSeat`, `lastTrickCards`, `totalScores`, `notification`, `currentDeclaration`, `turnDeadline`; local `showForfeitConfirm`, `pendingDeclaration`, `drag`, `briscolaIntro`, `briscolaGifMeta`, `now`
@@ -133,6 +139,7 @@ Authority: hook-local or component-local view state only.
   children: none
 
 ### Game over flow
+
 - `GameOverScreen`
   props: none
   state read: `gameOverData`, `mySeat`
@@ -144,174 +151,174 @@ Authority: hook-local or component-local view state only.
 ### Central state flow
 
 `connected`:
-  read by: [`ConnectionStatus`]
-  written by: [`gameConnection.onStateChange`]
+read by: [`ConnectionStatus`]
+written by: [`gameConnection.onStateChange`]
 
 `roomId`:
-  read by: [`LobbyScreen`, `gameConnection.getReconnectContext`]
-  written by: [`createRoom`, `joinRoom`, `restoreSession`]
+read by: [`LobbyScreen`, `gameConnection.getReconnectContext`]
+written by: [`createRoom`, `joinRoom`, `restoreSession`]
 
 `mySeat`:
-  read by: [`LobbyScreen`, `GameScreen`, `GameOverScreen`]
-  written by: [`_processMessage.joined`, `_processMessage.reconnected`, `_processMessage.seats_swapped`]
+read by: [`LobbyScreen`, `GameScreen`, `GameOverScreen`]
+written by: [`_processMessage.joined`, `_processMessage.reconnected`, `_processMessage.seats_swapped`]
 
 `playerName`:
-  read by: [`HomeScreen`, `login`, `createRoom`, `_connect`, `restoreSession`]
-  written by: [`setPlayerName`, `login`, `restoreSession`, `reset`, `_processMessage.kicked`]
+read by: [`HomeScreen`, `login`, `createRoom`, `_connect`, `restoreSession`]
+written by: [`setPlayerName`, `login`, `restoreSession`, `reset`, `_processMessage.kicked`]
 
 `uuid`:
-  read by: [`login`, `_connect`, `restoreSession`]
-  written by: [`login`, `restoreSession`, `reset`, `_processMessage.kicked`]
+read by: [`login`, `_connect`, `restoreSession`]
+written by: [`login`, `restoreSession`, `reset`, `_processMessage.kicked`]
 
 `isOwner`:
-  read by: [`LobbyScreen`]
-  written by: [`_processMessage.joined`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
+read by: [`LobbyScreen`]
+written by: [`_processMessage.joined`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
 
 `ownerSeat`:
-  read by: [`LobbyScreen`]
-  written by: [`_processMessage.joined`, `_processMessage.player_joined`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
+read by: [`LobbyScreen`]
+written by: [`_processMessage.joined`, `_processMessage.player_joined`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
 
 `screen`:
-  read by: [`App`, `gameConnection.getReconnectContext`]
-  written by: [`_processMessage.joined`, `_processMessage.reconnected`, `_processMessage.game_started`, `_processMessage.game_over`, `reset`, `_processMessage.kicked`]
+read by: [`App`, `gameConnection.getReconnectContext`]
+written by: [`_processMessage.joined`, `_processMessage.reconnected`, `_processMessage.game_started`, `_processMessage.game_over`, `reset`, `_processMessage.kicked`]
 
 `displayedScreen`:
-  read by: [`App`]
-  written by: [`completeScreenTransition`, `reset`, `_processMessage.kicked`]
+read by: [`App`]
+written by: [`completeScreenTransition`, `reset`, `_processMessage.kicked`]
 
 `screenTransitionPhase`:
-  read by: [`App`]
-  written by: [`beginScreenTransition`, `completeScreenTransition`, `reset`, `_processMessage.kicked`]
+read by: [`App`]
+written by: [`beginScreenTransition`, `completeScreenTransition`, `reset`, `_processMessage.kicked`]
 
 `backendStatus`:
-  read by: [`App`, `reset`, `_processMessage.kicked`]
-  written by: [`useAppBootstrap -> setBackendStatus`]
+read by: [`App`, `reset`, `_processMessage.kicked`]
+written by: [`useAppBootstrap -> setBackendStatus`]
 
 `lobbyPlayers`:
-  read by: [`LobbyScreen`]
-  written by: [`_processMessage.joined`, `_processMessage.player_joined`, `_processMessage.game_started`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
+read by: [`LobbyScreen`]
+written by: [`_processMessage.joined`, `_processMessage.player_joined`, `_processMessage.game_started`, `_processMessage.seats_swapped`, `_processMessage.player_left`, `_processMessage.owner_changed`]
 
 `phase`:
-  read by: [`GameScreen`, `useBriscolaIntro`]
-  written by: [`_processMessage.game_state`]
+read by: [`GameScreen`, `useBriscolaIntro`]
+written by: [`_processMessage.game_state`]
 
 `briscola`:
-  read by: [`GameScreen`, `TableArea`, `Card`, `useBriscolaIntro`]
-  written by: [`_processMessage.game_state`, `_processMessage.briscola_set`]
+read by: [`GameScreen`, `TableArea`, `Card`, `useBriscolaIntro`]
+written by: [`_processMessage.game_state`, `_processMessage.briscola_set`]
 
 `currentPlayerSeat`:
-  read by: [`GameScreen`]
-  written by: [`_processMessage.game_state`]
+read by: [`GameScreen`]
+written by: [`_processMessage.game_state`]
 
 `tableCards`:
-  read by: [`GameScreen`, `TableArea`]
-  written by: [`_processMessage.game_state`, `_processMessage.card_played`]
+read by: [`GameScreen`, `TableArea`]
+written by: [`_processMessage.game_state`, `_processMessage.card_played`]
 
 `lastTrickCards`:
-  read by: [`GameScreen`]
-  written by: [`_processMessage.game_started`, `_processMessage.game_state`, `_processMessage.turn_result`]
+read by: [`GameScreen`]
+written by: [`_processMessage.game_started`, `_processMessage.game_state`, `_processMessage.turn_result`]
 
 `myHand`:
-  read by: [`GameScreen`]
-  written by: [`_processMessage.game_state`, `_processMessage.card_played`]
+read by: [`GameScreen`]
+written by: [`_processMessage.game_state`, `_processMessage.card_played`]
 
 `players`:
-  read by: [`GameScreen`]
-  written by: [`_processMessage.game_state`, `_processMessage.player_disconnected`]
+read by: [`GameScreen`]
+written by: [`_processMessage.game_state`, `_processMessage.player_disconnected`]
 
 `totalScores`:
-  read by: [`GameScreen`]
-  written by: [`_processMessage.game_state`, `_processMessage.maraffa`]
+read by: [`GameScreen`]
+written by: [`_processMessage.game_state`, `_processMessage.maraffa`]
 
 `turnResultWinnerSeat`:
-  read by: [`GameScreen`, `TableArea`]
-  written by: [`_processMessage.game_state`, `_processMessage.turn_result`]
+read by: [`GameScreen`, `TableArea`]
+written by: [`_processMessage.game_state`, `_processMessage.turn_result`]
 
 `briscolaAnnouncement`:
-  read by: [`GameScreen`, `useBriscolaIntro`]
-  written by: [`_processMessage.briscola_set`]
+read by: [`GameScreen`, `useBriscolaIntro`]
+written by: [`_processMessage.briscola_set`]
 
 `currentDeclaration`:
-  read by: [`GameScreen`, `PlayerArea`]
-  written by: [`_processMessage.game_state`, `_processMessage.card_played`]
+read by: [`GameScreen`, `PlayerArea`]
+written by: [`_processMessage.game_state`, `_processMessage.card_played`]
 
 `notification`:
-  read by: [`GameScreen`, `Notification`]
-  written by: [`showNotification`, `dismissNotification`, `_processMessage.briscola_set`, `_processMessage.maraffa`, `_processMessage.turn_result`, `_processMessage.round_end`, `_processMessage.card_played`, `_processMessage.player_timeout`]
+read by: [`GameScreen`, `Notification`]
+written by: [`showNotification`, `dismissNotification`, `_processMessage.briscola_set`, `_processMessage.maraffa`, `_processMessage.turn_result`, `_processMessage.round_end`, `_processMessage.card_played`, `_processMessage.player_timeout`]
 
 `gameOverData`:
-  read by: [`GameOverScreen`]
-  written by: [`_processMessage.game_over`]
+read by: [`GameOverScreen`]
+written by: [`_processMessage.game_over`]
 
 `error`:
-  read by: [`HomeScreen`]
-  written by: [`login`, `createRoom`, `gameConnection.onStateChange`, `_processMessage.kicked`, `_processMessage.error`]
+read by: [`HomeScreen`]
+written by: [`login`, `createRoom`, `gameConnection.onStateChange`, `_processMessage.kicked`, `_processMessage.error`]
 
 `pingMs`:
-  read by: [`ConnectionStatus`]
-  written by: [`gameConnection.onStateChange`, `_processMessage.pong`]
+read by: [`ConnectionStatus`]
+written by: [`gameConnection.onStateChange`, `_processMessage.pong`]
 
 `pingStatus`:
-  read by: [`ConnectionStatus`]
-  written by: [`gameConnection.onStateChange`, `_processMessage.pong`]
+read by: [`ConnectionStatus`]
+written by: [`gameConnection.onStateChange`, `_processMessage.pong`]
 
 `turnDeadline`:
-  read by: [`GameScreen`, `useTurnCountdown`]
-  written by: [`_processMessage.game_state`, `_processMessage.game_over`, `_processMessage.player_timeout`]
+read by: [`GameScreen`, `useTurnCountdown`]
+written by: [`_processMessage.game_state`, `_processMessage.game_over`, `_processMessage.player_timeout`]
 
 ### Local state flow
 
 `HomeScreen.selectedOption`:
-  read by: [`HomeScreen`]
-  written by: [`HomeScreen keyboard handler`, `HomeScreen onMouseEnter`]
+read by: [`HomeScreen`]
+written by: [`HomeScreen keyboard handler`, `HomeScreen onMouseEnter`]
 
 `HomeScreen.showJoinPanel`:
-  read by: [`HomeScreen`]
-  written by: [`HomeScreen.handleActivateOption`, `HomeScreen.handleCloseJoinPanel`]
+read by: [`HomeScreen`]
+written by: [`HomeScreen.handleActivateOption`, `HomeScreen.handleCloseJoinPanel`]
 
 `HomeScreen.roomCode`:
-  read by: [`HomeScreen`, `HomeScreen.handleJoinRoom`]
-  written by: [`HomeScreen room-code input`, `HomeScreen.handleCloseJoinPanel`]
+read by: [`HomeScreen`, `HomeScreen.handleJoinRoom`]
+written by: [`HomeScreen room-code input`, `HomeScreen.handleCloseJoinPanel`]
 
 `LobbyScreen.swapPendingSeat`:
-  read by: [`LobbyScreen`]
-  written by: [`LobbyScreen.handleSeatClick`]
+read by: [`LobbyScreen`]
+written by: [`LobbyScreen.handleSeatClick`]
 
 `LobbyScreen.copied`:
-  read by: [`LobbyScreen`]
-  written by: [`LobbyScreen.handleCopyRoomId`]
+read by: [`LobbyScreen`]
+written by: [`LobbyScreen.handleCopyRoomId`]
 
 `useGameScreenController.showForfeitConfirm`:
-  read by: [`GameScreen`]
-  written by: [`useGameScreenController.handleOpenForfeitConfirm`, `useGameScreenController.handleCancelForfeit`, `useGameScreenController.handleConfirmForfeit`]
+read by: [`GameScreen`]
+written by: [`useGameScreenController.handleOpenForfeitConfirm`, `useGameScreenController.handleCancelForfeit`, `useGameScreenController.handleConfirmForfeit`]
 
 `useGameScreenController.pendingDeclaration`:
-  read by: [`GameScreen`]
-  written by: [`useGameScreenController.handleToggleDeclaration`, `useGameScreenController.handleCardClick`, `useGameScreenController.handlePointerUp`]
+read by: [`GameScreen`]
+written by: [`useGameScreenController.handleToggleDeclaration`, `useGameScreenController.handleCardClick`, `useGameScreenController.handlePointerUp`]
 
 `useGameScreenController.drag`:
-  read by: [`GameScreen`]
-  written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenController.handlePointerMove`, `useGameScreenController.handlePointerUp`, `useGameScreenController.handlePointerCancel`]
+read by: [`GameScreen`]
+written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenController.handlePointerMove`, `useGameScreenController.handlePointerUp`, `useGameScreenController.handlePointerCancel`]
 
 `useBriscolaIntro.briscolaIntro`:
-  read by: [`GameScreen`]
-  written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`, `useBriscolaIntro.handleBriscolaGifPlaybackComplete`]
+read by: [`GameScreen`]
+written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`, `useBriscolaIntro.handleBriscolaGifPlaybackComplete`]
 
 `useBriscolaIntro.briscolaGifMeta`:
-  read by: [`GameScreen`]
-  written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`]
+read by: [`GameScreen`]
+written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`]
 
 `useTurnCountdown.now`:
-  read by: [`useTurnCountdown`]
-  written by: [`useTurnCountdown interval effect`]
+read by: [`useTurnCountdown`]
+written by: [`useTurnCountdown interval effect`]
 
 `TableArea.collecting`:
-  read by: [`TableArea`]
-  written by: [`TableArea table clear effect`]
+read by: [`TableArea`]
+written by: [`TableArea table clear effect`]
 
 `BriscolaSuitGif.fallbackToImg`:
-  read by: [`BriscolaSuitGif`]
-  written by: [`BriscolaSuitGif asset decode effect`]
+read by: [`BriscolaSuitGif`]
+written by: [`BriscolaSuitGif asset decode effect`]
 
 ## 2.4 Layout Authority
 

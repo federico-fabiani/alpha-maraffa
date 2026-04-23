@@ -979,14 +979,15 @@ body::before {
 .title-word {
   display: flex;
   align-items: flex-end;
-  gap: 0.46em;
+  gap: var(--layout-home-title-gap);
   user-select: none;
   line-height: 1;
+  margin-bottom: var(--layout-home-title-bottom-spacing);
 }
 
 .title-letter {
   font-family: "Houstonville", serif;
-  font-size: clamp(4.6rem, 14.95vw, 9.2rem);
+  font-size: var(--layout-home-title-font-size);
   color: #6b1c0e;
   display: inline-block;
   line-height: 1;
@@ -994,6 +995,37 @@ body::before {
   backface-visibility: hidden;
   text-shadow: 3px 3px 0 rgba(20, 4, 2, 0.35);
   /* filter applied per-letter inline with unique SVG filter ID */
+}
+
+.home-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.home-action-cluster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--layout-home-panel-gap);
+  width: 100%;
+}
+
+.home-demo-badge {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.home-demo-badge,
+.title-word,
+.home-menu-item,
+.home-join-helper,
+.home-back-btn,
+.home-error-message {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .home-name-input {
@@ -1004,7 +1036,7 @@ body::before {
   padding: 0.4rem 1rem;
   text-align: center;
   font-family: "IM Fell English", serif;
-  font-size: 1.65rem;
+  font-size: var(--layout-home-input-font-size);
   font-style: italic;
   color: #4a1808;
   outline: none;
@@ -1048,17 +1080,25 @@ body::before {
 }
 
 .home-menu-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) auto;
   align-items: center;
-  gap: 1.1rem;
+  justify-content: center;
+  gap: var(--layout-home-menu-item-gap);
   cursor: pointer;
   font-family: "IM Fell English", serif;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-size: var(--layout-home-menu-item-font-size);
   color: #5c1a0a;
   user-select: none;
-  padding: 0.28rem 0.4rem;
+  padding: var(--layout-home-menu-item-padding);
   letter-spacing: 0.03em;
   transition: color 0.12s ease;
+  text-align: center;
+}
+
+.home-menu-label {
+  white-space: nowrap;
+  line-height: 1.05;
 }
 
 .home-menu-item:hover {
@@ -1096,6 +1136,133 @@ body::before {
 .home-back-btn:hover {
   color: #5c1a0a;
 }
+
+.home-join-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: var(--layout-home-join-panel-gap);
+}
+
+.home-join-helper {
+  margin: 0;
+  font-family: "IM Fell English", serif;
+  font-size: var(--layout-home-join-helper-font-size);
+  font-style: italic;
+  color: rgba(92, 26, 10, 0.82);
+  letter-spacing: 0.02em;
+  max-width: min(100%, 34rem);
+  line-height: 1.15;
+}
+
+.home-join-helper strong {
+  font-style: normal;
+  font-weight: 700;
+  color: #5c1a0a;
+}
+
+.home-join-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--layout-home-join-row-gap);
+  width: 100%;
+}
+
+.home-table-code-input {
+  min-width: 0;
+  padding-inline: 0.8rem;
+  font-style: normal;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.home-table-code-input::placeholder {
+  color: rgba(100, 48, 18, 0.42);
+  font-style: normal;
+  letter-spacing: 0.14em;
+}
+
+.home-join-submit {
+  background: none;
+  border: none;
+}
+
+.home-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.35rem;
+  min-width: calc(var(--layout-home-join-back-font-size) * 4.6);
+  min-height: calc(var(--layout-home-join-back-font-size) * 2.1);
+  color: rgba(100, 40, 14, 0.68);
+}
+
+.home-back-arrow {
+  width: calc(var(--layout-home-join-back-font-size) * 4.2);
+  height: calc(var(--layout-home-join-back-font-size) * 1.45);
+  display: block;
+  background-color: currentColor;
+  -webkit-mask-image: url("./assets/back-arrow.svg");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-image: url("./assets/back-arrow.svg");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  opacity: 0.8;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease;
+  transform: translateY(12%);
+}
+
+.home-hover-arrow {
+  opacity: 0;
+}
+
+.home-join-submit:hover .home-hover-arrow,
+.home-join-submit:focus-visible .home-hover-arrow,
+.home-back-link:hover .home-hover-arrow,
+.home-back-link:focus-visible .home-hover-arrow {
+  opacity: 1;
+}
+
+.home-back-link:hover .home-back-arrow,
+.home-back-link:focus-visible .home-back-arrow {
+  opacity: 1;
+}
+
+.home-back-link:hover,
+.home-back-link:focus-visible {
+  color: #7a2210;
+}
+
+.home-menu-side-by-side .home-menu-item {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.app-rustic-background {
+  background-size: var(--layout-shell-rustic-background-size);
+  background-position: var(--layout-shell-rustic-background-position);
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-shell-root:not([data-home-focus-centered="true"]) .app-rustic-background {
+    background-size: var(--layout-shell-rustic-background-size-compact);
+    background-position: var(--layout-shell-rustic-background-position-compact);
+  }
+
+  .home-demo-badge {
+    opacity: 0;
+    transform: translateY(-0.4rem) scale(0.92);
+  }
+}
+
 
 /* ── Lobby rustic ─────────────────────────────────────────────────────────────── */
 

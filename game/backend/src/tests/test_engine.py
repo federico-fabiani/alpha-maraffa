@@ -196,11 +196,11 @@ def test_room_manager_purge_keeps_active_rooms():
 
 
 def test_room_code_format():
-    """Generated room codes must follow the ADJECTIVE-ANIMAL-NN pattern."""
+    """Generated room codes must be 4 uppercase chars without ambiguous glyphs."""
     code = generate_room_code()
-    parts = code.split("-")
-    assert len(parts) == 3
-    assert parts[2].isdigit()
+    assert len(code) == 4
+    assert code.isupper()
+    assert all(character in "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" for character in code)
 
 
 # ── Full game loop (engine only, no WebSocket) ─────────────────────────────────

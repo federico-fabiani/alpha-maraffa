@@ -11,7 +11,7 @@ import LobbyScreen from "./screens/LobbyScreen";
 import GameScreen from "./screens/GameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
 import ConnectionStatus from "./components/ConnectionStatus";
-import backgroundImg from "./assets/background.png";
+import backgroundImg from "./assets/homepage/background.jpg";
 
 const screens = {
   home: HomeScreen,
@@ -61,7 +61,10 @@ export default function App() {
   const contentVisible = screenTransitionPhase === "visible";
 
   return (
-    <div style={{ ...APP_SHELL_LAYOUT_STYLES.root, ...layoutCssVariables }}>
+    <div
+      className="app-shell-root"
+      style={{ ...APP_SHELL_LAYOUT_STYLES.root, ...layoutCssVariables }}
+    >
       <div
         className={backendReady ? "" : "pointer-events-none select-none"}
         style={{
@@ -73,6 +76,7 @@ export default function App() {
       >
         {/* Persistent rustic background — visible for home and lobby */}
         <div
+          className="app-rustic-background"
           style={{
             ...APP_SHELL_LAYOUT_STYLES.background,
             backgroundImage: `url(${backgroundImg})`,

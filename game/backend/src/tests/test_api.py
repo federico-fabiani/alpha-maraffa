@@ -24,7 +24,9 @@ def test_create_room_returns_room_id():
     data = res.json()
     assert "room_id" in data
     assert isinstance(data["room_id"], str)
-    assert len(data["room_id"]) > 0
+    assert len(data["room_id"]) == 4
+    assert data["room_id"].isupper()
+    assert all(character in "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" for character in data["room_id"])
 
 
 def test_create_room_default_name():

@@ -7,6 +7,10 @@ export const APP_LAYOUT = {
     inactiveBlurRadius: "7px",
     screenFadeDurationMs: 380,
     backgroundFadeDurationMs: 550,
+    rusticBackgroundSize: "auto 100%",
+    rusticBackgroundPosition: "center center",
+    rusticBackgroundCompactLandscapeSize: "132% auto",
+    rusticBackgroundCompactLandscapePosition: "50% 38%",
     startupRetryMs: 1200,
     connectionInset: {
       bottom: "0.5rem",
@@ -20,16 +24,100 @@ export const APP_LAYOUT = {
     startupSpinnerSize: "54px",
   },
   home: {
+    backgroundAspectRatio: 21 / 9,
+    compactLandscapeMaxHeight: 500,
+    compactLandscapeBackgroundScale: 1.24,
+    compactLandscapeBackgroundAnchorY: 0.38,
+    contentRect: {
+      x: 0.245,
+      y: 0.2,
+      width: 0.509,
+      height: 0.58,
+    },
+    contentPadding: {
+      top: {
+        ratio: 0.05,
+        minPx: 1,
+        maxPx: 34,
+      },
+      right: {
+        ratio: 0.08,
+        minPx: 10,
+        maxPx: 42,
+      },
+      bottom: {
+        ratio: 0.08,
+        minPx: 10,
+        maxPx: 42,
+      },
+      left: {
+        ratio: 0.08,
+        minPx: 10,
+        maxPx: 42,
+      },
+    },
+    titleBottomSpacing: {
+      ratio: 0.06,
+      minPx: 8,
+      maxPx: 30,
+    },
+    joinLayout: {
+      helperFontSize: {
+        ratio: 0.045,
+        minPx: 13,
+        maxPx: 18,
+      },
+      rowGap: {
+        ratio: 0.025,
+        minPx: 8,
+        maxPx: 18,
+      },
+      codeInputWidth: {
+        ratio: 0.28,
+        minPx: 112,
+        maxPx: 172,
+      },
+      backFontSize: {
+        ratio: 0.034,
+        minPx: 14,
+        maxPx: 18,
+      },
+    },
+    focusLayoutThresholds: {
+      compactHeightPx: 290,
+      compressedHeightPx: 225,
+      compressedWidthPx: 360,
+      sideBySideHeightPx: 390,
+      sideBySideWidthPx: 620,
+    },
     stageOffsetTop: "-14vh",
+    stageOffsetTopCompactLandscape: "-18vh",
     demoBadgeInset: {
       top: "1rem",
       right: "1rem",
     },
     panelGap: "2.5rem",
+    panelGapCompactLandscape: "0.65rem",
     menuGap: "0.25rem",
+    menuGapCompactLandscape: "0.02rem",
     joinPanelGap: "1rem",
+    joinPanelGapCompactLandscape: "0.35rem",
     inputWidth: "min(82vw, 25rem)",
+    inputWidthCompactLandscape: "min(68vw, 17rem)",
     arrowWidth: "clamp(2.4rem, 4.5vw, 3.8rem)",
+    arrowWidthCompactLandscape: "1.55rem",
+    titleFontSize: "clamp(4.6rem, 14.95vw, 9.2rem)",
+    titleFontSizeCompactLandscape: "clamp(2.5rem, 7.2vw, 4rem)",
+    titleGap: "0.46em",
+    titleGapCompactLandscape: "0.16em",
+    inputFontSize: "1.65rem",
+    inputFontSizeCompactLandscape: "1rem",
+    menuItemFontSize: "clamp(1.8rem, 4vw, 2.8rem)",
+    menuItemFontSizeCompactLandscape: "clamp(1rem, 2.7vw, 1.35rem)",
+    menuItemGap: "1.1rem",
+    menuItemGapCompactLandscape: "0.35rem",
+    menuItemPadding: "0.28rem 0.4rem",
+    menuItemPaddingCompactLandscape: "0.04rem 0.16rem",
   },
   lobby: {
     panelMaxWidth: "30rem",
@@ -216,8 +304,7 @@ export const APP_SHELL_LAYOUT_STYLES = {
     position: "absolute",
     inset: 0,
     zIndex: 0,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
     transition: `opacity ${APP_LAYOUT.shell.backgroundFadeDurationMs}ms ease`,
   } satisfies CSSProperties,
   content: {
@@ -251,11 +338,50 @@ export const APP_SHELL_LAYOUT_STYLES = {
 
 export const layoutCssVariables = {
   "--layout-screen-transition-duration": `${APP_LAYOUT.shell.screenFadeDurationMs}ms`,
+  "--layout-shell-rustic-background-size": APP_LAYOUT.shell.rusticBackgroundSize,
+  "--layout-shell-rustic-background-position":
+    APP_LAYOUT.shell.rusticBackgroundPosition,
+  "--layout-shell-rustic-background-size-compact":
+    APP_LAYOUT.shell.rusticBackgroundCompactLandscapeSize,
+  "--layout-shell-rustic-background-position-compact":
+    APP_LAYOUT.shell.rusticBackgroundCompactLandscapePosition,
   "--layout-playing-area-left": `${APP_LAYOUT.game.playingArea.left}`,
   "--layout-playing-area-top": `${APP_LAYOUT.game.playingArea.top}`,
   "--layout-playing-area-width": `${APP_LAYOUT.game.playingArea.width}`,
   "--layout-playing-area-height": `${APP_LAYOUT.game.playingArea.height}`,
   "--layout-home-stage-offset-top": APP_LAYOUT.home.stageOffsetTop,
+  "--layout-home-stage-offset-top-compact":
+    APP_LAYOUT.home.stageOffsetTopCompactLandscape,
+  "--layout-home-panel-gap": APP_LAYOUT.home.panelGap,
+  "--layout-home-panel-gap-compact": APP_LAYOUT.home.panelGapCompactLandscape,
+  "--layout-home-menu-gap": APP_LAYOUT.home.menuGap,
+  "--layout-home-menu-gap-compact": APP_LAYOUT.home.menuGapCompactLandscape,
+  "--layout-home-join-panel-gap": APP_LAYOUT.home.joinPanelGap,
+  "--layout-home-join-panel-gap-compact":
+    APP_LAYOUT.home.joinPanelGapCompactLandscape,
+  "--layout-home-title-font-size": APP_LAYOUT.home.titleFontSize,
+  "--layout-home-title-font-size-compact":
+    APP_LAYOUT.home.titleFontSizeCompactLandscape,
+  "--layout-home-title-gap": APP_LAYOUT.home.titleGap,
+  "--layout-home-title-gap-compact": APP_LAYOUT.home.titleGapCompactLandscape,
+  "--layout-home-input-width": APP_LAYOUT.home.inputWidth,
+  "--layout-home-input-width-compact":
+    APP_LAYOUT.home.inputWidthCompactLandscape,
+  "--layout-home-arrow-width": APP_LAYOUT.home.arrowWidth,
+  "--layout-home-arrow-width-compact":
+    APP_LAYOUT.home.arrowWidthCompactLandscape,
+  "--layout-home-input-font-size": APP_LAYOUT.home.inputFontSize,
+  "--layout-home-input-font-size-compact":
+    APP_LAYOUT.home.inputFontSizeCompactLandscape,
+  "--layout-home-menu-item-font-size": APP_LAYOUT.home.menuItemFontSize,
+  "--layout-home-menu-item-font-size-compact":
+    APP_LAYOUT.home.menuItemFontSizeCompactLandscape,
+  "--layout-home-menu-item-gap": APP_LAYOUT.home.menuItemGap,
+  "--layout-home-menu-item-gap-compact":
+    APP_LAYOUT.home.menuItemGapCompactLandscape,
+  "--layout-home-menu-item-padding": APP_LAYOUT.home.menuItemPadding,
+  "--layout-home-menu-item-padding-compact":
+    APP_LAYOUT.home.menuItemPaddingCompactLandscape,
   "--layout-lobby-panel-max-width": APP_LAYOUT.lobby.panelMaxWidth,
   "--layout-lobby-panel-gap": APP_LAYOUT.lobby.panelGap,
   "--layout-lobby-table-gap": APP_LAYOUT.lobby.tableGap,

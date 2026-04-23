@@ -113,24 +113,15 @@ def _create_live_bot_agent():
 
     return create_agent(_LIVE_BOT_POLICY, model_path=_LIVE_BOT_MODEL_PATH)
 
-_ITALIAN_ADJECTIVES = [
-    "ROSSO", "BLU", "VERDE", "NERO", "ORO", "VIOLA",
-    "BIANCO", "ARGENTO", "ANTICO", "FIERO", "SAGGIO", "PRODE",
-]
-_ITALIAN_ANIMALS = [
-    "LUPO", "VOLPE", "ORSO", "AQUILA", "TORO", "LEONE",
-    "FALCO", "CERVO", "GUFO", "LINCE", "VIPERA", "COBRA",
-]
+_ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_ROOM_CODE_LENGTH = 4
 
 
 # ── Pure helper functions ──────────────────────────────────────────────────────
 
 def generate_room_code() -> str:
-    """Generate a memorable room code like ROSSO-LUPO-42."""
-    a = random.choice(_ITALIAN_ADJECTIVES)
-    b = random.choice(_ITALIAN_ANIMALS)
-    n = random.randint(1, 99)
-    return f"{a}-{b}-{n}"
+    """Generate a 4-character uppercase room code without ambiguous glyphs."""
+    return "".join(random.choice(_ROOM_CODE_ALPHABET) for _ in range(_ROOM_CODE_LENGTH))
 
 
 def card_to_dict(card: Card) -> dict:

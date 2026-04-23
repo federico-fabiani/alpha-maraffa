@@ -477,7 +477,9 @@ const useGameStore = create<GameStore>((set, get) => ({
           break;
         }
 
-        set({ error: message });
+        set({
+          error: message === "Stanza non trovata" ? "Tavolo non trovato" : message,
+        });
         break;
       }
     }

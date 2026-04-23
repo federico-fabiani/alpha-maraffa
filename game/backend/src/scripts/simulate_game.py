@@ -522,7 +522,7 @@ _worker_agent = None
 def _init_worker(model_path: Optional[str]) -> None:
     global _worker_agent
     if model_path:
-        from aimaraffa.ml_agent import MLAgent
+        from aimaraffa.agents.ml_agent import MLAgent
         _worker_agent = MLAgent(Path(model_path))
         logger.info("Worker: MLAgent loaded from %s", model_path)
 

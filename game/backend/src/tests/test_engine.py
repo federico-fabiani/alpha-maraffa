@@ -15,9 +15,8 @@ from aimaraffa.engine import (
     PlayerSlot,
     RoomManager,
     Suit,
-    bot_select_briscola,
-    bot_select_card,
     card_to_dict,
+    configure_live_bot,
     determine_turn_winner,
     dict_to_card,
     generate_room_code,
@@ -152,24 +151,6 @@ def test_highest_briscola_wins_when_multiple_played():
     assert determine_turn_winner(seat_cards, Suit.SPADE) == 2
 
 
-# ── Bot helpers ────────────────────────────────────────────────────────────────
-
-def test_bot_selects_majority_suit_as_briscola():
-    """The bot picks the suit it holds the most cards of."""
-    hand = [
-        Card(Suit.BASTONI, 1), Card(Suit.BASTONI, 2), Card(Suit.BASTONI, 3),
-        Card(Suit.COPPE, 5),
-    ]
-    assert bot_select_briscola(hand) == Suit.BASTONI
-
-
-def test_bot_follows_lead_suit():
-    """Bot card selection must respect the lead-suit constraint."""
-    hand = [Card(Suit.BASTONI, 1), Card(Suit.COPPE, 5)]
-    card, _decl = bot_select_card(hand, Suit.BASTONI, Suit.SPADE)
-    assert card.suit == Suit.BASTONI
-
-
 # ── PlayerSlot ────────────────────────────────────────────────────────────────
 
 def test_player_slot_team_assignment():
@@ -224,9 +205,11 @@ def test_room_code_format():
 
 # ── Full game loop (engine only, no WebSocket) ─────────────────────────────────
 
-async def test_full_game_all_bots_reaches_game_over():
-    """A room with all bots must complete and set status to 'game_over'."""
-    room = GameRoom("TEST-SIM")
+@pytest.mark.parametrize("policy", ["heuristic", "random"])
+async def test_full_game_all_bots_reaches_game_over(policy: str):
+    """A room with all bots must complete under each supported live policy."""
+    configure_live_bot(policy)
+    room = GameRoom(f"TEST-SIM-{policy}")
 
     async def noop(_msg):
         """No-op broadcast."""
@@ -241,10 +224,15 @@ async def test_full_game_all_bots_reaches_game_over():
     room.broadcast_state = noop_state
     room._send = noop_send
 
-    await room.run_game_loop()
+    try:
+        await room.run_game_loop()
+    finally:
+        configure_live_bot("heuristic")
 
     assert room.status == "game_over"
-    assert max(room.total_scores.values()) > GAME_WIN_THRESHOLD
+    assert room._bot_agent is not None
+    assert room._bot_agent.name == policy
+    assert max(room.total_scores.values()) >= GAME_WIN_THRESHOLD
 
 
 async def test_round_scores_always_sum_to_11():

@@ -4,7 +4,6 @@ import asyncio
 import json
 import random
 import time
-from collections import defaultdict
 from enum import Enum
 from math import floor
 from typing import Dict, List, Optional, Tuple
@@ -91,16 +90,28 @@ class ForfeitError(Exception):
 
 # ── Bot strategy selection ─────────────────────────────────────────────────────
 
-USE_ML_BOT: bool = False
-_ml_agent = None   # set by init_ml_bot(); type: MLAgent from aimaraffa.ml_agent
+_LIVE_BOT_POLICY = "heuristic"
+_LIVE_BOT_MODEL_PATH = ""
 
 
-def init_ml_bot(model_path: str) -> None:
-    """Load the XGBoost model and switch all bot slots to ML strategy."""
-    global _ml_agent, USE_ML_BOT
-    from aimaraffa.ml_agent import MLAgent  # lazy import — avoids pulling pandas at startup
-    _ml_agent = MLAgent(model_path)
-    USE_ML_BOT = True
+def configure_live_bot(policy: str, model_path: str = "") -> None:
+    """Configure which agent implementation live game rooms should use for bots."""
+    normalized = (policy or "heuristic").strip().lower()
+    if normalized not in {"heuristic", "random", "ml"}:
+        raise ValueError(f"Unknown live bot policy: {policy}")
+    if normalized == "ml" and not model_path:
+        raise ValueError("ML live bot policy requires a model path")
+
+    global _LIVE_BOT_POLICY, _LIVE_BOT_MODEL_PATH
+    _LIVE_BOT_POLICY = normalized
+    _LIVE_BOT_MODEL_PATH = model_path
+
+
+def _create_live_bot_agent():
+    """Build a fresh live bot agent instance for one game room."""
+    from aimaraffa.agents.factory import create_agent
+
+    return create_agent(_LIVE_BOT_POLICY, model_path=_LIVE_BOT_MODEL_PATH)
 
 _ITALIAN_ADJECTIVES = [
     "ROSSO", "BLU", "VERDE", "NERO", "ORO", "VIOLA",
@@ -175,25 +186,6 @@ def determine_turn_winner(seat_cards: List[Tuple[int, Card]], briscola: Suit) ->
     winner_idx = max(range(len(seat_cards)), key=lambda i: power(seat_cards[i][1]))
     return seat_cards[winner_idx][0]
 
-
-def bot_select_briscola(hand: List[Card]) -> Suit:
-    """Bot AI: pick the suit the bot holds the most cards of."""
-    counts: Dict[Suit, int] = defaultdict(int)
-    for c in hand:
-        counts[c.suit] += 1
-    return max(counts, key=counts.get)  # type: ignore[arg-type]
-
-
-def bot_select_card(
-    hand: List[Card], lead_suit: Optional[Suit], briscola: Suit
-) -> Tuple[Card, Optional[str]]:
-    """Bot AI: play a random valid card with a valid declaration."""
-    card = random.choice(get_valid_cards(hand, lead_suit))
-    if lead_suit is not None:
-        return card, None
-    hand_after = [c for c in hand if c != card]
-    return card, random.choice(get_valid_declarations(hand_after, card.suit))
-
 # ── Room entities ──────────────────────────────────────────────────────────────
 
 class PlayerSlot:
@@ -242,6 +234,7 @@ class GameRoom:
         self.phase = "waiting"
         self._maraffa_forced: bool = False  # selector must lead with briscola ace
         self.current_turn_deadline: Optional[float] = None
+        self._bot_agent = None
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -250,6 +243,25 @@ class GameRoom:
         seats = sorted(self.slots.keys())
         idx = seats.index(start)
         return seats[idx:] + seats[:idx]
+
+    def _build_bot_context(self, seat: int) -> dict:
+        """Build the decision context shared by heuristic and ML agents."""
+        return {
+            "seat": seat,
+            "round_num": self.round_num,
+            "turn_num": self.turn_num,
+            "briscola_selector_seat": self.briscola_selector_seat,
+            "table_cards": list(self.table_cards),
+            "round_scores": {k: round(v, 2) for k, v in self.round_scores.items()},
+            "total_scores": dict(self.total_scores),
+            "hand": self.slots[seat].hand,
+        }
+
+    def _get_bot_agent(self):
+        """Return the room-scoped live agent used for bots and timeout auto-play."""
+        if self._bot_agent is None:
+            self._bot_agent = _create_live_bot_agent()
+        return self._bot_agent
 
     def _build_state(self, for_seat: int, phase: str = None) -> dict:
         """Build the personalised game_state payload for a specific seat."""
@@ -387,19 +399,8 @@ class GameRoom:
         slot = self.slots[seat]
         if slot.is_bot:
             await asyncio.sleep(BOT_THINK_DELAY)
-            if USE_ML_BOT and _ml_agent is not None:
-                ctx = {
-                    "seat": seat,
-                    "round_num": self.round_num,
-                    "turn_num": 0,
-                    "briscola_selector_seat": self.briscola_selector_seat,
-                    "table_cards": [],
-                    "round_scores": {1: 0.0, 2: 0.0},
-                    "total_scores": dict(self.total_scores),
-                    "hand": slot.hand,
-                }
-                return _ml_agent.select_briscola(ctx)
-            return bot_select_briscola(slot.hand)
+            ctx = self._build_bot_context(seat)
+            return self._get_bot_agent().select_briscola(ctx)
         try:
             payload = await asyncio.wait_for(slot.input_queue.get(), timeout=HUMAN_TURN_TIMEOUT)
             slot.consecutive_missed = 0
@@ -418,7 +419,7 @@ class GameRoom:
             })
             if slot.consecutive_missed >= MAX_CONSECUTIVE_MISSED or slot.total_missed >= MAX_TOTAL_MISSED:
                 raise ForfeitError(slot)
-            return bot_select_briscola(slot.hand)
+            return self._get_bot_agent().select_briscola(self._build_bot_context(seat))
 
     async def _await_card(self, seat: int) -> Tuple[Card, Optional[str]]:
         """Wait for the player's card play; returns (card, declaration) where declaration is
@@ -457,19 +458,8 @@ class GameRoom:
 
         if slot.is_bot:
             await asyncio.sleep(BOT_PLAY_DELAY)
-            if USE_ML_BOT and _ml_agent is not None:
-                ctx = {
-                    "seat": seat,
-                    "round_num": self.round_num,
-                    "turn_num": self.turn_num,
-                    "briscola_selector_seat": self.briscola_selector_seat,
-                    "table_cards": list(self.table_cards),
-                    "round_scores": {k: round(v, 2) for k, v in self.round_scores.items()},
-                    "total_scores": dict(self.total_scores),
-                    "hand": slot.hand,
-                }
-                return _ml_agent.select_card(ctx, self.briscola)
-            return bot_select_card(slot.hand, lead_suit, self.briscola)
+            ctx = self._build_bot_context(seat)
+            return self._get_bot_agent().select_card(ctx, self.briscola)
         try:
             payload = await asyncio.wait_for(slot.input_queue.get(), timeout=HUMAN_TURN_TIMEOUT)
             slot.consecutive_missed = 0
@@ -493,8 +483,7 @@ class GameRoom:
             })
             if slot.consecutive_missed >= MAX_CONSECUTIVE_MISSED or slot.total_missed >= MAX_TOTAL_MISSED:
                 raise ForfeitError(slot)
-            valid = get_valid_cards(slot.hand, lead_suit)
-            return random.choice(valid), None
+            return self._get_bot_agent().select_card(self._build_bot_context(seat), self.briscola)
 
     # ── Game loop ──────────────────────────────────────────────────────────────
 
@@ -520,6 +509,10 @@ class GameRoom:
                     name = random_bot_name()
                 used_names.add(name)
                 self.slots[seat] = PlayerSlot(seat=seat, name=name, is_bot=True)
+
+        # Create the live policy agent for the whole room so timeout auto-play
+        # shares the same round state even in all-human games.
+        self._bot_agent = _create_live_bot_agent()
 
         await self.broadcast({
             "type": "game_started",
@@ -556,6 +549,8 @@ class GameRoom:
         self.briscola = None
         self.table_cards = []
         self.last_turn_winner_seat = None
+
+        self._get_bot_agent().reset_round()
 
         deck = Deck()
         deck.shuffle()
@@ -612,9 +607,6 @@ class GameRoom:
                 },
             })
 
-        if USE_ML_BOT and _ml_agent is not None:
-            _ml_agent.reset_round()
-
         first_of_turn = self.briscola_selector_seat
 
         for t in range(10):
@@ -643,9 +635,12 @@ class GameRoom:
                 if card in slot.hand:
                     slot.hand.remove(card)
                 self.table_cards.append((seat, card))
-                if USE_ML_BOT and _ml_agent is not None:
-                    _ml_agent.record_card(card, seat, self.turn_num,
-                                          declaration if i == 0 else None)
+                self._get_bot_agent().record_card(
+                    card,
+                    seat,
+                    self.turn_num,
+                    declaration if i == 0 else None,
+                )
 
                 await self.broadcast({
                     "type": "card_played",

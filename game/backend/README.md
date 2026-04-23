@@ -62,7 +62,7 @@ artifacts/
 
 - 4 players split into 2 teams (seats 0,2 vs 1,3)
 - 40-card Italian deck (4 suits × ranks 1–10)
-- Player holding the **4 of Denara** selects the trump suit (*briscola*)
+- Player holding the **4 of Denara** selects the trump suit (_briscola_)
 - Players must follow the lead suit when possible
 - First team to reach **41 points** wins
 
@@ -75,12 +75,15 @@ artifacts/
 Create a new game room.
 
 **Request body**
+
 ```json
 { "player_name": "Giocatore" }
 ```
+
 `player_name` is optional (default `"Giocatore"`); it is not assigned to a seat here — seats are claimed via WebSocket.
 
 **Response `200`**
+
 ```json
 { "room_id": "ROSSO-LUPO-42" }
 ```
@@ -92,6 +95,7 @@ Create a new game room.
 Fetch current room state. The lookup is case-insensitive.
 
 **Response `200`**
+
 ```json
 {
   "room_id": "ROSSO-LUPO-42",
@@ -119,19 +123,20 @@ All frames are JSON objects with a `type` field and a `data` field.
 
 ### Connection behaviour
 
-| Situation | Result |
-|-----------|--------|
-| Room is `waiting`, seat available | Player is assigned the next free seat (0→3) |
-| Room is `waiting`, all 4 seats taken | Server sends `error` and closes the connection |
+| Situation                                                 | Result                                                          |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| Room is `waiting`, seat available                         | Player is assigned the next free seat (0→3)                     |
+| Room is `waiting`, all 4 seats taken                      | Server sends `error` and closes the connection                  |
 | Room is `in_game`, name matches a disconnected human slot | Reconnection: server sends `reconnected` + current `game_state` |
-| Room is `in_game`, no matching disconnected slot | Server sends `error` and closes the connection |
-| Room ID not found | Server sends `error` and closes the connection |
+| Room is `in_game`, no matching disconnected slot          | Server sends `error` and closes the connection                  |
+| Room ID not found                                         | Server sends `error` and closes the connection                  |
 
 ---
 
 ### Client → Server messages
 
 #### `start_game`
+
 Start the game. Ignored unless the room is `waiting` and the game has not yet started. Empty seats are automatically filled with bots.
 
 ```json
@@ -141,6 +146,7 @@ Start the game. Ignored unless the room is `waiting` and the game has not yet st
 ---
 
 #### `select_briscola`
+
 Choose the trump suit. Only accepted when `phase == "briscola_selection"` and it is the sender's turn.
 
 ```json
@@ -155,6 +161,7 @@ Choose the trump suit. Only accepted when `phase == "briscola_selection"` and it
 ---
 
 #### `play_card`
+
 Play a card from hand. Only accepted when `phase == "playing"` and it is the sender's turn. If the card is invalid (not in hand or breaks the lead-suit rule) the server substitutes the first legal card.
 
 ```json
@@ -169,6 +176,7 @@ Play a card from hand. Only accepted when `phase == "playing"` and it is the sen
 ---
 
 #### `ping`
+
 Keepalive probe.
 
 ```json
@@ -180,6 +188,7 @@ Keepalive probe.
 ### Server → Client messages
 
 #### `joined`
+
 Sent to the connecting player after a successful join.
 
 ```json
@@ -188,9 +197,7 @@ Sent to the connecting player after a successful join.
   "data": {
     "seat": 0,
     "room_id": "ROSSO-LUPO-42",
-    "players": [
-      { "seat": 0, "name": "Alice", "is_bot": false, "team": 1 }
-    ]
+    "players": [{ "seat": 0, "name": "Alice", "is_bot": false, "team": 1 }]
   }
 }
 ```
@@ -198,6 +205,7 @@ Sent to the connecting player after a successful join.
 ---
 
 #### `player_joined`
+
 Broadcast to all connected players (including the one who just joined) when a new player takes a seat.
 
 ```json
@@ -214,6 +222,7 @@ Broadcast to all connected players (including the one who just joined) when a ne
 ---
 
 #### `player_disconnected`
+
 Broadcast when a human player's WebSocket closes mid-game.
 
 ```json
@@ -226,6 +235,7 @@ Broadcast when a human player's WebSocket closes mid-game.
 ---
 
 #### `reconnected`
+
 Sent to a player who successfully reconnects to an in-progress game. Followed immediately by a `game_state` message.
 
 ```json
@@ -238,6 +248,7 @@ Sent to a player who successfully reconnects to an in-progress game. Followed im
 ---
 
 #### `game_started`
+
 Broadcast when the game loop begins (after `start_game`). Contains the full player list including bots that were added to fill empty seats.
 
 ```json
@@ -257,6 +268,7 @@ Broadcast when the game loop begins (after `start_game`). Contains the full play
 ---
 
 #### `game_state`
+
 Sent to each human player individually whenever the active seat or phase changes. Each player receives a personalised view (their own hand with playability flags, not other players' cards).
 
 ```json
@@ -269,21 +281,24 @@ Sent to each human player individually whenever the active seat or phase changes
     "briscola": "bastoni",
     "briscola_selector_seat": 2,
     "current_player_seat": 0,
-    "table_cards": [
-      { "seat": 2, "card": { "suit": "denara", "rank": 7 } }
-    ],
+    "table_cards": [{ "seat": 2, "card": { "suit": "denara", "rank": 7 } }],
     "my_hand": [
       { "suit": "bastoni", "rank": 1, "playable": true },
-      { "suit": "coppe",   "rank": 5, "playable": false }
+      { "suit": "coppe", "rank": 5, "playable": false }
     ],
     "players": [
       {
-        "seat": 0, "name": "Alice", "team": 1, "cards_count": 7,
-        "is_you": true, "is_bot": false, "is_connected": true
+        "seat": 0,
+        "name": "Alice",
+        "team": 1,
+        "cards_count": 7,
+        "is_you": true,
+        "is_bot": false,
+        "is_connected": true
       }
     ],
-    "total_scores":  { "1": 12, "2": 8 },
-    "round_scores":  { "1": 3.0, "2": 2.0 },
+    "total_scores": { "1": 12, "2": 8 },
+    "round_scores": { "1": 3.0, "2": 2.0 },
     "last_turn_winner": 2
   }
 }
@@ -295,6 +310,7 @@ Sent to each human player individually whenever the active seat or phase changes
 ---
 
 #### `briscola_set`
+
 Broadcast after the trump suit is chosen.
 
 ```json
@@ -311,6 +327,7 @@ Broadcast after the trump suit is chosen.
 ---
 
 #### `card_played`
+
 Broadcast each time any player places a card on the table.
 
 ```json
@@ -333,6 +350,7 @@ Broadcast each time any player places a card on the table.
 ---
 
 #### `turn_result`
+
 Broadcast after all 4 cards of a turn have been played.
 
 ```json
@@ -352,6 +370,7 @@ Broadcast after all 4 cards of a turn have been played.
 ---
 
 #### `round_end`
+
 Broadcast at the end of each round (after the last `turn_result`).
 
 ```json
@@ -370,6 +389,7 @@ Broadcast at the end of each round (after the last `turn_result`).
 ---
 
 #### `game_over`
+
 Broadcast when a team exceeds 41 total points.
 
 ```json
@@ -385,6 +405,7 @@ Broadcast when a team exceeds 41 total points.
 ---
 
 #### `pong`
+
 Response to a `ping`.
 
 ```json
@@ -394,6 +415,7 @@ Response to a `ping`.
 ---
 
 #### `error`
+
 Sent when a connection is rejected or an internal error occurs. The connection is closed immediately after.
 
 ```json

@@ -3,10 +3,10 @@
 import numpy as np
 
 import aimaraffa.ai.simulator as simulator_module
-import aimaraffa.ml_agent as ml_agent_module
+import aimaraffa.agents.ml_agent as ml_agent_module
 from aimaraffa.ai.simulator import Simulator, _GameState
+from aimaraffa.agents.ml_agent import MLAgent
 from aimaraffa.engine import Card, Suit
-from aimaraffa.ml_agent import MLAgent
 
 
 def test_ml_agent_select_briscola_uses_best_opening_line(monkeypatch):

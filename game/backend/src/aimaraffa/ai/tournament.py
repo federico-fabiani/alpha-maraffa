@@ -17,7 +17,7 @@ import numpy as np
 import xgboost as xgb
 
 from aimaraffa.engine import Card, Suit, get_valid_cards, get_valid_declarations
-from aimaraffa.ml_agent import MLAgent, _COL_IDX, _COL_NAMES
+from aimaraffa.agents.ml_agent import MLAgent, _COL_IDX, _COL_NAMES
 from aimaraffa.agents.heuristic_agent import HeuristicAgent
 from .simulator import Simulator, _GameState, _TEAM
 

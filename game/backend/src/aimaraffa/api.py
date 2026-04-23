@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.ml_model_path:
-        eng.init_ml_bot(settings.ml_model_path)
-        logger.info("ML bot enabled — model: %s", settings.ml_model_path)
+    eng.configure_live_bot(settings.live_bot_policy, settings.ml_model_path)
+    if settings.live_bot_policy == "ml":
+        logger.info("Live bot policy: ml — model: %s", settings.ml_model_path)
     else:
-        logger.info("ML bot disabled — bots use random strategy")
+        logger.info("Live bot policy: %s", settings.live_bot_policy)
     yield
 
 

@@ -1,13 +1,8 @@
 """Application configuration loaded from environment variables via pydantic-settings."""
 
-from pathlib import Path
-
 from pydantic_settings import BaseSettings
 
-_DEFAULT_MODEL = str(
-    Path(__file__).resolve().parent.parent
-    / "scripts" / "artifacts" / "marafone_model.joblib"
-)
+_DEFAULT_MODEL = ""
 
 
 class Settings(BaseSettings):
@@ -18,7 +13,8 @@ class Settings(BaseSettings):
     port: int = 8000
     cors_origins: list[str] = ["*"]
     max_rooms: int = 40
-    ml_model_path: str = _DEFAULT_MODEL   # override via env var to disable or swap model
+    live_bot_policy: str = "heuristic"
+    ml_model_path: str = _DEFAULT_MODEL   # used when live_bot_policy is "ml"
 
 
 settings = Settings()

@@ -151,7 +151,7 @@ Il training non usa l'intero dataset raw cosi' com'e'. Prima di costruire `X`, v
 - target: `future_pts_diff`;
 - `team`, che oggi viene escluso dal training ma resta gestito nel runtime per compatibilita' con modelli piu' vecchi.
 
-Questo punto e' importante: il runtime di `aimaraffa.ml_agent` non assume ciecamente che il modello usi tutte le colonne attuali. Se il booster salvato ha una lista `feature_names` diversa, l'inferenza riallinea le colonne al subset richiesto dal modello.
+Questo punto e' importante: il runtime di `aimaraffa.agents.ml_agent` non assume ciecamente che il modello usi tutte le colonne attuali. Se il booster salvato ha una lista `feature_names` diversa, l'inferenza riallinea le colonne al subset richiesto dal modello.
 
 In pratica:
 
@@ -305,7 +305,7 @@ Il punto piu' delicato della pipeline e' la compatibilita' tra:
 
 - schema del dataset scritto da `simulator.py`;
 - preprocessing in `train.py` e `analyze.py`;
-- encoding usato da `aimaraffa.ml_agent` in inferenza.
+- encoding usato da `aimaraffa.agents.ml_agent` in inferenza.
 
 In pratica, ordine colonne, categorie e semantica delle feature devono restare allineati. Se cambi una feature in uno di questi punti, devi verificare anche gli altri due.
 

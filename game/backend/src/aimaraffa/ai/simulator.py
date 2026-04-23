@@ -39,7 +39,7 @@ from aimaraffa.engine import (
 )
 from aimaraffa.agents.base import BaseAgent
 from aimaraffa.agents.heuristic_agent import HeuristicAgent
-from aimaraffa.ml_agent import (
+from aimaraffa.agents.ml_agent import (
     MLAgent,
     _COL_IDX, _COL_NAMES, _COL_TYPES, _ROW_TEMPLATE,
     _SUIT_ENC, _DECL_ENC, _STATUS_ENC, _TEAM_OF,
@@ -78,7 +78,7 @@ _DEFAULT_POLICY_LABEL = "random"
 
 # ── Dataset row schema ─────────────────────────────────────────────────────────
 # Column order and dtypes are part of the contract with train.py / analyze.py.
-# Keep in sync with aimaraffa.ml_agent._COL_NAMES (inference-time encoding).
+# Keep in sync with aimaraffa.agents.ml_agent._COL_NAMES (inference-time encoding).
 
 _HAND_TEMPLATE: Dict[str, int] = {}
 for _r in _RANKS:

@@ -124,6 +124,7 @@ class HeuristicAgent(BaseAgent):
     ------------------
     * ``_played``            : set of all Card objects seen via record_card.
     * ``_player_suit_state`` : dict[seat → dict[Suit → SuitStatus]].
+    * ``_suit_lead_counts``  : dict[Suit → number of times the suit was led].
     * ``_trick_lead_suit``   : suit of the first card of the current trick.
 
     SuitStatus transitions
@@ -138,6 +139,7 @@ class HeuristicAgent(BaseAgent):
     def __init__(self) -> None:
         self._played: set[Card] = set()
         self._player_suit_state: dict[int, dict[Suit, SuitStatus]] = {}
+        self._suit_lead_counts: dict[Suit, int] = {}
         self._trick_lead_suit: Optional[Suit] = None
         self._briscola_force_rounds: int = 0
         self._init_suit_state()
@@ -147,6 +149,7 @@ class HeuristicAgent(BaseAgent):
             seat: {suit: SuitStatus.UNKNOWN for suit in Suit}
             for seat in range(4)
         }
+        self._suit_lead_counts = {suit: 0 for suit in Suit}
 
     # ------------------------------------------------------------------
     # BaseAgent interface
@@ -183,6 +186,7 @@ class HeuristicAgent(BaseAgent):
         if is_lead:
             # This seat is leading the trick.
             self._trick_lead_suit = suit
+            self._suit_lead_counts[suit] += 1
             if declaration == "volo":
                 state[suit] = SuitStatus.VOID
             elif declaration == "busso":
@@ -230,6 +234,26 @@ class HeuristicAgent(BaseAgent):
     def cards_played_in_suit(self, suit: Suit) -> int:
         """How many cards of `suit` have been played this round."""
         return sum(1 for c in self._played if c.suit == suit)
+
+    def suit_lead_count(self, suit: Suit) -> int:
+        """How many tricks have been opened with `suit` this round."""
+        return self._suit_lead_counts[suit]
+
+    def _top_outstanding_run(self, suit: Suit, hand: list[Card]) -> list[Card]:
+        """Top outstanding run in `suit` that we currently hold."""
+        played = self._played_ranks(suit)
+        hand_by_rank = {c.rank: c for c in hand if c.suit == suit}
+        run: list[Card] = []
+
+        for rank in _RANK_BY_STRENGTH:
+            if rank in played:
+                continue
+            card = hand_by_rank.get(rank)
+            if card is None:
+                break
+            run.append(card)
+
+        return run
 
     def _infer_void_from_card_count(self, hand: list[Card]) -> None:
         """Mark all seats VOID in suits where played + our hand accounts for all 10 cards.
@@ -426,6 +450,95 @@ class HeuristicAgent(BaseAgent):
                     return max(our_cards, key=lambda c: RANK_TO_VALUE[c.rank])
         return None
 
+    def _known_cut_risk(self, suit: Suit, briscola: Suit, opps: list[int]) -> int:
+        """Count opponents who are known void in `suit` and may still cut with briscola."""
+        return sum(
+            1
+            for opp in opps
+            if self._player_suit_state[opp][suit] == SuitStatus.VOID
+            and self._player_suit_state[opp][briscola] != SuitStatus.VOID
+        )
+
+    def _partner_cut_support(self, suit: Suit, briscola: Suit, partner: int) -> int:
+        """Return 1 when partner is well placed to overtake a cut in `suit`."""
+        if (
+            self._player_suit_state[partner][suit] == SuitStatus.VOID
+            and self._player_suit_state[partner][briscola] != SuitStatus.VOID
+        ):
+            return 1
+        return 0
+
+    def _team_take_confidence(
+        self,
+        card: Card,
+        hand: list[Card],
+        briscola: Suit,
+        partner: int,
+        opps: list[int],
+    ) -> float:
+        """Heuristic confidence that our team keeps the trick after leading `card`."""
+        stronger_held = 0
+        for idx, run_card in enumerate(self._top_outstanding_run(card.suit, hand)):
+            if run_card == card:
+                stronger_held = idx
+                break
+
+        if self._is_controlling(card, hand):
+            confidence = 0.75
+        elif stronger_held > 0:
+            confidence = 0.25 + 0.20 * stronger_held
+        else:
+            confidence = 0.15
+
+        confidence -= 0.15 * self.suit_lead_count(card.suit)
+        confidence -= 0.20 * self._known_cut_risk(card.suit, briscola, opps)
+        confidence += 0.10 * self._partner_cut_support(card.suit, briscola, partner)
+
+        return max(0.0, min(0.95, confidence))
+
+    def _best_protected_points_lead(
+        self,
+        hand: list[Card],
+        briscola: Suit,
+        partner: int,
+        opps: list[int],
+    ) -> Optional[Card]:
+        """Best early non-briscola lead that cashes protected points from a top run."""
+        best_card: Optional[Card] = None
+        best_key: Optional[tuple[float, float, int, int]] = None
+
+        for suit in Suit:
+            if suit == briscola or self.suit_lead_count(suit) > 1:
+                continue
+
+            run = self._top_outstanding_run(suit, hand)
+            if len(run) < 2:
+                continue
+
+            for idx, card in enumerate(run[1:], start=1):
+                if RANK_TO_POINTS[card.rank] <= 0:
+                    continue
+
+                confidence = self._team_take_confidence(card, hand, briscola, partner, opps)
+                expected_points = confidence * RANK_TO_POINTS[card.rank]
+                key = (expected_points, confidence, idx, -RANK_TO_VALUE[card.rank])
+                if best_key is None or key > best_key:
+                    best_card = card
+                    best_key = key
+
+        return best_card
+
+    def _lead_expected_points(
+        self,
+        card: Card,
+        hand: list[Card],
+        briscola: Suit,
+        partner: int,
+        opps: list[int],
+    ) -> float:
+        """Expected points value of leading `card`, using team-take confidence."""
+        return self._team_take_confidence(card, hand, briscola, partner, opps) * RANK_TO_POINTS[card.rank]
+
     def _best_controlling_lead(self, hand: list[Card], briscola: Suit) -> Optional[Card]:
         """Highest-value controlling non-briscola card.
 
@@ -555,27 +668,38 @@ class HeuristicAgent(BaseAgent):
         if busso_resp is not None:
             return busso_resp
 
-        # 3. Play a controlling card; prefer asso (highest pts) over other controlling.
+        # 3. Cash protected points early when our team is likely to keep the trick.
+        protected_points = self._best_protected_points_lead(hand, briscola, partner, opps)
+
+        # 4. Play a controlling card; prefer asso (highest pts) over other controlling.
         controlling = self._best_controlling_lead(hand, briscola)
+        if protected_points is not None:
+            if controlling is None:
+                return protected_points
+            if (
+                self._lead_expected_points(protected_points, hand, briscola, partner, opps)
+                > self._lead_expected_points(controlling, hand, briscola, partner, opps)
+            ):
+                return protected_points
         if controlling is not None:
             return controlling
 
-        # 4. Declare busso (2nd strongest remaining); briscola busso allowed if selector.
+        # 5. Declare busso (2nd strongest remaining); briscola busso allowed if selector.
         busso = self._best_busso_lead(hand, briscola, is_selector=is_selector)
         if busso is not None:
             return busso
 
-        # 5. Lead into partner's void suit where ace is still outstanding.
+        # 6. Lead into partner's void suit where ace is still outstanding.
         partner_tactic = self._lead_for_partner_briscola(hand, briscola, partner)
         if partner_tactic is not None:
             return partner_tactic
 
-        # 6. Shed a short suit to work toward volo (≤2 cards, no asso secco risk).
+        # 7. Shed a short suit to work toward volo (≤2 cards, no asso secco risk).
         shed = self._shed_short_suit_lead(hand, briscola, partner)
         if shed is not None:
             return shed
 
-        # 7. Fallback: lowest-value card, avoiding asso secco.
+        # 8. Fallback: lowest-value card, avoiding asso secco.
         return self._fallback_lead(hand, briscola)
 
     # ------------------------------------------------------------------

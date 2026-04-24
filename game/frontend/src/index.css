@@ -1291,11 +1291,18 @@ body::before {
   opacity: 0;
 }
 
+.home-menu-item:hover .home-hover-arrow,
+.home-menu-item:focus-visible .home-hover-arrow,
 .home-join-submit:hover .home-hover-arrow,
 .home-join-submit:focus-visible .home-hover-arrow,
 .home-back-link:hover .home-hover-arrow,
 .home-back-link:focus-visible .home-hover-arrow {
   opacity: 1;
+}
+
+.home-menu-item.disabled:hover .home-hover-arrow,
+.home-menu-item.disabled:focus-visible .home-hover-arrow {
+  opacity: 0;
 }
 
 .home-back-link:hover .home-back-arrow,

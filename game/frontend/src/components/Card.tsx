@@ -76,7 +76,7 @@ export function Card({
       }
       className={`
         card-face card-sprite
-        ${isPlayable ? "playable" : "opacity-80"}
+        ${isPlayable ? "playable" : ""}
         ${isBriscola ? "briscola-card" : ""}
         ${className}
       `}

@@ -50,6 +50,7 @@ Authority: hook-local or component-local view state only.
 - `useGameScreenController.showForfeitConfirm`: forfeit dialog toggle.
 - `useGameScreenController.pendingDeclaration`: unsubmitted declaration choice.
 - `useGameScreenController.drag`: drag interaction payload.
+- `useGameScreenController.touchArmedCard`: touch-only first-tap card selection for double-tap play confirmation.
 - `useBriscolaIntro.briscolaIntro`: intro animation finite-state machine.
 - `useBriscolaIntro.briscolaGifMeta`: replay token and suit for the GIF overlay.
 - `useTurnCountdown.now`: timer tick source used to derive remaining seconds.
@@ -86,7 +87,7 @@ Authority: hook-local or component-local view state only.
 
 - `GameScreen`
   props: none
-  state read: `mySeat`, `players`, `myHand`, `phase`, `briscola`, `briscolaAnnouncement`, `currentPlayerSeat`, `tableCards`, `turnResultWinnerSeat`, `lastTrickCards`, `totalScores`, `notification`, `currentDeclaration`, `turnDeadline`; local `showForfeitConfirm`, `pendingDeclaration`, `drag`, `briscolaIntro`, `briscolaGifMeta`, `now`
+  state read: `mySeat`, `players`, `myHand`, `phase`, `briscola`, `briscolaAnnouncement`, `currentPlayerSeat`, `tableCards`, `turnResultWinnerSeat`, `lastTrickCards`, `totalScores`, `notification`, `currentDeclaration`, `turnDeadline`; local `showForfeitConfirm`, `pendingDeclaration`, `drag`, `touchArmedCard`, `briscolaIntro`, `briscolaGifMeta`, `now`
   actions triggered: `playCard`, `selectBriscola`, `showNotification`, `dismissNotification`, `forfeit`
   children: `PlayerArea` x3, `TableArea`, `BriscolaSuitGif`, `BriscolaModal`, `Notification`, `Card`
 
@@ -300,6 +301,10 @@ written by: [`useGameScreenController.handleToggleDeclaration`, `useGameScreenCo
 read by: [`GameScreen`]
 written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenController.handlePointerMove`, `useGameScreenController.handlePointerUp`, `useGameScreenController.handlePointerCancel`]
 
+`useGameScreenController.touchArmedCard`:
+read by: [`GameScreen`]
+written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenController.playSelectedCard`, `useGameScreenController effect on turn/hand sync`]
+
 `useBriscolaIntro.briscolaIntro`:
 read by: [`GameScreen`]
 written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`, `useBriscolaIntro.handleBriscolaGifPlaybackComplete`]
@@ -325,6 +330,7 @@ written by: [`BriscolaSuitGif asset decode effect`]
 Authority: `game/frontend/src/layout/layout.ts`
 
 - `APP_LAYOUT` is the only source of truth for shell insets, playing-area bounds, card sizes, lobby metrics, modal widths, drag/drop sizes, and game-over widths.
+- Local declaration-controls placement above the player hand originates from `APP_LAYOUT.game.declarationControls`.
 - `layoutCssVariables` bridges layout values into `game/frontend/src/index.css` for the CSS rules that still need shared dimensions.
 - `GAME_SEAT_STYLES`, `APP_SHELL_LAYOUT_STYLES`, `getCardSizeStyle`, `getGameTableSlotStyle`, `getLastTrickSlotStyle`, `getCollectVector`, `createTurnCountdownFillStyle`, `createBriscolaGifStyle`, `createGameDropZoneStyle`, and `createDragGhostStyle` are the only approved layout helpers for React components.
 

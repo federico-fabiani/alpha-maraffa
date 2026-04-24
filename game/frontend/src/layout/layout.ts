@@ -150,6 +150,10 @@ export const APP_LAYOUT = {
       bottom: "12.5rem",
       gap: "0.375rem",
     },
+    declarationControls: {
+      gap: "0.5rem",
+      offsetAboveHand: "0.5rem",
+    },
     declarationGap: "0.375rem",
     turnBarHeight: "0.25rem",
     lastTrick: {

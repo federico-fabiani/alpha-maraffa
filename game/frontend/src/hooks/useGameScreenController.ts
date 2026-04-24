@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useGameStore from "../state/gameStore";
 import type { Card, Declaration, Suit } from "../types";
@@ -40,6 +40,15 @@ interface DragState {
   startY: number;
 }
 
+interface TouchArmedCard {
+  suit: Card["suit"];
+  rank: Card["rank"];
+}
+
+function getCardKey(card: Pick<Card, "suit" | "rank">) {
+  return `${card.suit}-${card.rank}`;
+}
+
 export function useGameScreenController() {
   const gameState = useGameStore(
     useShallow((state) => ({
@@ -72,6 +81,10 @@ export function useGameScreenController() {
   const [pendingDeclaration, setPendingDeclaration] =
     useState<Declaration>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [touchArmedCard, setTouchArmedCard] = useState<TouchArmedCard | null>(
+    null,
+  );
+  const lastTouchInteractionAtRef = useRef(0);
 
   const stageRef = useGameStageLayout();
   const secsLeft = useTurnCountdown(gameState.turnDeadline);
@@ -145,7 +158,34 @@ export function useGameScreenController() {
   const isActiveDrag = dragDistance > 8;
   const isDragOver = drag !== null && drag.startY - drag.y > 90;
 
+  useEffect(() => {
+    if (!touchArmedCard) {
+      return;
+    }
+
+    const armedCardStillInHand = gameState.myHand.some(
+      (card) => getCardKey(card) === getCardKey(touchArmedCard),
+    );
+
+    if (!isMyTurn || !armedCardStillInHand) {
+      setTouchArmedCard(null);
+    }
+  }, [gameState.myHand, isMyTurn, touchArmedCard]);
+
+  const playSelectedCard = (card: Card) => {
+    playCard(card, isLeadPlayer ? pendingDeclaration : null);
+    setPendingDeclaration(null);
+    setTouchArmedCard(null);
+  };
+
+  const isTouchArmed = (card: Pick<Card, "suit" | "rank">) =>
+    touchArmedCard !== null && getCardKey(touchArmedCard) === getCardKey(card);
+
   const handleCardClick = (card: Card) => {
+    if (Date.now() - lastTouchInteractionAtRef.current < 550) {
+      return;
+    }
+
     if (!card.playable) {
       showNotification({
         text: "Mossa non valida",
@@ -159,14 +199,27 @@ export function useGameScreenController() {
       return;
     }
 
-    playCard(card, isLeadPlayer ? pendingDeclaration : null);
-    setPendingDeclaration(null);
+    playSelectedCard(card);
   };
 
   const handleCardPointerDown = (event: React.PointerEvent, card: Card) => {
     if (!isMyTurn || !card.playable) {
       return;
     }
+
+    if (event.pointerType === "touch") {
+      lastTouchInteractionAtRef.current = Date.now();
+
+      if (isTouchArmed(card)) {
+        playSelectedCard(card);
+        return;
+      }
+
+      setTouchArmedCard({ suit: card.suit, rank: card.rank });
+      return;
+    }
+
+    setTouchArmedCard(null);
 
     setDrag({
       card,
@@ -199,8 +252,7 @@ export function useGameScreenController() {
     }
 
     if (drag.startY - event.clientY > 90 && drag.card.playable && isMyTurn) {
-      playCard(drag.card, isLeadPlayer ? pendingDeclaration : null);
-      setPendingDeclaration(null);
+      playSelectedCard(drag.card);
     }
 
     setDrag(null);
@@ -271,6 +323,7 @@ export function useGameScreenController() {
     sortedHand,
     stageRef,
     tableCards: briscolaIntroActive ? [] : gameState.tableCards,
+    touchArmedCard,
     topSeat,
     totalScores: gameState.totalScores,
     turnResultWinnerSeat: gameState.turnResultWinnerSeat,

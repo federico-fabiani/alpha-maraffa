@@ -16,7 +16,10 @@ import Notification from "../components/Notification";
 import { useGameScreenController } from "../hooks/useGameScreenController";
 
 type HandSlotStyle = React.CSSProperties &
-  Record<"--hand-index" | "--hand-offset" | "--hand-offset-abs", string>;
+  Record<
+    "--hand-index" | "--hand-offset" | "--hand-offset-abs",
+    string
+  >;
 
 export default function GameScreen() {
   const {
@@ -29,7 +32,6 @@ export default function GameScreen() {
     declarationOptions,
     dismissNotification,
     drag,
-    gamePhase,
     handleBriscolaGifPlaybackComplete,
     handleCancelForfeit,
     handleCardClick,
@@ -43,7 +45,6 @@ export default function GameScreen() {
     isActiveDrag,
     isDragOver,
     isLeadPlayer,
-    isMyTurn,
     isWaitingBriscola,
     lastTrickCards,
     leadSeat,
@@ -61,6 +62,7 @@ export default function GameScreen() {
     stageRef,
     tableCards,
     topSeat,
+    touchArmedCard,
     totalScores,
     turnResultWinnerSeat,
   } = useGameScreenController();
@@ -125,17 +127,6 @@ export default function GameScreen() {
     width: APP_LAYOUT.game.lastTrick.size,
     height: APP_LAYOUT.game.lastTrick.size,
   } as const;
-  const selfPanelStyle = {
-    position: "absolute",
-    bottom: APP_LAYOUT.game.selfPanel.bottom,
-    left: "50%",
-    transform: "translateX(-50%)",
-    zIndex: 10,
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: APP_LAYOUT.game.selfPanel.gap,
-  } as const;
   const declarationStyle = {
     display: "flex",
     gap: APP_LAYOUT.game.declarationGap,
@@ -149,12 +140,27 @@ export default function GameScreen() {
     pointerEvents: "none",
     zIndex: 20,
   } as const;
-  const handWrapStyle = {
+  const handAreaStyle = {
     position: "absolute",
     left: "50%",
     transform: "translateX(-50%)",
     zIndex: 20,
     top: "calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta))",
+  } as const;
+  const handWrapStyle = {
+    position: "relative",
+  } as const;
+  const handDeclarationStyle = {
+    position: "absolute",
+    left: "50%",
+    bottom: `calc(100% + ${APP_LAYOUT.game.declarationControls.offsetAboveHand})`,
+    transform: "translateX(-50%)",
+    zIndex: 22,
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: APP_LAYOUT.game.declarationControls.gap,
+    width: "max-content",
   } as const;
   const announcementOverlayStyle = {
     position: "absolute",
@@ -191,10 +197,12 @@ export default function GameScreen() {
   const createHandSlotStyle = (
     index: number,
     handOffset: number,
+    handLayer: number,
   ): HandSlotStyle => ({
     "--hand-index": `${index}`,
     "--hand-offset": `${handOffset}`,
     "--hand-offset-abs": `${Math.abs(handOffset)}`,
+    zIndex: handLayer,
   });
 
   return (
@@ -324,52 +332,6 @@ export default function GameScreen() {
         </div>
       )}
 
-      <div style={selfPanelStyle}>
-        {isLeadPlayer && (
-          <div style={declarationStyle}>
-            {declarationOptions.map((declaration) => (
-              <button
-                key={declaration}
-                onClick={() => handleToggleDeclaration(declaration)}
-                className={`
-                  px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all
-                  ${
-                    pendingDeclaration === declaration
-                      ? "bg-amber-700/80 border-amber-400/80 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)]"
-                      : "bg-stone-900/80 border-stone-600/60 text-stone-400 hover:text-amber-400 hover:border-amber-700/50"
-                  }
-                `}
-              >
-                {declaration}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {leadSeat === seat && currentDeclaration && (
-          <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
-            {currentDeclaration.toUpperCase()}
-          </div>
-        )}
-
-        {playerBySeat[seat] && (
-          <div
-            className={`
-            px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-lg backdrop-blur-sm
-            ${
-              playerBySeat[seat]?.team === 1
-                ? "border-amber-400/70 text-amber-100 bg-stone-950/85"
-                : "border-blue-400/70 text-blue-100 bg-stone-950/85"
-            }
-            ${isMyTurn ? "animate-pulse-ring" : ""}
-          `}
-          >
-            {playerBySeat[seat]?.name}
-            {isMyTurn && <span className="ml-1 text-amber-400">●</span>}
-          </div>
-        )}
-      </div>
-
       {isActiveDrag && (
         <div style={dropZoneLayerStyle}>
           <div
@@ -388,35 +350,75 @@ export default function GameScreen() {
 
       <div
         className={isActiveDrag ? "pointer-events-none" : ""}
-        style={handWrapStyle}
+        style={handAreaStyle}
       >
-        <div className="player-hand">
-          {sortedHand.map(({ card }, index) => {
-            const handOffset = index - (sortedHand.length - 1) / 2;
-            const isBeingDragged =
-              isActiveDrag &&
-              drag?.card.suit === card.suit &&
-              drag?.card.rank === card.rank;
-            const isBriscolaIdle =
-              gamePhase === "briscola_selection" && !card.playable;
+        <div style={handWrapStyle}>
+          {(isLeadPlayer || (leadSeat === seat && currentDeclaration)) && (
+            <div style={handDeclarationStyle}>
+              {isLeadPlayer && (
+                <div style={declarationStyle}>
+                  {declarationOptions.map((declaration) => (
+                    <button
+                      key={declaration}
+                      onClick={() => handleToggleDeclaration(declaration)}
+                      className={`
+                        px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all
+                        ${
+                          pendingDeclaration === declaration
+                            ? "bg-amber-700/90 border-amber-300 text-amber-50 shadow-[0_0_14px_rgba(217,119,6,0.38)]"
+                            : "bg-stone-950/88 border-stone-500/70 text-stone-300 hover:text-amber-300 hover:border-amber-700/60"
+                        }
+                      `}
+                    >
+                      {declaration}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            return (
-              <div
-                key={`${card.suit}-${card.rank}`}
-                className="hand-card-slot"
-                style={createHandSlotStyle(index, handOffset)}
-                onPointerDown={(event) => handleCardPointerDown(event, card)}
-              >
-                <CardComponent
-                  card={card}
-                  size="md"
-                  briscolaSuit={briscola}
-                  onClick={() => handleCardClick(card)}
-                  className={`${isBeingDragged ? "opacity-0" : ""} ${isBriscolaIdle ? "idle-floating" : ""}`.trim()}
-                />
-              </div>
-            );
-          })}
+              {leadSeat === seat && currentDeclaration && (
+                <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/70 border border-amber-400/60 text-amber-200 shadow-[0_0_10px_rgba(180,83,9,0.28)]">
+                  {currentDeclaration.toUpperCase()}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="player-hand">
+            {sortedHand.map(({ card }, index) => {
+              const handOffset = index - (sortedHand.length - 1) / 2;
+              const isBeingDragged =
+                isActiveDrag &&
+                drag?.card.suit === card.suit &&
+                drag?.card.rank === card.rank;
+              const isTouchArmed =
+                touchArmedCard?.suit === card.suit &&
+                touchArmedCard?.rank === card.rank;
+              const isBlockedInHand = !card.playable;
+              const handLayer = isTouchArmed
+                ? 200 + index
+                : card.playable
+                  ? 100 + index
+                  : index;
+
+              return (
+                <div
+                  key={`${card.suit}-${card.rank}`}
+                  className={`hand-card-slot ${card.playable ? "playable-hand-slot" : "blocked-hand-slot"} ${isTouchArmed ? "touch-armed" : ""}`.trim()}
+                  style={createHandSlotStyle(index, handOffset, handLayer)}
+                  onPointerDown={(event) => handleCardPointerDown(event, card)}
+                >
+                  <CardComponent
+                    card={card}
+                    size="md"
+                    briscolaSuit={briscola}
+                    onClick={() => handleCardClick(card)}
+                    className={`${isBeingDragged ? "opacity-0" : ""} ${isBlockedInHand ? "blocked-hand" : ""} ${isTouchArmed ? "selected" : ""}`.trim()}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

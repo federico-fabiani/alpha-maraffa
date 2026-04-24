@@ -118,6 +118,9 @@ export default function HomeScreen() {
   const playerName = useGameStore((state) => state.playerName);
   const error = useGameStore((state) => state.error);
   const setPlayerName = useGameStore((state) => state.setPlayerName);
+  const setBackgroundGeometry = useGameStore(
+    (state) => state.setBackgroundGeometry,
+  );
   const createRoom = useGameStore((state) => state.createRoom);
   const joinRoom = useGameStore((state) => state.joinRoom);
 
@@ -232,15 +235,10 @@ export default function HomeScreen() {
         nextGeometry.contentRect.top -
         renderHeight * APP_LAYOUT.home.contentRect.y;
 
-      appShellRoot.dataset.homeFocusCentered = "true";
-      appShellRoot.style.setProperty(
-        "--layout-shell-rustic-background-size",
-        `${renderWidth}px ${renderHeight}px`,
-      );
-      appShellRoot.style.setProperty(
-        "--layout-shell-rustic-background-position",
-        `${renderLeft}px ${renderTop}px`,
-      );
+      setBackgroundGeometry({
+        size: `${renderWidth}px ${renderHeight}px`,
+        position: `${renderLeft}px ${renderTop}px`,
+      });
 
       setFocusGeometry(nextGeometry);
     };

@@ -52,11 +52,16 @@ export interface GameStoreState {
   pingMs: number | null;
   pingStatus: PingStatus;
   turnDeadline: number | null;
+  backgroundGeometry: {
+    size: string;
+    position: string;
+  } | null;
 }
 
 export interface GameStoreActions {
   setPlayerName: (name: string) => void;
   setBackendStatus: (status: BackendStatus) => void;
+  setBackgroundGeometry: (geometry: { size: string; position: string } | null) => void;
   beginScreenTransition: () => void;
   completeScreenTransition: () => void;
   login: () => Promise<void>;

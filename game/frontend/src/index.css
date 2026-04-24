@@ -1327,14 +1327,9 @@ body::before {
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .app-shell-root:not([data-home-focus-centered="true"]) .app-rustic-background {
+  .app-rustic-background:not([style*="background-size"]) {
     background-size: var(--layout-shell-rustic-background-size-compact);
     background-position: var(--layout-shell-rustic-background-position-compact);
-  }
-
-  .home-demo-badge {
-    opacity: 0;
-    transform: translateY(-0.4rem) scale(0.92);
   }
 }
 

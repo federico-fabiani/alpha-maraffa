@@ -47,6 +47,7 @@ export const initialState: GameStoreState = {
   pingMs: null,
   pingStatus: "offline",
   turnDeadline: null,
+  backgroundGeometry: null,
 };
 
 const useGameStore = create<GameStore>((set, get) => ({
@@ -55,6 +56,8 @@ const useGameStore = create<GameStore>((set, get) => ({
   setPlayerName: (name) => set({ playerName: name }),
 
   setBackendStatus: (backendStatus) => set({ backendStatus }),
+
+  setBackgroundGeometry: (backgroundGeometry) => set({ backgroundGeometry }),
 
   beginScreenTransition: () => set({ screenTransitionPhase: "fading-out" }),
 

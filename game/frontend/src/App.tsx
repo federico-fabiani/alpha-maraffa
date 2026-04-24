@@ -23,6 +23,7 @@ const screens = {
 export default function App() {
   const screen = useGameStore((state) => state.screen);
   const displayedScreen = useGameStore((state) => state.displayedScreen);
+  const backgroundGeometry = useGameStore((state) => state.backgroundGeometry);
   const screenTransitionPhase = useGameStore(
     (state) => state.screenTransitionPhase,
   );
@@ -80,6 +81,8 @@ export default function App() {
           style={{
             ...APP_SHELL_LAYOUT_STYLES.background,
             backgroundImage: `url(${backgroundImg})`,
+            backgroundSize: backgroundGeometry?.size || undefined,
+            backgroundPosition: backgroundGeometry?.position || undefined,
             opacity: showRusticBg ? 1 : 0,
           }}
         />

@@ -25,6 +25,11 @@ type HomeFocusGeometry = {
 };
 
 const TABLE_CODE_LENGTH = 4;
+const HOME_HIDDEN_WARNINGS = new Set([
+  "Partita già iniziata",
+  "Stanza non trovata",
+  "Tavolo non trovato",
+]);
 
 function sanitizeTableCode(value: string) {
   return value
@@ -133,6 +138,8 @@ export default function HomeScreen() {
 
   const canProceed = playerName.trim().length > 0;
   const hasTableCode = tableCode.trim().length > 0;
+  const visibleError =
+    error && !HOME_HIDDEN_WARNINGS.has(error) ? error : null;
 
   const shakeNameInput = () => {
     const element = nameInputRef.current;
@@ -788,7 +795,7 @@ export default function HomeScreen() {
           )}
         </div>
 
-        {error && (
+        {visibleError && (
           <p
             className="home-error-message animate-fade-in"
             style={{
@@ -797,7 +804,7 @@ export default function HomeScreen() {
               fontSize: "0.95rem",
             }}
           >
-            {error}
+            {visibleError}
           </p>
         )}
       </div>

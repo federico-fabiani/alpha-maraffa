@@ -288,7 +288,6 @@ const useGameStore = create<GameStore>((set, get) => ({
           lastTrickCards: trickCards,
           notification: {
             text: `Prende ${data.winner_name as string}`,
-            subtitle: `Team ${data.winner_team as number} +${data.points as number} pt`,
             duration: 2000,
           },
         });
@@ -325,6 +324,7 @@ const useGameStore = create<GameStore>((set, get) => ({
       case "kicked": {
         const { uuid, playerName, backendStatus } = get();
         connectionController.disconnect({ intentional: true });
+        sessionStorageService.clearRoom();
         set({
           ...initialState,
           uuid,

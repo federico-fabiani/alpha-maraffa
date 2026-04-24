@@ -326,6 +326,52 @@ body::before {
     0 0 0 1px rgba(255, 240, 210, 0.06) inset;
 }
 
+.game-popup-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.game-popup-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(100%, 22rem);
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(146, 108, 57, 0.55);
+  background: linear-gradient(180deg, rgba(13, 31, 23, 0.97), rgba(10, 24, 18, 0.94));
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.game-popup-card-interactive {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.game-popup-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.52);
+}
+
+.game-popup-title {
+  color: #f8d68b;
+  font-weight: 600;
+  text-align: center;
+}
+
+.game-popup-subtitle {
+  color: rgba(197, 210, 202, 0.78);
+  text-align: center;
+}
+
 .startup-spinner {
   width: 54px;
   height: 54px;
@@ -1293,16 +1339,18 @@ body::before {
   flex-direction: column;
   align-items: center;
   gap: var(--layout-lobby-panel-gap);
-  width: min(92vw, var(--layout-lobby-panel-max-width));
+  width: 100%;
 }
 
 .lobby-heading {
   font-family: "IM Fell English", serif;
-  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-size: clamp(1.55rem, 3.1vw, 2.35rem);
   color: #5c1a0a;
   letter-spacing: 0.04em;
   text-align: center;
   line-height: 1.1;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .lobby-hint {
@@ -1316,14 +1364,16 @@ body::before {
 }
 
 .lobby-code-box {
-  width: 100%;
+  width: auto;
+  min-width: 8.4rem;
   background: rgba(255, 248, 218, 0.5);
   border: 1.5px solid rgba(120, 48, 18, 0.38);
   border-radius: 0.45rem;
-  padding: 0.9rem 1.8rem;
+  padding: 0.65rem 1.1rem;
   text-align: center;
   cursor: pointer;
   backdrop-filter: blur(4px);
+  flex: 0 0 auto;
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
@@ -1334,22 +1384,14 @@ body::before {
   border-color: rgba(140, 48, 18, 0.58);
 }
 
-.lobby-code-label {
-  font-family: "IM Fell English", serif;
-  font-size: 0.75rem;
-  font-style: italic;
-  color: rgba(100, 40, 14, 0.52);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 0.2rem;
-}
-
 .lobby-code-value {
   font-family: "Cinzel", serif;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #5c1a0a;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  margin: 0;
 }
 
 /* Physical table grid */
@@ -1363,6 +1405,8 @@ body::before {
   grid-template-rows: auto var(--layout-lobby-table-middle-row-height) auto;
   gap: var(--layout-lobby-table-gap) var(--layout-lobby-table-gap);
   width: 100%;
+  max-width: 22rem;
+  margin-right: auto;
 }
 
 .lobby-seat-card {
@@ -1443,6 +1487,27 @@ body::before {
   line-height: 1.2;
 }
 
+.lobby-home-cta {
+  width: 100%;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding-inline: 0;
+}
+
+.lobby-home-cta:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.lobby-home-cta .home-menu-label {
+  white-space: nowrap;
+}
+
+.lobby-home-cta .home-arrow {
+  width: clamp(1.15rem, 2.5vw, 1.8rem);
+}
+
 .lobby-owner-crown {
   color: #c8922a;
 }
@@ -1479,43 +1544,25 @@ body::before {
   color: #5c1a0a;
 }
 
-.lobby-btn {
-  width: 100%;
-  padding: 0.7rem 1rem;
-  font-family: "Cinzel", serif;
-  font-weight: 700;
-  font-size: 0.88rem;
-  letter-spacing: 0.1em;
-  border-radius: 0.4rem;
-  border: 1.5px solid rgba(120, 48, 18, 0.4);
-  background: rgba(255, 248, 218, 0.55);
-  color: #5c1a0a;
-  cursor: pointer;
-  backdrop-filter: blur(3px);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
+@media (max-width: 900px), (max-height: 520px) {
+  .lobby-heading {
+    font-size: clamp(1.15rem, 3vw, 1.7rem);
+  }
 
-.lobby-btn:hover:not(:disabled) {
-  background: rgba(255, 242, 195, 0.75);
-  border-color: rgba(140, 48, 18, 0.6);
-  color: #3d1105;
-}
+  .lobby-code-box {
+    min-width: 6.3rem;
+    padding: 0.45rem 0.8rem;
+  }
 
-.lobby-btn:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
+  .lobby-code-value {
+    font-size: 1rem;
+  }
 
-.lobby-btn.primary {
-  background: rgba(140, 38, 14, 0.78);
-  color: #f5ead0;
-  border-color: rgba(140, 38, 14, 0.5);
-}
+  .lobby-table {
+    max-width: 16rem;
+  }
 
-.lobby-btn.primary:hover:not(:disabled) {
-  background: rgba(160, 42, 14, 0.88);
-  border-color: rgba(160, 42, 14, 0.65);
+  .lobby-home-cta .home-arrow {
+    width: 1rem;
+  }
 }

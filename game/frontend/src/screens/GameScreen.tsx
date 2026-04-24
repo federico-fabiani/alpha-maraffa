@@ -436,9 +436,9 @@ export default function GameScreen() {
       )}
 
       {(isWaitingBriscola || briscolaIntro.stage === "banner") && (
-        <div style={announcementOverlayStyle}>
-          <div className="bg-felt-900/92 border border-amber-800/50 rounded-2xl px-7 py-4 text-center shadow-2xl backdrop-blur-sm animate-fade-in">
-            <p className="text-amber-200 font-semibold text-base md:text-lg">
+        <div className="game-popup-overlay" style={announcementOverlayStyle}>
+          <div className="game-popup-card px-7 py-4 max-w-[22rem] animate-fade-in">
+            <p className="game-popup-title text-base md:text-lg">
               {briscolaIntro.stage === "banner"
                 ? briscolaIntro.text
                 : `${briscolaChooserName} sta scegliendo le briscole...`}
@@ -449,17 +449,17 @@ export default function GameScreen() {
 
       {showForfeitConfirm && (
         <div
-          className="bg-stone-950/70 backdrop-blur-sm"
+          className="game-popup-overlay bg-stone-950/70 backdrop-blur-sm"
           style={dialogOverlayStyle}
         >
           <div
-            className="bg-felt-900 border border-red-800/60 rounded-2xl shadow-2xl animate-fade-in"
+            className="game-popup-card border-red-800/60 animate-fade-in"
             style={dialogStyle}
           >
-            <p className="text-red-300 font-cinzel font-bold text-lg text-center tracking-wide">
+            <p className="game-popup-title font-cinzel text-lg tracking-wide text-red-300">
               Abbandona la partita?
             </p>
-            <p className="text-felt-400 text-sm text-center">
+            <p className="game-popup-subtitle text-sm">
               Sei sicuro di voler abbandonare e concedere la partita?
             </p>
             <div style={dialogActionsStyle}>

@@ -20,21 +20,21 @@ export default function Notification({
 
   return (
     <div
-      className="bg-felt-900/95 border border-amber-800/50 rounded-xl
-                 text-center shadow-xl animate-slide-up
-                 backdrop-blur-sm cursor-pointer"
+      className="game-popup-overlay pointer-events-none"
       style={{
-        position: "absolute",
-        bottom: APP_LAYOUT.notification.bottom,
-        left: "50%",
-        transform: "translateX(-50%)",
         zIndex: 30,
-        padding: `${APP_LAYOUT.notification.paddingY} ${APP_LAYOUT.notification.paddingX}`,
       }}
-      onClick={onDismiss}
     >
-      <p className="text-amber-200 font-semibold">{text}</p>
-      {subtitle && <p className="text-felt-500 text-xs mt-0.5">{subtitle}</p>}
+      <div
+        className="game-popup-card game-popup-card-interactive animate-slide-up cursor-pointer pointer-events-auto"
+        style={{
+          padding: `${APP_LAYOUT.notification.paddingY} ${APP_LAYOUT.notification.paddingX}`,
+        }}
+        onClick={onDismiss}
+      >
+        <p className="game-popup-title">{text}</p>
+        {subtitle && <p className="game-popup-subtitle text-xs mt-1">{subtitle}</p>}
+      </div>
     </div>
   );
 }

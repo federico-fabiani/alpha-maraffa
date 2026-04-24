@@ -15,25 +15,20 @@ export default function BriscolaModal({
 }: BriscolaModalProps) {
   return (
     <div
-      className="bg-felt-950/25 animate-fade-in"
+      className="game-popup-overlay bg-felt-950/25 animate-fade-in"
       style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         zIndex: 20,
       }}
     >
       <div
-        className="bg-felt-900 border border-amber-800/40 rounded-2xl p-6 shadow-2xl"
+        className="game-popup-card"
         style={{ width: APP_LAYOUT.briscolaModal.width }}
       >
-        <h3 className="font-cinzel text-center text-amber-400 text-lg font-bold mb-1">
+        <h3 className="game-popup-title font-cinzel text-lg mb-1">
           SCEGLI LA BRISCOLA
         </h3>
         {selectorName && (
-          <p className="text-felt-500 text-xs text-center mb-5">
+          <p className="game-popup-subtitle text-xs mb-5">
             {selectorName}
           </p>
         )}

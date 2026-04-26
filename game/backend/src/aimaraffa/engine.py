@@ -50,9 +50,12 @@ class Deck:
         """Build a fresh ordered deck."""
         self.cards: List[Card] = [Card(s, r) for s in Suit for r in range(1, 11)]
 
-    def shuffle(self) -> None:
-        """Shuffle the deck in place."""
-        random.shuffle(self.cards)
+    def shuffle(self, rng=None) -> None:
+        """Shuffle the deck in place. Pass an explicit rng for reproducibility."""
+        if rng is not None:
+            rng.shuffle(self.cards)
+        else:
+            random.shuffle(self.cards)
 
     def deal(self, n: int) -> List[Card]:
         """Remove and return the top n cards from the deck."""

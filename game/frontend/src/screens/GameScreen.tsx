@@ -16,10 +16,7 @@ import Notification from "../components/Notification";
 import { useGameScreenController } from "../hooks/useGameScreenController";
 
 type HandSlotStyle = React.CSSProperties &
-  Record<
-    "--hand-index" | "--hand-offset" | "--hand-offset-abs",
-    string
-  >;
+  Record<"--hand-index" | "--hand-offset" | "--hand-offset-abs", string>;
 
 export default function GameScreen() {
   const {

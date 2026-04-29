@@ -33,7 +33,9 @@ export default function Notification({
         onClick={onDismiss}
       >
         <p className="game-popup-title">{text}</p>
-        {subtitle && <p className="game-popup-subtitle text-xs mt-1">{subtitle}</p>}
+        {subtitle && (
+          <p className="game-popup-subtitle text-xs mt-1">{subtitle}</p>
+        )}
       </div>
     </div>
   );

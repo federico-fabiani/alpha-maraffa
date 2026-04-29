@@ -61,7 +61,9 @@ export interface GameStoreState {
 export interface GameStoreActions {
   setPlayerName: (name: string) => void;
   setBackendStatus: (status: BackendStatus) => void;
-  setBackgroundGeometry: (geometry: { size: string; position: string } | null) => void;
+  setBackgroundGeometry: (
+    geometry: { size: string; position: string } | null,
+  ) => void;
   beginScreenTransition: () => void;
   completeScreenTransition: () => void;
   login: () => Promise<void>;

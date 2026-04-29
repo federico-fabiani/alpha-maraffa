@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
 import useGameStore from "../state/gameStore";
 import arrowImg from "../assets/arrow.png";
+import CustomKeyboard from "../components/CustomKeyboard";
 
 type MenuOption = "nuova_partita" | "cerca_tavolo";
 
@@ -138,11 +139,19 @@ export default function HomeScreen() {
   const rootRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const tableCodeInputRef = useRef<HTMLInputElement>(null);
+  const playerNameRef = useRef(playerName);
+  playerNameRef.current = playerName;
+
+  const [isTouchDevice] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: coarse)").matches,
+  );
+  const [showCustomKeyboard, setShowCustomKeyboard] = useState(false);
 
   const canProceed = playerName.trim().length > 0;
   const hasTableCode = tableCode.trim().length > 0;
-  const visibleError =
-    error && !HOME_HIDDEN_WARNINGS.has(error) ? error : null;
+  const visibleError = error && !HOME_HIDDEN_WARNINGS.has(error) ? error : null;
 
   const shakeNameInput = () => {
     const element = nameInputRef.current;
@@ -190,6 +199,25 @@ export default function HomeScreen() {
     window.setTimeout(() => {
       tableCodeInputRef.current?.focus();
     }, 40);
+  };
+
+  const handleCustomKey = (key: string) => {
+    if (playerNameRef.current.length < 14)
+      setPlayerName(playerNameRef.current + key);
+  };
+
+  const handleCustomBackspace = () => {
+    setPlayerName(playerNameRef.current.slice(0, -1));
+  };
+
+  const handleCustomEnter = () => {
+    setShowCustomKeyboard(false);
+    if (canProceed) handleActivateOption(selectedOption);
+    else shakeNameInput();
+  };
+
+  const handleCustomClose = () => {
+    setShowCustomKeyboard(false);
   };
 
   const handleJoinRoom = () => {
@@ -301,12 +329,14 @@ export default function HomeScreen() {
     APP_LAYOUT.home.contentPadding.top.maxPx,
   );
   const panelPaddingRight = clamp(
-    focusGeometry.contentRect.width * APP_LAYOUT.home.contentPadding.right.ratio,
+    focusGeometry.contentRect.width *
+      APP_LAYOUT.home.contentPadding.right.ratio,
     APP_LAYOUT.home.contentPadding.right.minPx,
     APP_LAYOUT.home.contentPadding.right.maxPx,
   );
   const panelPaddingBottom = clamp(
-    focusGeometry.contentRect.height * APP_LAYOUT.home.contentPadding.bottom.ratio,
+    focusGeometry.contentRect.height *
+      APP_LAYOUT.home.contentPadding.bottom.ratio,
     APP_LAYOUT.home.contentPadding.bottom.minPx,
     APP_LAYOUT.home.contentPadding.bottom.maxPx,
   );
@@ -324,18 +354,12 @@ export default function HomeScreen() {
     focusGeometry.contentRect.height - panelPaddingTop - panelPaddingBottom,
   );
   const titleFontSize = clamp(
-    Math.min(
-      contentInnerHeight * 0.34,
-      contentInnerWidth * 0.17,
-    ),
+    Math.min(contentInnerHeight * 0.34, contentInnerWidth * 0.17),
     52,
     152,
   );
   const inputFontSize = clamp(
-    Math.min(
-      contentInnerHeight * 0.11,
-      contentInnerWidth * 0.062,
-    ),
+    Math.min(contentInnerHeight * 0.11, contentInnerWidth * 0.062),
     16,
     28,
   );
@@ -350,9 +374,9 @@ export default function HomeScreen() {
   const arrowWidth = clamp(menuItemFontSize * 1.35, 20, 34);
   const inputWidth = Math.min(
     clamp(
-      contentInnerWidth * (useSideBySideCtas ? 0.88 : 0.74),
-      useSideBySideCtas ? 230 : 180,
-      460,
+      contentInnerWidth * (useSideBySideCtas ? 0.78 : 0.58),
+      useSideBySideCtas ? 200 : 150,
+      360,
     ),
     contentInnerWidth,
   );
@@ -390,7 +414,8 @@ export default function HomeScreen() {
     "--layout-home-menu-item-font-size": `${menuItemFontSize}px`,
     "--layout-home-arrow-width": `${arrowWidth}px`,
     "--layout-home-panel-gap": `${clamp(
-      contentInnerHeight * (showJoinPanel ? 0.04 : useSideBySideCtas ? 0.06 : 0.07),
+      contentInnerHeight *
+        (showJoinPanel ? 0.04 : useSideBySideCtas ? 0.06 : 0.07),
       6,
       showJoinPanel ? 20 : 28,
     )}px`,
@@ -404,9 +429,7 @@ export default function HomeScreen() {
       APP_LAYOUT.home.titleBottomSpacing.maxPx,
     )}px`,
     "--layout-home-menu-gap": `${clamp(
-      useSideBySideCtas
-        ? contentInnerWidth * 0.02
-        : contentInnerHeight * 0.02,
+      useSideBySideCtas ? contentInnerWidth * 0.02 : contentInnerHeight * 0.02,
       6,
       18,
     )}px`,
@@ -485,11 +508,7 @@ export default function HomeScreen() {
         DEMO
       </span>
 
-      <div
-        className="home-panel notranslate"
-        style={panelStyle}
-        translate="no"
-      >
+      <div className="home-panel notranslate" style={panelStyle} translate="no">
         {/* Title – individual animated letters */}
         {/* One SVG filter per letter: unique warp seed + unique grain seed → unique campitura */}
         <svg aria-hidden="true" style={hiddenSvgStyle}>
@@ -686,7 +705,9 @@ export default function HomeScreen() {
           ))}
         </div>
 
-        <div className={`home-action-cluster${showJoinPanel ? " home-action-cluster-join" : ""}`}>
+        <div
+          className={`home-action-cluster${showJoinPanel ? " home-action-cluster-join" : ""}`}
+        >
           {!showJoinPanel ? (
             <>
               <input
@@ -699,50 +720,65 @@ export default function HomeScreen() {
                   if (e.key === "Enter" && !showJoinPanel)
                     handleActivateOption(selectedOption);
                 }}
+                onClick={() => {
+                  if (isTouchDevice) setShowCustomKeyboard(true);
+                }}
                 className="home-name-input"
                 style={{ width: "var(--layout-home-input-width)" }}
-                maxLength={20}
-                autoFocus
+                maxLength={14}
+                autoFocus={!isTouchDevice}
+                readOnly={isTouchDevice}
+                inputMode={isTouchDevice ? "none" : undefined}
               />
 
               <div
                 className={`home-menu${useSideBySideCtas ? " home-menu-side-by-side" : ""}`}
                 style={menuStyle}
               >
-              {HOME_MENU_OPTIONS.map((opt) => (
-                <div
-                  key={opt.key}
-                  className={`home-menu-item${!canProceed ? " disabled" : ""}`}
-                  onClick={() => handleActivateOption(opt.key)}
-                  onMouseEnter={() => setSelectedOption(opt.key)}
-                >
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    className="home-arrow home-arrow-left"
-                    style={{
-                      opacity: selectedOption === opt.key ? 1 : 0,
-                      width: "var(--layout-home-arrow-width)",
-                    }}
-                  />
-                  <span className="home-menu-label">{opt.label}</span>
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    className="home-arrow home-arrow-right"
-                    style={{
-                      opacity: selectedOption === opt.key ? 1 : 0,
-                      width: "var(--layout-home-arrow-width)",
-                    }}
-                  />
-                </div>
-              ))}
+                {HOME_MENU_OPTIONS.map((opt) => (
+                  <div
+                    key={opt.key}
+                    className={`home-menu-item${!canProceed ? " disabled" : ""}`}
+                    onClick={() => handleActivateOption(opt.key)}
+                    onMouseEnter={() => setSelectedOption(opt.key)}
+                    aria-label={opt.label}
+                    role="button"
+                  >
+                    <img
+                      src={arrowImg}
+                      alt=""
+                      className="home-arrow home-arrow-left"
+                      style={{
+                        opacity: selectedOption === opt.key ? 1 : 0,
+                        width: "var(--layout-home-arrow-width)",
+                      }}
+                    />
+                    <span
+                      className="home-menu-label"
+                      aria-hidden="true"
+                      data-label={opt.label}
+                    />
+                    <img
+                      src={arrowImg}
+                      alt=""
+                      className="home-arrow home-arrow-right"
+                      style={{
+                        opacity: selectedOption === opt.key ? 1 : 0,
+                        width: "var(--layout-home-arrow-width)",
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             </>
           ) : (
-            <div className="home-join-panel animate-fade-in" style={joinPanelStyle}>
+            <div
+              className="home-join-panel animate-fade-in"
+              style={joinPanelStyle}
+            >
               <p className="home-join-helper">
-                Ciao, <strong>{playerName}</strong>, inserisci il codice del tavolo
+                Ciao, <strong>{playerName}</strong>, inserisci il codice del
+                tavolo
               </p>
               <div className="home-join-row">
                 <input
@@ -751,7 +787,9 @@ export default function HomeScreen() {
                   placeholder="M7Q4"
                   aria-label="Codice tavolo"
                   value={tableCode}
-                  onChange={(e) => setTableCode(sanitizeTableCode(e.target.value))}
+                  onChange={(e) =>
+                    setTableCode(sanitizeTableCode(e.target.value))
+                  }
                   onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
                   className="home-name-input home-table-code-input"
                   style={{ width: "var(--layout-home-join-code-width)" }}
@@ -765,6 +803,7 @@ export default function HomeScreen() {
                   type="button"
                   className="home-menu-item home-join-submit"
                   onClick={handleJoinRoom}
+                  aria-label="Unisciti"
                 >
                   <img
                     src={arrowImg}
@@ -772,7 +811,11 @@ export default function HomeScreen() {
                     className="home-arrow home-arrow-left home-hover-arrow"
                     style={{ width: "var(--layout-home-arrow-width)" }}
                   />
-                  <span className="home-menu-label">Unisciti</span>
+                  <span
+                    className="home-menu-label"
+                    aria-hidden="true"
+                    data-label="Unisciti"
+                  />
                   <img
                     src={arrowImg}
                     alt=""
@@ -806,6 +849,15 @@ export default function HomeScreen() {
           </p>
         )}
       </div>
+
+      {showCustomKeyboard && (
+        <CustomKeyboard
+          onKey={handleCustomKey}
+          onBackspace={handleCustomBackspace}
+          onEnter={handleCustomEnter}
+          onClose={handleCustomClose}
+        />
+      )}
     </div>
   );
 }

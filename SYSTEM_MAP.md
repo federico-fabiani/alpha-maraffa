@@ -81,6 +81,12 @@ Authority: hook-local or component-local view state only.
   props: none
   state read: `roomId`, `mySeat`, `isOwner`, `ownerSeat`, `lobbyPlayers`; local `swapPendingSeat`, `copied`
   actions triggered: `startGame`, `swapSeats`, `kickPlayer`, `promotePlayer`, `reset`
+  children: `LobbyTableSeats`
+
+- `LobbyTableSeats`
+  props: `bounds`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`
+  state read: none
+  actions triggered: `onSeatClick`, `onPromotePlayer`, `onKickPlayer`
   children: none
 
 ### Game flow

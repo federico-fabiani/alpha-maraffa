@@ -133,6 +133,83 @@ export const APP_LAYOUT = {
     basePanelHeight: 410,
     panelMaxWidth: "30rem",
     panelGap: "0.9rem",
+    headerReservedHeight: {
+      ratio: 0.16,
+      minPx: 58,
+      maxPx: 90,
+    },
+    headerGap: {
+      ratio: 0.028,
+      minPx: 10,
+      maxPx: 18,
+    },
+    contentPaddingX: {
+      ratio: 0.03,
+      minPx: 12,
+      maxPx: 24,
+    },
+    contentPaddingY: {
+      ratio: 0.024,
+      minPx: 10,
+      maxPx: 20,
+    },
+    sectionGap: {
+      ratio: 0.035,
+      minPx: 14,
+      maxPx: 28,
+    },
+    tableArea: {
+      widthRatio: 0.72,
+      minWidthPx: 320,
+      maxWidthPx: 520,
+    },
+    ctaArea: {
+      minWidthPx: 150,
+      maxWidthPx: 220,
+    },
+    table: {
+      aspectRatio: 400 / 280,
+      displayAspectRatio: 1.72,
+      minWidthPx: 176,
+      maxWidthPx: 460,
+      hintMaxWidthRatio: 0.88,
+    },
+    seat: {
+      badgeSizeRatio: 0.2,
+      badgeSizeMinPx: 42,
+      badgeSizeMaxPx: 68,
+      innerInsetRatio: 0.02,
+      innerInsetMinPx: 10,
+      innerInsetMaxPx: 18,
+      labelGapRatio: 0.028,
+      labelGapMinPx: 5,
+      labelGapMaxPx: 10,
+      topLabelWidthRatio: 0.38,
+      topLabelWidthMinPx: 148,
+      topLabelWidthMaxPx: 220,
+      sideLabelWidthRatio: 0.28,
+      sideLabelWidthMinPx: 132,
+      sideLabelWidthMaxPx: 210,
+      labelLaneDepthRatio: 0.085,
+      labelLaneDepthMinPx: 40,
+      labelLaneDepthMaxPx: 58,
+      maxNameLength: 12,
+      nameFontSize: {
+        ratio: 0.032,
+        minPx: 13,
+        maxPx: 18,
+      },
+      metaFontSize: {
+        ratio: 0.021,
+        minPx: 10,
+        maxPx: 13,
+      },
+      actionFontSize: {
+        ratio: 0.018,
+        minPx: 10,
+        maxPx: 12,
+      },
+    },
     tableGap: "0.15rem",
     tableMiddleRowHeight: "1.85rem",
     avatarSize: "46px",
@@ -141,9 +218,9 @@ export const APP_LAYOUT = {
     seatCardPaddingX: "0.3rem",
     seatActionGap: "0.15rem",
     ctaFontSize: {
-      ratio: 0.072,
-      minPx: 14,
-      maxPx: 24,
+      ratio: 0.08,
+      minPx: 18,
+      maxPx: 28,
     },
   },
   game: {
@@ -358,7 +435,8 @@ export const APP_SHELL_LAYOUT_STYLES = {
 
 export const layoutCssVariables = {
   "--layout-screen-transition-duration": `${APP_LAYOUT.shell.screenFadeDurationMs}ms`,
-  "--layout-shell-rustic-background-size": APP_LAYOUT.shell.rusticBackgroundSize,
+  "--layout-shell-rustic-background-size":
+    APP_LAYOUT.shell.rusticBackgroundSize,
   "--layout-shell-rustic-background-position":
     APP_LAYOUT.shell.rusticBackgroundPosition,
   "--layout-shell-rustic-background-size-compact":

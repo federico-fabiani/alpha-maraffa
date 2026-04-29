@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { APP_LAYOUT } from "../layout/layout";
 import { createRoomRequest, loginPlayer } from "../services/api";
 import { createGameConnectionController } from "../services/gameConnection";
 import { sessionStorageService } from "../services/sessionStorage";
@@ -16,6 +17,7 @@ import type { GameMessage, GameStore, GameStoreState } from "./storeTypes";
 
 let connectionController: ReturnType<typeof createGameConnectionController>;
 const INVALID_SESSION_MESSAGE = "Sessione non valida, ricarica la pagina";
+const MAX_PLAYER_NAME_LENGTH = APP_LAYOUT.lobby.seat.maxNameLength;
 
 export const initialState: GameStoreState = {
   connected: false,
@@ -53,7 +55,8 @@ export const initialState: GameStoreState = {
 const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
-  setPlayerName: (name) => set({ playerName: name }),
+  setPlayerName: (name) =>
+    set({ playerName: name.trimStart().slice(0, MAX_PLAYER_NAME_LENGTH) }),
 
   setBackendStatus: (backendStatus) => set({ backendStatus }),
 
@@ -481,7 +484,8 @@ const useGameStore = create<GameStore>((set, get) => ({
         }
 
         set({
-          error: message === "Stanza non trovata" ? "Tavolo non trovato" : message,
+          error:
+            message === "Stanza non trovata" ? "Tavolo non trovato" : message,
         });
         break;
       }

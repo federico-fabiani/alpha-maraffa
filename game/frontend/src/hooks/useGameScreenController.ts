@@ -38,6 +38,7 @@ interface DragState {
   y: number;
   startX: number;
   startY: number;
+  source: "mouse" | "touch";
 }
 
 interface TouchArmedCard {
@@ -211,7 +212,14 @@ export function useGameScreenController() {
       lastTouchInteractionAtRef.current = Date.now();
 
       if (isTouchArmed(card)) {
-        playSelectedCard(card);
+        setDrag({
+          card,
+          x: event.clientX,
+          y: event.clientY,
+          startX: event.clientX,
+          startY: event.clientY,
+          source: "touch",
+        });
         return;
       }
 
@@ -227,6 +235,7 @@ export function useGameScreenController() {
       y: event.clientY,
       startX: event.clientX,
       startY: event.clientY,
+      source: "mouse",
     });
   };
 
@@ -251,7 +260,15 @@ export function useGameScreenController() {
       return;
     }
 
-    if (drag.startY - event.clientY > 90 && drag.card.playable && isMyTurn) {
+    const shouldPlayByDrop =
+      drag.startY - event.clientY > 90 && drag.card.playable && isMyTurn;
+    const shouldPlayByTouchConfirm =
+      drag.source === "touch" &&
+      !isActiveDrag &&
+      drag.card.playable &&
+      isMyTurn;
+
+    if (shouldPlayByDrop || shouldPlayByTouchConfirm) {
       playSelectedCard(drag.card);
     }
 

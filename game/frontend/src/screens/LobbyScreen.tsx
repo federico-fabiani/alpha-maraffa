@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
 import arrowImg from "../assets/arrow.png";
+import LobbyTableSeats from "../components/LobbyTableSeats";
 import useGameStore from "../state/gameStore";
-
-const SEAT_AREA = ["bottom", "right", "top", "left"] as const;
-const TEAM_COLOR = ["#c8922a", "#8b3a1a", "#c8922a", "#8b3a1a"];
 
 type Rect = {
   left: number;
@@ -15,6 +13,16 @@ type Rect = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function hashString(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
 }
 
 function intersectRect(rect: Rect, maxWidth: number, maxHeight: number): Rect {
@@ -83,6 +91,28 @@ export default function LobbyScreen() {
   const playerBySeat = Object.fromEntries(
     lobbyPlayers.map((player) => [player.seat, player]),
   );
+  const badgeByName = useMemo(() => {
+    const assigned = new Set<number>();
+    const next: Record<string, number> = {};
+
+    [...lobbyPlayers]
+      .sort(
+        (left, right) =>
+          left.name.localeCompare(right.name) || left.seat - right.seat,
+      )
+      .forEach((player) => {
+        let badgeIndex = hashString(player.name) % 4;
+
+        while (assigned.has(badgeIndex)) {
+          badgeIndex = (badgeIndex + 1) % 4;
+        }
+
+        assigned.add(badgeIndex);
+        next[player.name] = badgeIndex;
+      });
+
+    return next;
+  }, [lobbyPlayers]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -140,83 +170,112 @@ export default function LobbyScreen() {
     setSwapPendingSeat(null);
   };
 
-  const panelScale = useMemo(() => {
-    const widthScale = safeRect.width / APP_LAYOUT.lobby.basePanelWidth;
-    const heightScale = safeRect.height / APP_LAYOUT.lobby.basePanelHeight;
-
-    return Math.min(widthScale, heightScale, 1);
-  }, [safeRect.height, safeRect.width]);
+  const headerReservedHeight = clamp(
+    safeRect.height * APP_LAYOUT.lobby.headerReservedHeight.ratio,
+    APP_LAYOUT.lobby.headerReservedHeight.minPx,
+    APP_LAYOUT.lobby.headerReservedHeight.maxPx,
+  );
+  const headerGap = clamp(
+    safeRect.height * APP_LAYOUT.lobby.headerGap.ratio,
+    APP_LAYOUT.lobby.headerGap.minPx,
+    APP_LAYOUT.lobby.headerGap.maxPx,
+  );
+  const contentPaddingX = clamp(
+    safeRect.width * APP_LAYOUT.lobby.contentPaddingX.ratio,
+    APP_LAYOUT.lobby.contentPaddingX.minPx,
+    APP_LAYOUT.lobby.contentPaddingX.maxPx,
+  );
+  const contentPaddingY = clamp(
+    safeRect.height * APP_LAYOUT.lobby.contentPaddingY.ratio,
+    APP_LAYOUT.lobby.contentPaddingY.minPx,
+    APP_LAYOUT.lobby.contentPaddingY.maxPx,
+  );
+  const sectionGap = clamp(
+    safeRect.width * APP_LAYOUT.lobby.sectionGap.ratio,
+    APP_LAYOUT.lobby.sectionGap.minPx,
+    APP_LAYOUT.lobby.sectionGap.maxPx,
+  );
+  const contentWidth = Math.max(1, safeRect.width - contentPaddingX * 2);
+  const contentHeight = Math.max(
+    1,
+    safeRect.height - contentPaddingY * 2 - headerReservedHeight - headerGap,
+  );
+  const tableAreaWidth = clamp(
+    contentWidth * APP_LAYOUT.lobby.tableArea.widthRatio,
+    APP_LAYOUT.lobby.tableArea.minWidthPx,
+    Math.min(
+      APP_LAYOUT.lobby.tableArea.maxWidthPx,
+      Math.max(
+        APP_LAYOUT.lobby.tableArea.minWidthPx,
+        contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx - sectionGap,
+      ),
+    ),
+  );
+  const ctaAreaWidth = clamp(
+    contentWidth - tableAreaWidth - sectionGap,
+    APP_LAYOUT.lobby.ctaArea.minWidthPx,
+    APP_LAYOUT.lobby.ctaArea.maxWidthPx,
+  );
   const ctaFontSize = clamp(
     safeRect.width * APP_LAYOUT.lobby.ctaFontSize.ratio,
     APP_LAYOUT.lobby.ctaFontSize.minPx,
     APP_LAYOUT.lobby.ctaFontSize.maxPx,
   );
 
-  const panelHostStyle = {
+  const shellStyle = {
     position: "absolute",
     left: `${safeRect.left}px`,
     top: `${safeRect.top}px`,
     width: `${safeRect.width}px`,
     height: `${safeRect.height}px`,
+    padding: `${contentPaddingY}px ${contentPaddingX}px`,
+    boxSizing: "border-box" as const,
     display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: "column" as const,
+    alignItems: "stretch",
+    justifyContent: "flex-start",
+    gap: `${headerGap}px`,
     overflow: "hidden",
   } as const;
-  const wrapStyle = {
-    width: `${APP_LAYOUT.lobby.basePanelWidth}px`,
-    height: `${APP_LAYOUT.lobby.basePanelHeight}px`,
-    transform: `scale(${panelScale})`,
-    transformOrigin: "center center",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    justifyContent: "space-between",
-  };
-  const shellStyle = {
-    display: "flex",
-    flexDirection: "column" as const,
-    width: "100%",
-    height: "100%",
-    gap: "0.9rem",
-  };
   const headerStyle = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "0.9rem",
+    gap: "0.8rem",
     width: "100%",
+    minHeight: `${headerReservedHeight}px`,
+    flex: "0 0 auto",
   } as const;
   const bodyStyle = {
     display: "flex",
     flexDirection: "row" as const,
     alignItems: "stretch",
-    justifyContent: "space-between",
-    gap: "1.1rem",
+    justifyContent: "flex-start",
+    gap: `${sectionGap}px`,
     width: "100%",
-    flex: 1,
+    height: `${contentHeight}px`,
+    flex: "1 1 auto",
     minHeight: 0,
   };
-  const leftColumnStyle = {
+  const tableAreaStyle = {
     display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    justifyContent: "center",
-    flex: "1 1 0",
-    width: "60%",
+    flex: "0 0 auto",
+    width: `${tableAreaWidth}px`,
+    maxWidth: `${tableAreaWidth}px`,
     minWidth: 0,
-    minHeight: 0,
-    gap: "0.45rem",
+    minHeight: `${contentHeight}px`,
+    height: "100%",
   };
-  const rightColumnStyle = {
+  const ctaAreaStyle = {
     display: "flex",
     flexDirection: "column" as const,
-    alignItems: "center",
+    alignItems: "stretch",
     justifyContent: "center",
-    flex: "0 0 28%",
-    width: "28%",
+    flex: "0 0 auto",
+    width: `${ctaAreaWidth}px`,
+    maxWidth: `${ctaAreaWidth}px`,
     minWidth: 0,
-    gap: "0.7rem",
+    minHeight: `${contentHeight}px`,
   };
   const rootStyle = {
     position: "relative",
@@ -226,7 +285,7 @@ export default function LobbyScreen() {
   const actionsStyle = {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "0.7rem",
+    gap: "0.45rem",
     width: "100%",
     alignItems: "center",
   };
@@ -234,159 +293,101 @@ export default function LobbyScreen() {
     fontSize: `${ctaFontSize}px`,
   } as const;
   const hintStyle = {
-    maxWidth: "15rem",
+    maxWidth: "100%",
   } as const;
+  const tableHint = isOwner
+    ? "Clicca su due posti occupati per scambiarli."
+    : "Attendi altri giocatori o avvio partita.";
 
   return (
     <div ref={rootRef} style={rootStyle}>
-      <div style={panelHostStyle}>
-        <div className="lobby-wrap" style={wrapStyle}>
-          <div style={shellStyle}>
-            <div style={headerStyle}>
-              <h2 className="lobby-heading">Codice tavolo</h2>
-              <button
-                onClick={handleCopyRoomId}
-                title="Clicca per copiare"
-                className="lobby-code-box"
-              >
-                <p className="lobby-code-value">{copied ? "COPIATO" : roomId}</p>
-              </button>
-            </div>
+      <div style={shellStyle}>
+        <div style={headerStyle}>
+          <h2 className="lobby-heading">Codice tavolo</h2>
+          <button
+            onClick={handleCopyRoomId}
+            title="Clicca per copiare"
+            className="lobby-code-box"
+          >
+            <p className="lobby-code-value">{copied ? "COPIATO" : roomId}</p>
+          </button>
+        </div>
 
-            <div style={bodyStyle}>
-              <div style={leftColumnStyle}>
-                <div className="lobby-table">
-          {[0, 1, 2, 3].map((seat) => {
-            const player = playerBySeat[seat];
-            const isMe = seat === mySeat;
-            const teamColor = TEAM_COLOR[seat];
-            const isPending = swapPendingSeat === seat;
-            const isClickable =
-              isOwner && (!!player || swapPendingSeat !== null);
-            const area = SEAT_AREA[seat];
+        <div style={bodyStyle}>
+          <div style={tableAreaStyle}>
+            <LobbyTableSeats
+              bounds={{ width: tableAreaWidth, height: contentHeight }}
+              mySeat={mySeat}
+              ownerSeat={ownerSeat}
+              isOwner={isOwner}
+              playerBySeat={playerBySeat}
+              badgeByName={badgeByName}
+              swapPendingSeat={swapPendingSeat}
+              onSeatClick={handleSeatClick}
+              onPromotePlayer={promotePlayer}
+              onKickPlayer={kickPlayer}
+              tableHint={tableHint}
+            />
+          </div>
 
-            return (
-              <div
-                key={seat}
-                onClick={() => handleSeatClick(seat)}
-                className={[
-                  "lobby-seat-card",
-                  `lobby-seat-${area}`,
-                  isMe ? "is-me" : "",
-                  isPending ? "is-pending" : "",
-                  isClickable ? "cursor-pointer" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                style={{ "--team-color": teamColor } as React.CSSProperties}
-              >
-                <div className={`lobby-avatar${player ? "" : " empty"}`}>
-                  {player ? (
-                    <span>{player.name.charAt(0).toUpperCase()}</span>
-                  ) : (
-                    <span>–</span>
-                  )}
-                </div>
-
-                {player ? (
-                  <div className="lobby-seat-info">
-                    <p className="lobby-seat-name">
-                      {ownerSeat === seat && (
-                        <span className="lobby-owner-crown">♛ </span>
-                      )}
-                      {player.name}
-                      {isMe && <span className="lobby-me-tag"> (tu)</span>}
-                    </p>
-                    {isOwner && !isMe && !player.is_bot && (
-                      <div className="lobby-seat-actions">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            promotePlayer(seat);
-                          }}
-                          title="Promuovi a owner"
-                          className="lobby-action-btn"
-                        >
-                          ♛
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            kickPlayer(seat);
-                          }}
-                          title="Espelli"
-                          className="lobby-action-btn"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="lobby-seat-empty">Attesa…</p>
-                )}
+          <div style={ctaAreaStyle}>
+            <div className="lobby-actions-panel">
+              <div style={actionsStyle}>
+                <button
+                  onClick={startGame}
+                  disabled={!isOwner}
+                  className={`home-menu-item lobby-home-cta${!isOwner ? " disabled" : ""}`}
+                  style={ctaStyle}
+                  aria-label="Inizia"
+                >
+                  <img
+                    src={arrowImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="home-arrow home-arrow-left home-hover-arrow"
+                  />
+                  <span
+                    className="home-menu-label"
+                    aria-hidden="true"
+                    data-label="Inizia"
+                  />
+                  <img
+                    src={arrowImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="home-arrow home-hover-arrow"
+                  />
+                </button>
+                <button
+                  onClick={reset}
+                  className="home-menu-item lobby-home-cta"
+                  style={ctaStyle}
+                  aria-label="Esci"
+                >
+                  <img
+                    src={arrowImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="home-arrow home-arrow-left home-hover-arrow"
+                  />
+                  <span
+                    className="home-menu-label"
+                    aria-hidden="true"
+                    data-label="Esci"
+                  />
+                  <img
+                    src={arrowImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="home-arrow home-hover-arrow"
+                  />
+                </button>
               </div>
-            );
-          })}
-                </div>
-
-                {isOwner && (
-                  <p className="lobby-hint">
-                    {swapPendingSeat !== null
-                      ? `Seleziona il secondo posto da scambiare…`
-                      : "Clicca due posti per scambiarli."}
-                  </p>
-                )}
-              </div>
-
-              <div style={rightColumnStyle}>
-                <div style={actionsStyle}>
-                  <button
-                    onClick={startGame}
-                    disabled={!isOwner}
-                    className={`home-menu-item lobby-home-cta${!isOwner ? " disabled" : ""}`}
-                    style={ctaStyle}
-                  >
-                    <img
-                      src={arrowImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="home-arrow home-arrow-left home-hover-arrow"
-                    />
-                    <span className="home-menu-label">Inizia</span>
-                    <img
-                      src={arrowImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="home-arrow home-hover-arrow"
-                    />
-                  </button>
-                  <button
-                    onClick={reset}
-                    className="home-menu-item lobby-home-cta"
-                    style={ctaStyle}
-                  >
-                    <img
-                      src={arrowImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="home-arrow home-arrow-left home-hover-arrow"
-                    />
-                    <span className="home-menu-label">Esci</span>
-                    <img
-                      src={arrowImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="home-arrow home-hover-arrow"
-                    />
-                  </button>
-                </div>
-                <p className="lobby-hint" style={hintStyle}>
-                  {isOwner
-                    ? "I posti liberi verranno riempiti da bot."
-                    : "Solo il proprietario del tavolo puo avviare la partita."}
-                </p>
-              </div>
+              <p className="lobby-hint" style={hintStyle}>
+                {isOwner
+                  ? "I posti liberi verranno riempiti da bot quando inizi."
+                  : "Solo proprietario del tavolo puo avviare partita."}
+              </p>
             </div>
           </div>
         </div>

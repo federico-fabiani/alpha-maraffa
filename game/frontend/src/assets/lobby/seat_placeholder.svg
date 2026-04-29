@@ -1,0 +1,9 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="36" stroke="#5c1a10" stroke-width="2.5" stroke-dasharray="6 4" stroke-linecap="round" opacity="0.45">
+    <filter id="rust-noise-circle">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+    </filter>
+  </circle>
+  <circle cx="40" cy="40" r="37.5" stroke="#68341a" stroke-width="1.5" opacity="0.3" filter="url(#rust-noise-circle)"/>
+</svg>

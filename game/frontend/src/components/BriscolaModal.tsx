@@ -28,9 +28,7 @@ export default function BriscolaModal({
           SCEGLI LA BRISCOLA
         </h3>
         {selectorName && (
-          <p className="game-popup-subtitle text-xs mb-5">
-            {selectorName}
-          </p>
+          <p className="game-popup-subtitle text-xs mb-5">{selectorName}</p>
         )}
 
         <div

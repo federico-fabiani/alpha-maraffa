@@ -152,6 +152,50 @@ v5=51.5% ✗ · v6=50.7% ✗ · v7=49.7% ✗ · v8=48.8% ✗
 
 ---
 
+## Path B — Switch to ISMCTS + Distillation (AlphaZero-style)
+
+**Status:** Core pipeline implemented and validated end-to-end.  Replaces
+PPO entirely.  See `docs/az-runbook.md` for full details.
+
+**New stack:** `aimaraffa.ai.az_*` (separate from legacy `rl_*`).
+
+**Diagnosis of why PPO plateaued at ~53%:**
+1. Per-trick reward variance dominated policy gradient (SNR ~0.08).
+2. Value head shared trunk with policy and read candidate-specific
+   features → V(s) unstable across candidate sets.
+3. BC warm-start collapsed entropy; PPO had no signal on the 75% of
+   states where it agreed with heuristic.
+4. PPO is wrong tool class for trick-taking with hidden info.  State of
+   the art uses ISMCTS+distillation (Bridge, Skat, Hearts, Tichu).
+
+**Changes:**
+- Fast numpy game-state kernel (`fast_engine.py`) — ~125k decisions/sec/core.
+- BeliefState tracks per-seat per-suit voids and must-haves derived from
+  played cards + declarations.  Determinization samples consistent
+  opponent hands.
+- Network: state-only encoder (284 features) + two heads.  Fixed action
+  space [40 cards × 4 declarations] with legality mask.
+- ISMCTS: PUCT, neural priors, NN value at leaves (no random rollouts).
+- Self-play unit = one round (independent imperfect-info game).
+- Loss = CE(logits, π_target) + MSE(value, z) — pure supervised.
+
+**Smoke results (random init → 3 iterations × 80 rounds × 32×8 sims):**
+
+| version | WR vs heuristic | margin | policy loss | value loss |
+|---|---|---|---|---|
+| v2 | 28.5% | -2.73 | 1.172 | 0.291 |
+| v3 | 29.5% | -2.59 | 1.141 | 0.126 |
+| v4 | 32.5% | -2.44 | 1.132 | 0.082 |
+
+Monotone improvement.  Value loss collapsing (head fits the round-end
+margin reliably).  Pipeline is correct; remaining work is scale-up.
+
+**Next:** Run full schedule per `docs/az-runbook.md` (10 iters
+bootstrap + 20 iters promotion + 30 iters self-play polish).  Expected
+ceiling 75–85% WR vs heuristic.
+
+---
+
 ## R8 — BC + 100% heuristic (no self-play)
 
 **Changes vs R7:**

@@ -3,6 +3,14 @@ import type { CSSProperties } from "react";
 type SeatPosition = "top" | "right" | "bottom" | "left";
 
 export const APP_LAYOUT = {
+  rusticBackground: {
+    contentRect: {
+      x: 0.245,
+      y: 0.2,
+      width: 0.509,
+      height: 0.58,
+    },
+  },
   shell: {
     inactiveBlurRadius: "7px",
     screenFadeDurationMs: 380,
@@ -28,12 +36,6 @@ export const APP_LAYOUT = {
     compactLandscapeMaxHeight: 500,
     compactLandscapeBackgroundScale: 1.24,
     compactLandscapeBackgroundAnchorY: 0.38,
-    contentRect: {
-      x: 0.245,
-      y: 0.2,
-      width: 0.509,
-      height: 0.58,
-    },
     contentPadding: {
       top: {
         ratio: 0.05,

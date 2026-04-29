@@ -73,7 +73,7 @@ Authority: hook-local or component-local view state only.
   props: none
   state read: `playerName`, `error`; local `selectedOption`, `showJoinPanel`, `roomCode`
   actions triggered: `setPlayerName`, `createRoom`, `joinRoom`
-  children: none
+  children: `ArrowCtaButton`, `ContentRectDebugOverlay`, `CustomKeyboard`
 
 ### Lobby flow
 
@@ -81,7 +81,7 @@ Authority: hook-local or component-local view state only.
   props: none
   state read: `roomId`, `mySeat`, `isOwner`, `ownerSeat`, `lobbyPlayers`; local `swapPendingSeat`, `copied`
   actions triggered: `startGame`, `swapSeats`, `kickPlayer`, `promotePlayer`, `reset`
-  children: `LobbyTableSeats`
+  children: `LobbyTableSeats`, `ArrowCtaButton`, `ContentRectDebugOverlay`
 
 - `LobbyTableSeats`
   props: `bounds`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`

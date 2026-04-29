@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
+import { clamp } from "../layout/rusticBackground";
 import useGameStore from "../state/gameStore";
 import arrowImg from "../assets/arrow.png";
 import CustomKeyboard from "../components/CustomKeyboard";
+import ArrowCtaButton from "../components/ArrowCtaButton";
+import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
+import { DEBUG_MODE } from "../config/debug";
+import { useRusticContentRect } from "../hooks/useRusticContentRect";
 
 type MenuOption = "nuova_partita" | "cerca_tavolo";
 
@@ -10,20 +15,6 @@ const HOME_MENU_OPTIONS: { key: MenuOption; label: string }[] = [
   { key: "nuova_partita", label: "Nuova partita" },
   { key: "cerca_tavolo", label: "Cerca un tavolo" },
 ];
-
-type Rect = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
-type HomeLayoutMode = "hero" | "compact" | "compressed";
-
-type HomeFocusGeometry = {
-  contentRect: Rect;
-  layoutMode: HomeLayoutMode;
-};
 
 const TABLE_CODE_LENGTH = 4;
 const HOME_HIDDEN_WARNINGS = new Set([
@@ -39,89 +30,10 @@ function sanitizeTableCode(value: string) {
     .slice(0, TABLE_CODE_LENGTH);
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function intersectRect(rect: Rect, maxWidth: number, maxHeight: number): Rect {
-  const left = clamp(rect.left, 0, maxWidth);
-  const top = clamp(rect.top, 0, maxHeight);
-  const right = clamp(rect.left + rect.width, 0, maxWidth);
-  const bottom = clamp(rect.top + rect.height, 0, maxHeight);
-
-  return {
-    left,
-    top,
-    width: Math.max(0, right - left),
-    height: Math.max(0, bottom - top),
-  };
-}
-
-function computeHomeFocusGeometry(
-  stageWidth: number,
-  stageHeight: number,
-): HomeFocusGeometry {
-  const isCompactLandscape =
-    stageWidth > stageHeight &&
-    stageHeight <= APP_LAYOUT.home.compactLandscapeMaxHeight;
-  const backgroundAspectRatio = APP_LAYOUT.home.backgroundAspectRatio;
-  const contentRect = APP_LAYOUT.home.contentRect;
-  const contentCenterX = contentRect.x + contentRect.width / 2;
-  const contentCenterY = contentRect.y + contentRect.height / 2;
-  const stageAspectRatio = stageWidth / stageHeight;
-
-  const coverWidth =
-    stageAspectRatio > backgroundAspectRatio
-      ? stageWidth
-      : stageHeight * backgroundAspectRatio;
-  const coverHeight =
-    stageAspectRatio > backgroundAspectRatio
-      ? stageWidth / backgroundAspectRatio
-      : stageHeight;
-  const focusScale = isCompactLandscape
-    ? APP_LAYOUT.home.compactLandscapeBackgroundScale
-    : 1;
-  const renderWidth = coverWidth * focusScale;
-  const renderHeight = coverHeight * focusScale;
-  const unclampedLeft = stageWidth / 2 - renderWidth * contentCenterX;
-  const unclampedTop = stageHeight / 2 - renderHeight * contentCenterY;
-  const renderLeft = clamp(unclampedLeft, stageWidth - renderWidth, 0);
-  const renderTop = clamp(unclampedTop, stageHeight - renderHeight, 0);
-  const projectedContentRect = intersectRect(
-    {
-      left: renderLeft + renderWidth * contentRect.x,
-      top: renderTop + renderHeight * contentRect.y,
-      width: renderWidth * contentRect.width,
-      height: renderHeight * contentRect.height,
-    },
-    stageWidth,
-    stageHeight,
-  );
-  const focusThresholds = APP_LAYOUT.home.focusLayoutThresholds;
-
-  let layoutMode: HomeLayoutMode = "hero";
-  if (
-    projectedContentRect.height < focusThresholds.compressedHeightPx ||
-    projectedContentRect.width < focusThresholds.compressedWidthPx
-  ) {
-    layoutMode = "compressed";
-  } else if (projectedContentRect.height < focusThresholds.compactHeightPx) {
-    layoutMode = "compact";
-  }
-
-  return {
-    contentRect: projectedContentRect,
-    layoutMode,
-  };
-}
-
 export default function HomeScreen() {
   const playerName = useGameStore((state) => state.playerName);
   const error = useGameStore((state) => state.error);
   const setPlayerName = useGameStore((state) => state.setPlayerName);
-  const setBackgroundGeometry = useGameStore(
-    (state) => state.setBackgroundGeometry,
-  );
   const createRoom = useGameStore((state) => state.createRoom);
   const joinRoom = useGameStore((state) => state.joinRoom);
 
@@ -129,14 +41,7 @@ export default function HomeScreen() {
     useState<MenuOption>("nuova_partita");
   const [showJoinPanel, setShowJoinPanel] = useState(false);
   const [tableCode, setTableCode] = useState("");
-  const [focusGeometry, setFocusGeometry] = useState<HomeFocusGeometry>(() =>
-    computeHomeFocusGeometry(
-      typeof window === "undefined" ? 1280 : window.innerWidth,
-      typeof window === "undefined" ? 720 : window.innerHeight,
-    ),
-  );
-
-  const rootRef = useRef<HTMLDivElement>(null);
+  const { stageRef: rootRef, contentRect } = useRusticContentRect();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const tableCodeInputRef = useRef<HTMLInputElement>(null);
   const playerNameRef = useRef(playerName);
@@ -234,63 +139,6 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const stage = rootRef.current;
-    if (!stage) {
-      return;
-    }
-
-    const appShellRoot = document.querySelector<HTMLElement>(".app-shell-root");
-    if (!appShellRoot) {
-      return;
-    }
-
-    const updateFocusGeometry = () => {
-      const stageWidth = stage.clientWidth;
-      const stageHeight = stage.clientHeight;
-      if (!stageWidth || !stageHeight) {
-        return;
-      }
-
-      const nextGeometry = computeHomeFocusGeometry(stageWidth, stageHeight);
-      const renderWidth =
-        nextGeometry.contentRect.width / APP_LAYOUT.home.contentRect.width;
-      const renderHeight =
-        nextGeometry.contentRect.height / APP_LAYOUT.home.contentRect.height;
-      const renderLeft =
-        nextGeometry.contentRect.left -
-        renderWidth * APP_LAYOUT.home.contentRect.x;
-      const renderTop =
-        nextGeometry.contentRect.top -
-        renderHeight * APP_LAYOUT.home.contentRect.y;
-
-      setBackgroundGeometry({
-        size: `${renderWidth}px ${renderHeight}px`,
-        position: `${renderLeft}px ${renderTop}px`,
-      });
-
-      setFocusGeometry(nextGeometry);
-    };
-
-    updateFocusGeometry();
-
-    const resizeObserver = new ResizeObserver(updateFocusGeometry);
-    resizeObserver.observe(stage);
-
-    return () => {
-      resizeObserver.disconnect();
-      delete appShellRoot.dataset.homeFocusCentered;
-      appShellRoot.style.setProperty(
-        "--layout-shell-rustic-background-size",
-        APP_LAYOUT.shell.rusticBackgroundSize,
-      );
-      appShellRoot.style.setProperty(
-        "--layout-shell-rustic-background-position",
-        APP_LAYOUT.shell.rusticBackgroundPosition,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
     const handleKeyboardNavigation = (event: KeyboardEvent) => {
       if (showJoinPanel) {
         return;
@@ -319,39 +167,37 @@ export default function HomeScreen() {
   }, [handleActivateOption, selectedOption, showJoinPanel]);
 
   const useSideBySideCtas =
-    focusGeometry.contentRect.height <
+    contentRect.height <
       APP_LAYOUT.home.focusLayoutThresholds.sideBySideHeightPx ||
-    focusGeometry.contentRect.width <
+    contentRect.width <
       APP_LAYOUT.home.focusLayoutThresholds.sideBySideWidthPx;
   const panelPaddingTop = clamp(
-    focusGeometry.contentRect.height * APP_LAYOUT.home.contentPadding.top.ratio,
+    contentRect.height * APP_LAYOUT.home.contentPadding.top.ratio,
     APP_LAYOUT.home.contentPadding.top.minPx,
     APP_LAYOUT.home.contentPadding.top.maxPx,
   );
   const panelPaddingRight = clamp(
-    focusGeometry.contentRect.width *
-      APP_LAYOUT.home.contentPadding.right.ratio,
+    contentRect.width * APP_LAYOUT.home.contentPadding.right.ratio,
     APP_LAYOUT.home.contentPadding.right.minPx,
     APP_LAYOUT.home.contentPadding.right.maxPx,
   );
   const panelPaddingBottom = clamp(
-    focusGeometry.contentRect.height *
-      APP_LAYOUT.home.contentPadding.bottom.ratio,
+    contentRect.height * APP_LAYOUT.home.contentPadding.bottom.ratio,
     APP_LAYOUT.home.contentPadding.bottom.minPx,
     APP_LAYOUT.home.contentPadding.bottom.maxPx,
   );
   const panelPaddingLeft = clamp(
-    focusGeometry.contentRect.width * APP_LAYOUT.home.contentPadding.left.ratio,
+    contentRect.width * APP_LAYOUT.home.contentPadding.left.ratio,
     APP_LAYOUT.home.contentPadding.left.minPx,
     APP_LAYOUT.home.contentPadding.left.maxPx,
   );
   const contentInnerWidth = Math.max(
     1,
-    focusGeometry.contentRect.width - panelPaddingLeft - panelPaddingRight,
+    contentRect.width - panelPaddingLeft - panelPaddingRight,
   );
   const contentInnerHeight = Math.max(
     1,
-    focusGeometry.contentRect.height - panelPaddingTop - panelPaddingBottom,
+    contentRect.height - panelPaddingTop - panelPaddingBottom,
   );
   const titleFontSize = clamp(
     Math.min(contentInnerHeight * 0.34, contentInnerWidth * 0.17),
@@ -463,11 +309,11 @@ export default function HomeScreen() {
     alignItems: "center",
     justifyContent: "flex-start",
     gap: "var(--layout-home-panel-gap)",
-    left: `${focusGeometry.contentRect.left}px`,
-    top: `${focusGeometry.contentRect.top}px`,
-    width: `${focusGeometry.contentRect.width}px`,
-    height: `${focusGeometry.contentRect.height}px`,
-    maxWidth: `${focusGeometry.contentRect.width}px`,
+    left: `${contentRect.left}px`,
+    top: `${contentRect.top}px`,
+    width: `${contentRect.width}px`,
+    height: `${contentRect.height}px`,
+    maxWidth: `${contentRect.width}px`,
     paddingTop: "var(--layout-home-panel-padding-top)",
     paddingRight: "var(--layout-home-panel-padding-right)",
     paddingBottom: "var(--layout-home-panel-padding-bottom)",
@@ -799,30 +645,14 @@ export default function HomeScreen() {
                   spellCheck={false}
                   maxLength={TABLE_CODE_LENGTH}
                 />
-                <button
+                <ArrowCtaButton
                   type="button"
-                  className="home-menu-item home-join-submit"
+                  label="Unisciti"
                   onClick={handleJoinRoom}
-                  aria-label="Unisciti"
-                >
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    className="home-arrow home-arrow-left home-hover-arrow"
-                    style={{ width: "var(--layout-home-arrow-width)" }}
-                  />
-                  <span
-                    className="home-menu-label"
-                    aria-hidden="true"
-                    data-label="Unisciti"
-                  />
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    className="home-arrow home-arrow-right home-hover-arrow"
-                    style={{ width: "var(--layout-home-arrow-width)" }}
-                  />
-                </button>
+                  ariaLabel="Unisciti"
+                  className="home-menu-item home-join-submit"
+                  arrowStyle={{ width: "var(--layout-home-arrow-width)" }}
+                />
               </div>
               <button
                 className="home-back-btn home-back-link"
@@ -849,6 +679,8 @@ export default function HomeScreen() {
           </p>
         )}
       </div>
+
+      <ContentRectDebugOverlay rect={contentRect} enabled={DEBUG_MODE} />
 
       {showCustomKeyboard && (
         <CustomKeyboard

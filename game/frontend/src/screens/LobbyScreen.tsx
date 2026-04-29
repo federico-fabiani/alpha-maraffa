@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
-import arrowImg from "../assets/arrow.png";
+import { clamp } from "../layout/rusticBackground";
 import LobbyTableSeats from "../components/LobbyTableSeats";
 import useGameStore from "../state/gameStore";
-
-type Rect = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
+import ArrowCtaButton from "../components/ArrowCtaButton";
+import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
+import { DEBUG_MODE } from "../config/debug";
+import { useRusticContentRect } from "../hooks/useRusticContentRect";
 
 function hashString(value: string) {
   let hash = 0;
@@ -23,47 +16,6 @@ function hashString(value: string) {
   }
 
   return hash;
-}
-
-function intersectRect(rect: Rect, maxWidth: number, maxHeight: number): Rect {
-  const left = clamp(rect.left, 0, maxWidth);
-  const top = clamp(rect.top, 0, maxHeight);
-  const right = clamp(rect.left + rect.width, 0, maxWidth);
-  const bottom = clamp(rect.top + rect.height, 0, maxHeight);
-
-  return {
-    left,
-    top,
-    width: Math.max(0, right - left),
-    height: Math.max(0, bottom - top),
-  };
-}
-
-function computeLobbySafeRect(stageWidth: number, stageHeight: number): Rect {
-  const frameRect = APP_LAYOUT.lobby.frameRect;
-  const renderWidth = stageHeight * APP_LAYOUT.lobby.backgroundAspectRatio;
-  const renderHeight = stageHeight;
-  const renderLeft = (stageWidth - renderWidth) / 2;
-  const projectedFrame = intersectRect(
-    {
-      left: renderLeft + renderWidth * frameRect.x,
-      top: renderHeight * frameRect.y,
-      width: renderWidth * frameRect.width,
-      height: renderHeight * frameRect.height,
-    },
-    stageWidth,
-    stageHeight,
-  );
-
-  return {
-    left: projectedFrame.left + APP_LAYOUT.lobby.safeInsetX,
-    top: projectedFrame.top + APP_LAYOUT.lobby.safeInsetY,
-    width: Math.max(1, projectedFrame.width - APP_LAYOUT.lobby.safeInsetX * 2),
-    height: Math.max(
-      1,
-      projectedFrame.height - APP_LAYOUT.lobby.safeInsetY * 2,
-    ),
-  };
 }
 
 export default function LobbyScreen() {
@@ -77,16 +29,9 @@ export default function LobbyScreen() {
   const promotePlayer = useGameStore((state) => state.promotePlayer);
   const ownerSeat = useGameStore((state) => state.ownerSeat);
   const reset = useGameStore((state) => state.reset);
-
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const { stageRef: rootRef, contentRect } = useRusticContentRect();
   const [swapPendingSeat, setSwapPendingSeat] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [safeRect, setSafeRect] = useState<Rect>({
-    left: 0,
-    top: 0,
-    width: APP_LAYOUT.lobby.basePanelWidth,
-    height: APP_LAYOUT.lobby.basePanelHeight,
-  });
 
   const playerBySeat = Object.fromEntries(
     lobbyPlayers.map((player) => [player.seat, player]),
@@ -113,32 +58,6 @@ export default function LobbyScreen() {
 
     return next;
   }, [lobbyPlayers]);
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) {
-      return;
-    }
-
-    const updateSafeRect = () => {
-      const nextWidth = root.clientWidth;
-      const nextHeight = root.clientHeight;
-      if (!nextWidth || !nextHeight) {
-        return;
-      }
-
-      setSafeRect(computeLobbySafeRect(nextWidth, nextHeight));
-    };
-
-    updateSafeRect();
-
-    const resizeObserver = new ResizeObserver(updateSafeRect);
-    resizeObserver.observe(root);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   const handleCopyRoomId = () => {
     void navigator.clipboard.writeText(roomId).then(() => {
@@ -171,34 +90,34 @@ export default function LobbyScreen() {
   };
 
   const headerReservedHeight = clamp(
-    safeRect.height * APP_LAYOUT.lobby.headerReservedHeight.ratio,
+    contentRect.height * APP_LAYOUT.lobby.headerReservedHeight.ratio,
     APP_LAYOUT.lobby.headerReservedHeight.minPx,
     APP_LAYOUT.lobby.headerReservedHeight.maxPx,
   );
   const headerGap = clamp(
-    safeRect.height * APP_LAYOUT.lobby.headerGap.ratio,
+    contentRect.height * APP_LAYOUT.lobby.headerGap.ratio,
     APP_LAYOUT.lobby.headerGap.minPx,
     APP_LAYOUT.lobby.headerGap.maxPx,
   );
   const contentPaddingX = clamp(
-    safeRect.width * APP_LAYOUT.lobby.contentPaddingX.ratio,
+    contentRect.width * APP_LAYOUT.lobby.contentPaddingX.ratio,
     APP_LAYOUT.lobby.contentPaddingX.minPx,
     APP_LAYOUT.lobby.contentPaddingX.maxPx,
   );
   const contentPaddingY = clamp(
-    safeRect.height * APP_LAYOUT.lobby.contentPaddingY.ratio,
+    contentRect.height * APP_LAYOUT.lobby.contentPaddingY.ratio,
     APP_LAYOUT.lobby.contentPaddingY.minPx,
     APP_LAYOUT.lobby.contentPaddingY.maxPx,
   );
   const sectionGap = clamp(
-    safeRect.width * APP_LAYOUT.lobby.sectionGap.ratio,
+    contentRect.width * APP_LAYOUT.lobby.sectionGap.ratio,
     APP_LAYOUT.lobby.sectionGap.minPx,
     APP_LAYOUT.lobby.sectionGap.maxPx,
   );
-  const contentWidth = Math.max(1, safeRect.width - contentPaddingX * 2);
+  const contentWidth = Math.max(1, contentRect.width - contentPaddingX * 2);
   const contentHeight = Math.max(
     1,
-    safeRect.height - contentPaddingY * 2 - headerReservedHeight - headerGap,
+    contentRect.height - contentPaddingY * 2 - headerReservedHeight - headerGap,
   );
   const tableAreaWidth = clamp(
     contentWidth * APP_LAYOUT.lobby.tableArea.widthRatio,
@@ -217,17 +136,17 @@ export default function LobbyScreen() {
     APP_LAYOUT.lobby.ctaArea.maxWidthPx,
   );
   const ctaFontSize = clamp(
-    safeRect.width * APP_LAYOUT.lobby.ctaFontSize.ratio,
+    contentRect.width * APP_LAYOUT.lobby.ctaFontSize.ratio,
     APP_LAYOUT.lobby.ctaFontSize.minPx,
     APP_LAYOUT.lobby.ctaFontSize.maxPx,
   );
 
   const shellStyle = {
     position: "absolute",
-    left: `${safeRect.left}px`,
-    top: `${safeRect.top}px`,
-    width: `${safeRect.width}px`,
-    height: `${safeRect.height}px`,
+    left: `${contentRect.left}px`,
+    top: `${contentRect.top}px`,
+    width: `${contentRect.width}px`,
+    height: `${contentRect.height}px`,
     padding: `${contentPaddingY}px ${contentPaddingX}px`,
     boxSizing: "border-box" as const,
     display: "flex",
@@ -333,55 +252,21 @@ export default function LobbyScreen() {
           <div style={ctaAreaStyle}>
             <div className="lobby-actions-panel">
               <div style={actionsStyle}>
-                <button
+                <ArrowCtaButton
+                  label="Inizia"
                   onClick={startGame}
                   disabled={!isOwner}
                   className={`home-menu-item lobby-home-cta${!isOwner ? " disabled" : ""}`}
                   style={ctaStyle}
-                  aria-label="Inizia"
-                >
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    aria-hidden="true"
-                    className="home-arrow home-arrow-left home-hover-arrow"
-                  />
-                  <span
-                    className="home-menu-label"
-                    aria-hidden="true"
-                    data-label="Inizia"
-                  />
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    aria-hidden="true"
-                    className="home-arrow home-hover-arrow"
-                  />
-                </button>
-                <button
+                  ariaLabel="Inizia"
+                />
+                <ArrowCtaButton
+                  label="Esci"
                   onClick={reset}
                   className="home-menu-item lobby-home-cta"
                   style={ctaStyle}
-                  aria-label="Esci"
-                >
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    aria-hidden="true"
-                    className="home-arrow home-arrow-left home-hover-arrow"
-                  />
-                  <span
-                    className="home-menu-label"
-                    aria-hidden="true"
-                    data-label="Esci"
-                  />
-                  <img
-                    src={arrowImg}
-                    alt=""
-                    aria-hidden="true"
-                    className="home-arrow home-hover-arrow"
-                  />
-                </button>
+                  ariaLabel="Esci"
+                />
               </div>
               <p className="lobby-hint" style={hintStyle}>
                 {isOwner
@@ -392,6 +277,8 @@ export default function LobbyScreen() {
           </div>
         </div>
       </div>
+
+      <ContentRectDebugOverlay rect={contentRect} enabled={DEBUG_MODE} />
     </div>
   );
 }

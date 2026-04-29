@@ -329,6 +329,8 @@ Before finalizing your answer, you MUST verify:
    * it reduces duplication (already existing, not hypothetical), OR
    * it reduces cognitive load in the current code, OR
    * it encapsulates non-trivial logic
+7. Duplication Check
+   If a component such as CTA, button, background, might be reused in other screens, offer the user to centralize a common base component.
 
 If ANY answer is “no”:
 → STOP and fix the design before responding

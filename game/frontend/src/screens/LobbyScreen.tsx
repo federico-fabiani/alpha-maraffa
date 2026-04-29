@@ -8,6 +8,16 @@ import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
 import { DEBUG_MODE } from "../config/debug";
 import { useRusticContentRect } from "../hooks/useRusticContentRect";
 
+function debugGroupStyle(color: string) {
+  return DEBUG_MODE
+    ? {
+        outline: `2px dashed ${color}`,
+        outlineOffset: "2px",
+        background: `${color}1A`,
+      }
+    : {};
+}
+
 function hashString(value: string) {
   let hash = 0;
 
@@ -217,11 +227,17 @@ export default function LobbyScreen() {
   const tableHint = isOwner
     ? "Clicca su due posti occupati per scambiarli."
     : "Attendi altri giocatori o avvio partita.";
+  const shellDebugStyle = debugGroupStyle("#0ea5e9");
+  const headerDebugStyle = debugGroupStyle("#f97316");
+  const bodyDebugStyle = debugGroupStyle("#10b981");
+  const tableAreaDebugStyle = debugGroupStyle("#a855f7");
+  const ctaAreaDebugStyle = debugGroupStyle("#e11d48");
+  const actionsDebugStyle = debugGroupStyle("#f59e0b");
 
   return (
     <div ref={rootRef} style={rootStyle}>
-      <div style={shellStyle}>
-        <div style={headerStyle}>
+      <div style={{ ...shellStyle, ...shellDebugStyle }}>
+        <div style={{ ...headerStyle, ...headerDebugStyle }}>
           <h2 className="lobby-heading">Codice tavolo</h2>
           <button
             onClick={handleCopyRoomId}
@@ -232,8 +248,8 @@ export default function LobbyScreen() {
           </button>
         </div>
 
-        <div style={bodyStyle}>
-          <div style={tableAreaStyle}>
+        <div style={{ ...bodyStyle, ...bodyDebugStyle }}>
+          <div style={{ ...tableAreaStyle, ...tableAreaDebugStyle }}>
             <LobbyTableSeats
               bounds={{ width: tableAreaWidth, height: contentHeight }}
               mySeat={mySeat}
@@ -249,8 +265,8 @@ export default function LobbyScreen() {
             />
           </div>
 
-          <div style={ctaAreaStyle}>
-            <div className="lobby-actions-panel">
+          <div style={{ ...ctaAreaStyle, ...ctaAreaDebugStyle }}>
+            <div className="lobby-actions-panel" style={actionsDebugStyle}>
               <div style={actionsStyle}>
                 <ArrowCtaButton
                   label="Inizia"

@@ -23,6 +23,16 @@ const HOME_HIDDEN_WARNINGS = new Set([
   "Tavolo non trovato",
 ]);
 
+function debugGroupStyle(color: string) {
+  return DEBUG_MODE
+    ? {
+        outline: `2px dashed ${color}`,
+        outlineOffset: "2px",
+        background: `${color}1A`,
+      }
+    : {};
+}
+
 function sanitizeTableCode(value: string) {
   return value
     .toUpperCase()
@@ -342,6 +352,12 @@ export default function HomeScreen() {
     height: 0,
     overflow: "hidden",
   } as const;
+  const panelDebugStyle = debugGroupStyle("#0ea5e9");
+  const titleDebugStyle = debugGroupStyle("#f97316");
+  const actionClusterDebugStyle = debugGroupStyle("#10b981");
+  const menuDebugStyle = debugGroupStyle("#a855f7");
+  const joinDebugStyle = debugGroupStyle("#e11d48");
+  const errorDebugStyle = debugGroupStyle("#f59e0b");
 
   return (
     <div ref={rootRef} className="home-screen" style={rootStyle}>
@@ -354,7 +370,11 @@ export default function HomeScreen() {
         DEMO
       </span>
 
-      <div className="home-panel notranslate" style={panelStyle} translate="no">
+      <div
+        className="home-panel notranslate"
+        style={{ ...panelStyle, ...panelDebugStyle }}
+        translate="no"
+      >
         {/* Title – individual animated letters */}
         {/* One SVG filter per letter: unique warp seed + unique grain seed → unique campitura */}
         <svg aria-hidden="true" style={hiddenSvgStyle}>
@@ -467,7 +487,11 @@ export default function HomeScreen() {
             ))}
           </defs>
         </svg>
-        <div className="title-word home-title" aria-label="MARAFONE">
+        <div
+          className="title-word home-title"
+          aria-label="MARAFONE"
+          style={titleDebugStyle}
+        >
           {(
             [
               {
@@ -553,6 +577,7 @@ export default function HomeScreen() {
 
         <div
           className={`home-action-cluster${showJoinPanel ? " home-action-cluster-join" : ""}`}
+          style={actionClusterDebugStyle}
         >
           {!showJoinPanel ? (
             <>
@@ -579,7 +604,7 @@ export default function HomeScreen() {
 
               <div
                 className={`home-menu${useSideBySideCtas ? " home-menu-side-by-side" : ""}`}
-                style={menuStyle}
+                style={{ ...menuStyle, ...menuDebugStyle }}
               >
                 {HOME_MENU_OPTIONS.map((opt) => (
                   <div
@@ -620,7 +645,7 @@ export default function HomeScreen() {
           ) : (
             <div
               className="home-join-panel animate-fade-in"
-              style={joinPanelStyle}
+              style={{ ...joinPanelStyle, ...joinDebugStyle }}
             >
               <p className="home-join-helper">
                 Ciao, <strong>{playerName}</strong>, inserisci il codice del
@@ -673,6 +698,7 @@ export default function HomeScreen() {
               fontFamily: "'IM Fell English', serif",
               color: "#8b1a06",
               fontSize: "0.95rem",
+              ...errorDebugStyle,
             }}
           >
             {visibleError}

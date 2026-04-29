@@ -1521,14 +1521,6 @@ body::before {
   text-wrap: balance;
 }
 
-.lobby-seat-wrapper {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-
 .lobby-seat-anchor {
   position: absolute;
   width: 0;
@@ -1685,14 +1677,6 @@ body::before {
 
 /* ── Lobby rustic ─────────────────────────────────────────────────────────────── */
 
-.lobby-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--layout-lobby-panel-gap);
-  width: 100%;
-}
-
 .lobby-heading {
   font-family: "IM Fell English", serif;
   font-size: clamp(1.55rem, 3.1vw, 2.35rem);
@@ -1735,21 +1719,6 @@ body::before {
   margin: 0;
 }
 
-/* Physical table grid */
-.lobby-table {
-  display: grid;
-  grid-template-areas:
-    ". top ."
-    "left . right"
-    ". bottom .";
-  grid-template-columns: 1fr 1.5fr 1fr;
-  grid-template-rows: auto var(--layout-lobby-table-middle-row-height) auto;
-  gap: var(--layout-lobby-table-gap) var(--layout-lobby-table-gap);
-  width: 100%;
-  max-width: 22rem;
-  margin-right: auto;
-}
-
 .lobby-seat-card {
   display: flex;
   flex-direction: column;
@@ -1769,50 +1738,6 @@ body::before {
 .lobby-seat-card.is-pending {
   outline: 2px solid rgba(140, 48, 18, 0.65);
   outline-offset: 1px;
-}
-
-.lobby-avatar {
-  width: var(--layout-lobby-avatar-size);
-  height: var(--layout-lobby-avatar-size);
-  border-radius: 50%;
-  border: 2.5px solid var(--team-color, rgba(120, 48, 18, 0.42));
-  background: rgba(255, 248, 218, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: "Cinzel", serif;
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--team-color, #5c1a0a);
-  backdrop-filter: blur(4px);
-  flex-shrink: 0;
-}
-
-.lobby-avatar.empty {
-  border-style: dashed;
-  border-color: rgba(120, 48, 18, 0.28);
-  background: rgba(255, 248, 218, 0.1);
-  color: rgba(100, 40, 14, 0.3);
-}
-
-.lobby-seat-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.lobby-seat-name {
-  font-family: "Cinzel", serif;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #5c1a0a;
-  letter-spacing: 0.02em;
-  max-width: 88px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.2;
 }
 
 .lobby-home-cta {
@@ -1847,23 +1772,6 @@ body::before {
 
 .lobby-home-cta .home-arrow {
   width: clamp(1.15rem, 2.5vw, 1.8rem);
-}
-
-.lobby-owner-crown {
-  color: #c8922a;
-}
-
-.lobby-me-tag {
-  color: rgba(92, 26, 10, 0.45);
-  font-size: 0.6rem;
-  font-weight: 500;
-}
-
-.lobby-seat-empty {
-  font-family: "IM Fell English", serif;
-  font-size: 0.75rem;
-  font-style: italic;
-  color: rgba(100, 40, 14, 0.36);
 }
 
 .lobby-seat-actions {

@@ -23,6 +23,7 @@ function clamp(value: number, min: number, max: number) {
 
 type LobbyTableSeatsProps = {
   bounds: Bounds;
+  style?: CSSProperties;
   mySeat: number | null;
   ownerSeat: number | null;
   isOwner: boolean;
@@ -117,6 +118,7 @@ function getBadgeImageStyle(badgeIndex: number): CSSProperties {
 
 export default function LobbyTableSeats({
   bounds,
+  style,
   mySeat,
   ownerSeat,
   isOwner,
@@ -276,7 +278,7 @@ export default function LobbyTableSeats({
   } as const;
 
   return (
-    <div className="lobby-table-seats-root">
+    <div className="lobby-table-seats-root" style={style}>
       <div
         className="lobby-table-container"
         style={{
@@ -356,10 +358,7 @@ export default function LobbyTableSeats({
               )}
             </div>
 
-            <div
-              className={`lobby-seat-name-block lobby-seat-name-block-${area}`}
-              style={labelStyle}
-            >
+            <div className="lobby-seat-name-block" style={labelStyle}>
               <div
                 className={`lobby-player-label${player ? "" : " is-ai"}`}
                 style={resolvedNameStyle}

@@ -84,7 +84,7 @@ Authority: hook-local or component-local view state only.
   children: `LobbyTableSeats`, `ArrowCtaButton`, `ContentRectDebugOverlay`
 
 - `LobbyTableSeats`
-  props: `bounds`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`
+  props: `bounds`, `style?`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`
   state read: none
   actions triggered: `onSeatClick`, `onPromotePlayer`, `onKickPlayer`
   children: none

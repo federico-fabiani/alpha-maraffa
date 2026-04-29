@@ -151,7 +151,7 @@ export default function LobbyScreen() {
     APP_LAYOUT.lobby.ctaFontSize.maxPx,
   );
 
-  const shellStyle = {
+  const panelStyle = {
     position: "absolute",
     left: `${contentRect.left}px`,
     top: `${contentRect.top}px`,
@@ -227,7 +227,7 @@ export default function LobbyScreen() {
   const tableHint = isOwner
     ? "Clicca su due posti occupati per scambiarli."
     : "Attendi altri giocatori o avvio partita.";
-  const shellDebugStyle = debugGroupStyle("#0ea5e9");
+  const panelDebugStyle = debugGroupStyle("#0ea5e9");
   const headerDebugStyle = debugGroupStyle("#f97316");
   const bodyDebugStyle = debugGroupStyle("#10b981");
   const tableAreaDebugStyle = debugGroupStyle("#a855f7");
@@ -236,7 +236,7 @@ export default function LobbyScreen() {
 
   return (
     <div ref={rootRef} style={rootStyle}>
-      <div style={{ ...shellStyle, ...shellDebugStyle }}>
+      <div style={{ ...panelStyle, ...panelDebugStyle }}>
         <div style={{ ...headerStyle, ...headerDebugStyle }}>
           <h2 className="lobby-heading">Codice tavolo</h2>
           <button
@@ -249,21 +249,20 @@ export default function LobbyScreen() {
         </div>
 
         <div style={{ ...bodyStyle, ...bodyDebugStyle }}>
-          <div style={{ ...tableAreaStyle, ...tableAreaDebugStyle }}>
-            <LobbyTableSeats
-              bounds={{ width: tableAreaWidth, height: contentHeight }}
-              mySeat={mySeat}
-              ownerSeat={ownerSeat}
-              isOwner={isOwner}
-              playerBySeat={playerBySeat}
-              badgeByName={badgeByName}
-              swapPendingSeat={swapPendingSeat}
-              onSeatClick={handleSeatClick}
-              onPromotePlayer={promotePlayer}
-              onKickPlayer={kickPlayer}
-              tableHint={tableHint}
-            />
-          </div>
+          <LobbyTableSeats
+            bounds={{ width: tableAreaWidth, height: contentHeight }}
+            mySeat={mySeat}
+            ownerSeat={ownerSeat}
+            isOwner={isOwner}
+            playerBySeat={playerBySeat}
+            badgeByName={badgeByName}
+            swapPendingSeat={swapPendingSeat}
+            onSeatClick={handleSeatClick}
+            onPromotePlayer={promotePlayer}
+            onKickPlayer={kickPlayer}
+            tableHint={tableHint}
+            style={{ ...tableAreaStyle, ...tableAreaDebugStyle }}
+          />
 
           <div style={{ ...ctaAreaStyle, ...ctaAreaDebugStyle }}>
             <div className="lobby-actions-panel" style={actionsDebugStyle}>

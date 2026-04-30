@@ -239,6 +239,11 @@ export const APP_LAYOUT = {
     },
     announcement: {
       paddingX: "1.5rem",
+      maxWidth: "16rem",
+      paddingXCard: "1rem",
+      paddingYCard: "0.85rem",
+      handClearance: "0.6rem",
+      estimatedCardHeight: "5.25rem",
     },
     dialog: {
       maxWidth: "20rem",

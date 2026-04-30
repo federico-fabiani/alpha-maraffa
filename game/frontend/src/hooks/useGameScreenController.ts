@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useGameStore from "../state/gameStore";
-import type { Card, Declaration, Suit } from "../types";
+import type { Card, Declaration, Notification, Suit } from "../types";
 import { useBriscolaIntro } from "./useBriscolaIntro";
 import { useGameStageLayout } from "./useGameStageLayout";
 import { useTurnCountdown } from "./useTurnCountdown";
@@ -31,6 +31,8 @@ const DECLARATION_OPTIONS: Exclude<Declaration, null>[] = [
   "striscio",
   "volo",
 ];
+const MIN_BUFFERED_PLAY_DELAY_MS = 1500;
+const DEFAULT_NOTIFICATION_DURATION_MS = 2500;
 
 interface DragState {
   card: Card;
@@ -85,7 +87,17 @@ export function useGameScreenController() {
   const [touchArmedCard, setTouchArmedCard] = useState<TouchArmedCard | null>(
     null,
   );
+  const [queuedNotifications, setQueuedNotifications] = useState<
+    Notification[]
+  >([]);
+  const [activeNotification, setActiveNotification] =
+    useState<Notification | null>(null);
+  const [isTurnActivationPending, setIsTurnActivationPending] = useState(false);
   const lastTouchInteractionAtRef = useRef(0);
+  const notificationTimerRef = useRef<number | null>(null);
+  const turnActivationTimerRef = useRef<number | null>(null);
+  // Initialize isMyTurn=true so first mount never spuriously triggers delay
+  const prevTurnStateRef = useRef({ isMyTurn: true });
 
   const stageRef = useGameStageLayout();
   const secsLeft = useTurnCountdown(gameState.turnDeadline);
@@ -112,19 +124,20 @@ export function useGameScreenController() {
   const needsBriscola =
     gameState.phase === "briscola_selection" &&
     gameState.currentPlayerSeat === seat;
+  const isWaitingBriscola =
+    gameState.phase === "briscola_selection" &&
+    !needsBriscola &&
+    !briscolaIntroActive;
   const isMyTurn =
     gameState.currentPlayerSeat === seat &&
     gameState.phase === "playing" &&
-    !briscolaIntroActive;
+    !briscolaIntroActive &&
+    !isTurnActivationPending;
   const leadSeat =
     gameState.tableCards.length > 0
       ? gameState.tableCards[0].seat
       : gameState.currentPlayerSeat;
   const isLeadPlayer = isMyTurn && gameState.tableCards.length === 0;
-  const isWaitingBriscola =
-    gameState.phase === "briscola_selection" &&
-    !needsBriscola &&
-    !briscolaIntroActive;
 
   const briscolaChooserName =
     gameState.currentPlayerSeat != null
@@ -152,6 +165,106 @@ export function useGameScreenController() {
 
       return left.index - right.index;
     });
+
+  useEffect(() => {
+    const incomingNotification = gameState.notification;
+    if (!incomingNotification) {
+      return;
+    }
+
+    setQueuedNotifications((currentQueue) => [
+      ...currentQueue,
+      incomingNotification,
+    ]);
+    dismissNotification();
+  }, [dismissNotification, gameState.notification]);
+
+  useEffect(() => {
+    const hasFlowPopup =
+      showForfeitConfirm ||
+      needsBriscola ||
+      isWaitingBriscola ||
+      briscolaIntroActive;
+
+    if (
+      activeNotification ||
+      hasFlowPopup ||
+      queuedNotifications.length === 0
+    ) {
+      return;
+    }
+
+    setActiveNotification(queuedNotifications[0]);
+    setQueuedNotifications((currentQueue) => currentQueue.slice(1));
+  }, [
+    activeNotification,
+    briscolaIntroActive,
+    isWaitingBriscola,
+    needsBriscola,
+    queuedNotifications,
+    showForfeitConfirm,
+  ]);
+
+  useEffect(() => {
+    if (!activeNotification) {
+      if (notificationTimerRef.current !== null) {
+        window.clearTimeout(notificationTimerRef.current);
+        notificationTimerRef.current = null;
+      }
+      return;
+    }
+
+    const duration =
+      activeNotification.duration ?? DEFAULT_NOTIFICATION_DURATION_MS;
+    notificationTimerRef.current = window.setTimeout(() => {
+      notificationTimerRef.current = null;
+      setActiveNotification(null);
+    }, duration);
+
+    return () => {
+      if (notificationTimerRef.current !== null) {
+        window.clearTimeout(notificationTimerRef.current);
+        notificationTimerRef.current = null;
+      }
+    };
+  }, [activeNotification]);
+
+  useEffect(() => {
+    return () => {
+      if (turnActivationTimerRef.current !== null) {
+        window.clearTimeout(turnActivationTimerRef.current);
+      }
+      if (notificationTimerRef.current !== null) {
+        window.clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const isNowMyTurn =
+      gameState.currentPlayerSeat === seat &&
+      gameState.phase === "playing" &&
+      !briscolaIntroActive;
+
+    if (isNowMyTurn && !prevTurnStateRef.current.isMyTurn) {
+      if (turnActivationTimerRef.current !== null) {
+        window.clearTimeout(turnActivationTimerRef.current);
+      }
+      setIsTurnActivationPending(true);
+      turnActivationTimerRef.current = window.setTimeout(() => {
+        turnActivationTimerRef.current = null;
+        setIsTurnActivationPending(false);
+      }, MIN_BUFFERED_PLAY_DELAY_MS);
+    } else if (!isNowMyTurn) {
+      if (turnActivationTimerRef.current !== null) {
+        window.clearTimeout(turnActivationTimerRef.current);
+        turnActivationTimerRef.current = null;
+      }
+      setIsTurnActivationPending(false);
+    }
+
+    prevTurnStateRef.current = { isMyTurn: isNowMyTurn };
+  }, [briscolaIntroActive, gameState.currentPlayerSeat, gameState.phase, seat]);
 
   const dragDistance = drag
     ? Math.hypot(drag.x - drag.startX, drag.y - drag.startY)
@@ -279,6 +392,14 @@ export function useGameScreenController() {
     setDrag(null);
   };
 
+  const handleDismissActiveNotification = () => {
+    if (notificationTimerRef.current !== null) {
+      window.clearTimeout(notificationTimerRef.current);
+      notificationTimerRef.current = null;
+    }
+    setActiveNotification(null);
+  };
+
   const handleToggleDeclaration = (declaration: Exclude<Declaration, null>) => {
     setPendingDeclaration((currentDeclaration) =>
       currentDeclaration === declaration ? null : declaration,
@@ -307,7 +428,7 @@ export function useGameScreenController() {
     currentDeclaration: gameState.currentDeclaration,
     currentPlayerSeat: gameState.currentPlayerSeat,
     declarationOptions: DECLARATION_OPTIONS,
-    dismissNotification,
+    dismissNotification: handleDismissActiveNotification,
     drag,
     gamePhase: gameState.phase,
     handleBriscolaGifPlaybackComplete,
@@ -329,7 +450,7 @@ export function useGameScreenController() {
     leadSeat,
     leftSeat,
     needsBriscola,
-    notification: gameState.notification,
+    notification: activeNotification,
     pendingDeclaration,
     playerBySeat,
     rightSeat,

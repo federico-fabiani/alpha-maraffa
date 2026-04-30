@@ -166,7 +166,7 @@ const useGameStore = create<GameStore>((set, get) => ({
   dismissNotification: () => set({ notification: null }),
 
   reset: () => {
-    const { uuid, playerName, backendStatus } = get();
+    const { uuid, playerName, backendStatus, backgroundGeometry } = get();
     connectionController.disconnect({ intentional: true });
     sessionStorageService.clearRoom();
     set({
@@ -174,6 +174,7 @@ const useGameStore = create<GameStore>((set, get) => ({
       uuid,
       playerName,
       backendStatus,
+      backgroundGeometry,
       displayedScreen: "home",
       screenTransitionPhase: "visible",
     });
@@ -328,7 +329,7 @@ const useGameStore = create<GameStore>((set, get) => ({
         break;
 
       case "kicked": {
-        const { uuid, playerName, backendStatus } = get();
+        const { uuid, playerName, backendStatus, backgroundGeometry } = get();
         connectionController.disconnect({ intentional: true });
         sessionStorageService.clearRoom();
         set({
@@ -336,6 +337,7 @@ const useGameStore = create<GameStore>((set, get) => ({
           uuid,
           playerName,
           backendStatus,
+          backgroundGeometry,
           displayedScreen: "home",
           screenTransitionPhase: "visible",
           error: (data.message as string) ?? "Sei stato espulso dalla stanza",
@@ -469,13 +471,14 @@ const useGameStore = create<GameStore>((set, get) => ({
         const message = data.message as string;
 
         if (message === INVALID_SESSION_MESSAGE) {
-          const { playerName, backendStatus } = get();
+          const { playerName, backendStatus, backgroundGeometry } = get();
           connectionController.disconnect({ intentional: true });
           sessionStorageService.clearSession();
           set({
             ...initialState,
             playerName,
             backendStatus,
+            backgroundGeometry,
             displayedScreen: "home",
             screenTransitionPhase: "visible",
           });

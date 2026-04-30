@@ -6,6 +6,7 @@ import {
   layoutCssVariables,
 } from "./layout/layout";
 import { useAppBootstrap } from "./hooks/useAppBootstrap";
+import { computeRusticBackgroundLayout } from "./layout/rusticBackground";
 import HomeScreen from "./screens/HomeScreen";
 import LobbyScreen from "./screens/LobbyScreen";
 import GameScreen from "./screens/GameScreen";
@@ -28,6 +29,9 @@ export default function App() {
   const screenTransitionPhase = useGameStore(
     (state) => state.screenTransitionPhase,
   );
+  const setBackgroundGeometry = useGameStore(
+    (state) => state.setBackgroundGeometry,
+  );
   const beginScreenTransition = useGameStore(
     (state) => state.beginScreenTransition,
   );
@@ -35,8 +39,40 @@ export default function App() {
     (state) => state.completeScreenTransition,
   );
   const backendStatus = useAppBootstrap();
+  const shellRootRef = useRef<HTMLDivElement | null>(null);
   const crtOverlayRef = useRef<HTMLDivElement | null>(null);
   const crtPulseTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const root = shellRootRef.current;
+    if (!root) {
+      return;
+    }
+
+    const updateGeometry = () => {
+      const width = root.clientWidth;
+      const height = root.clientHeight;
+
+      if (!width || !height) {
+        return;
+      }
+
+      const nextLayout = computeRusticBackgroundLayout(width, height);
+      setBackgroundGeometry({
+        size: `${nextLayout.renderWidth}px ${nextLayout.renderHeight}px`,
+        position: `${nextLayout.renderLeft}px ${nextLayout.renderTop}px`,
+      });
+    };
+
+    updateGeometry();
+
+    const observer = new ResizeObserver(updateGeometry);
+    observer.observe(root);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [setBackgroundGeometry]);
 
   useEffect(() => {
     if (screen === displayedScreen) {
@@ -97,6 +133,7 @@ export default function App() {
 
   return (
     <div
+      ref={shellRootRef}
       className="app-shell-root"
       style={{ ...APP_SHELL_LAYOUT_STYLES.root, ...layoutCssVariables }}
     >

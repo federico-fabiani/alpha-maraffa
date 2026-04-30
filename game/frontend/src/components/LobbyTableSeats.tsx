@@ -273,7 +273,6 @@ export default function LobbyTableSeats({
                 </div>
               )}
 
-
               {/* Owner actions — always horizontal regardless of seat direction */}
               {player && isOwner && !isMe && !player.is_bot && (
                 <div

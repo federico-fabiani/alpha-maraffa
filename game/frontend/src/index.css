@@ -1355,8 +1355,14 @@ body::before {
   content: attr(data-label);
 }
 
-.home-menu-item:hover {
+.home-menu-item:focus-visible {
   color: #7a2210;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-menu-item:hover {
+    color: #7a2210;
+  }
 }
 
 .home-menu-item.disabled {
@@ -1387,8 +1393,14 @@ body::before {
   transition: color 0.12s ease;
 }
 
-.home-back-btn:hover {
+.home-back-btn:focus-visible {
   color: #5c1a0a;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-back-btn:hover {
+    color: #5c1a0a;
+  }
 }
 
 .home-join-panel {
@@ -1477,28 +1489,42 @@ body::before {
   opacity: 0;
 }
 
-.home-menu-item:hover .home-hover-arrow,
 .home-menu-item:focus-visible .home-hover-arrow,
-.home-join-submit:hover .home-hover-arrow,
 .home-join-submit:focus-visible .home-hover-arrow,
-.home-back-link:hover .home-hover-arrow,
 .home-back-link:focus-visible .home-hover-arrow {
   opacity: 1;
 }
 
-.home-menu-item.disabled:hover .home-hover-arrow,
 .home-menu-item.disabled:focus-visible .home-hover-arrow {
   opacity: 0;
 }
 
-.home-back-link:hover .home-back-arrow,
 .home-back-link:focus-visible .home-back-arrow {
   opacity: 1;
 }
 
-.home-back-link:hover,
 .home-back-link:focus-visible {
   color: #7a2210;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-menu-item:hover .home-hover-arrow,
+  .home-join-submit:hover .home-hover-arrow,
+  .home-back-link:hover .home-hover-arrow {
+    opacity: 1;
+  }
+
+  .home-menu-item.disabled:hover .home-hover-arrow {
+    opacity: 0;
+  }
+
+  .home-back-link:hover .home-back-arrow {
+    opacity: 1;
+  }
+
+  .home-back-link:hover {
+    color: #7a2210;
+  }
 }
 
 .home-menu-side-by-side .home-menu-item {

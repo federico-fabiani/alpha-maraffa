@@ -22,9 +22,9 @@ type HandSlotStyle = React.CSSProperties &
 export default function GameScreen() {
   const {
     briscola,
-    briscolaChooserName,
     briscolaGifMeta,
     briscolaIntro,
+    briscolaChooserName,
     currentDeclaration,
     currentPlayerSeat,
     declarationOptions,
@@ -165,10 +165,15 @@ export default function GameScreen() {
     inset: 0,
     zIndex: 30,
     pointerEvents: "none",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     paddingInline: APP_LAYOUT.game.announcement.paddingX,
+  } as const;
+  const announcementCardStyle = {
+    position: "absolute",
+    left: "50%",
+    top: `min(50%, calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta) - ${APP_LAYOUT.cards.sizes.md.height} + ${APP_LAYOUT.cards.hand.hoverTranslate} - ${APP_LAYOUT.game.announcement.handClearance} - (${APP_LAYOUT.game.announcement.estimatedCardHeight} / 2)))`,
+    transform: "translate(-50%, -50%)",
+    width: `min(100%, ${APP_LAYOUT.game.announcement.maxWidth})`,
+    padding: `${APP_LAYOUT.game.announcement.paddingYCard} ${APP_LAYOUT.game.announcement.paddingXCard}`,
   } as const;
   const dialogOverlayStyle = {
     position: "absolute",
@@ -435,11 +440,14 @@ export default function GameScreen() {
 
       {(isWaitingBriscola || briscolaIntro.stage === "banner") && (
         <div className="game-popup-overlay" style={announcementOverlayStyle}>
-          <div className="game-popup-card px-7 py-4 max-w-[22rem] animate-fade-in">
+          <div
+            className="game-popup-card animate-fade-in"
+            style={announcementCardStyle}
+          >
             <p className="game-popup-title text-base md:text-lg">
               {briscolaIntro.stage === "banner"
                 ? briscolaIntro.text
-                : `${briscolaChooserName} sta scegliendo le briscole...`}
+                : `${briscolaChooserName} sta scegliendo le briscole`}
             </p>
           </div>
         </div>

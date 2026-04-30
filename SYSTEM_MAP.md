@@ -37,6 +37,7 @@ Authority: `game/frontend/src/state/gameStore.ts`
 - `pingMs`: latest measured latency.
 - `pingStatus`: latency bucket.
 - `turnDeadline`: server deadline for the active turn.
+- `backgroundGeometry`: rustic background render geometry (size/position) used by app shell.
 
 ### Allowed local UI state
 
@@ -51,6 +52,11 @@ Authority: hook-local or component-local view state only.
 - `useGameScreenController.pendingDeclaration`: unsubmitted declaration choice.
 - `useGameScreenController.drag`: drag interaction payload.
 - `useGameScreenController.touchArmedCard`: touch-only first-tap card selection for double-tap play confirmation.
+- `useGameScreenController.displayedTableCards`: staged table cards currently visible on board.
+- `useGameScreenController.queuedTableCards`: buffered table cards waiting paced reveal.
+- `useGameScreenController.isPlayRevealCoolingDown`: reveal cooldown lock between buffered plays.
+- `useGameScreenController.queuedNotifications`: FIFO queue of store notifications waiting display slot.
+- `useGameScreenController.activeNotification`: single notification currently rendered in popup lane.
 - `useBriscolaIntro.briscolaIntro`: intro animation finite-state machine.
 - `useBriscolaIntro.briscolaGifMeta`: replay token and suit for the GIF overlay.
 - `useTurnCountdown.now`: timer tick source used to derive remaining seconds.
@@ -94,7 +100,7 @@ Authority: hook-local or component-local view state only.
 
 - `GameScreen`
   props: none
-  state read: `mySeat`, `players`, `myHand`, `phase`, `briscola`, `briscolaAnnouncement`, `currentPlayerSeat`, `tableCards`, `turnResultWinnerSeat`, `lastTrickCards`, `totalScores`, `notification`, `currentDeclaration`, `turnDeadline`; local `showForfeitConfirm`, `pendingDeclaration`, `drag`, `touchArmedCard`, `briscolaIntro`, `briscolaGifMeta`, `now`
+  state read: `mySeat`, `players`, `myHand`, `phase`, `briscola`, `briscolaAnnouncement`, `currentPlayerSeat`, `tableCards`, `turnResultWinnerSeat`, `lastTrickCards`, `totalScores`, `notification`, `currentDeclaration`, `turnDeadline`; local `showForfeitConfirm`, `pendingDeclaration`, `drag`, `touchArmedCard`, `displayedTableCards`, `queuedTableCards`, `isPlayRevealCoolingDown`, `queuedNotifications`, `activeNotification`, `briscolaIntro`, `briscolaGifMeta`, `now`
   actions triggered: `playCard`, `selectBriscola`, `showNotification`, `dismissNotification`, `forfeit`
   children: `PlayerArea` x3, `TableArea`, `BriscolaSuitGif`, `BriscolaModal`, `Notification`, `Card`
 
@@ -274,6 +280,10 @@ written by: [`gameConnection.onStateChange`, `_processMessage.pong`]
 read by: [`GameScreen`, `useTurnCountdown`]
 written by: [`_processMessage.game_state`, `_processMessage.game_over`, `_processMessage.player_timeout`]
 
+`backgroundGeometry`:
+read by: [`App`]
+written by: [`App rustic shell ResizeObserver -> setBackgroundGeometry`]
+
 ### Local state flow
 
 `HomeScreen.selectedOption`:
@@ -312,6 +322,26 @@ written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenCont
 read by: [`GameScreen`]
 written by: [`useGameScreenController.handleCardPointerDown`, `useGameScreenController.playSelectedCard`, `useGameScreenController effect on turn/hand sync`]
 
+`useGameScreenController.displayedTableCards`:
+read by: [`GameScreen`, `TableArea`]
+written by: [`useGameScreenController table staging effect`, `useGameScreenController paced reveal effect`]
+
+`useGameScreenController.queuedTableCards`:
+read by: [`useGameScreenController paced reveal effect`]
+written by: [`useGameScreenController table staging effect`, `useGameScreenController paced reveal effect`]
+
+`useGameScreenController.isPlayRevealCoolingDown`:
+read by: [`useGameScreenController`]
+written by: [`useGameScreenController table staging effect`, `useGameScreenController paced reveal effect`]
+
+`useGameScreenController.queuedNotifications`:
+read by: [`useGameScreenController notification drain effect`]
+written by: [`useGameScreenController notification enqueue effect`, `useGameScreenController notification drain effect`]
+
+`useGameScreenController.activeNotification`:
+read by: [`GameScreen`, `Notification`, `useGameScreenController`]
+written by: [`useGameScreenController notification drain effect`, `useGameScreenController notification timer effect`, `useGameScreenController.handleDismissActiveNotification`]
+
 `useBriscolaIntro.briscolaIntro`:
 read by: [`GameScreen`]
 written by: [`useBriscolaIntro effect on briscolaAnnouncement`, `useBriscolaIntro effect on briscola reset`, `useBriscolaIntro fallback effect`, `useBriscolaIntro.handleBriscolaGifPlaybackComplete`]
@@ -338,6 +368,7 @@ Authority: `game/frontend/src/layout/layout.ts`
 
 - `APP_LAYOUT` is the only source of truth for shell insets, playing-area bounds, card sizes, lobby metrics, modal widths, drag/drop sizes, and game-over widths.
 - Local declaration-controls placement above the player hand originates from `APP_LAYOUT.game.declarationControls`.
+- Briscola announcement popup size and hand-collision-safe vertical placement originate from `APP_LAYOUT.game.announcement`.
 - `layoutCssVariables` bridges layout values into `game/frontend/src/index.css` for the CSS rules that still need shared dimensions.
 - `GAME_SEAT_STYLES`, `APP_SHELL_LAYOUT_STYLES`, `getCardSizeStyle`, `getGameTableSlotStyle`, `getLastTrickSlotStyle`, `getCollectVector`, `createTurnCountdownFillStyle`, `createBriscolaGifStyle`, `createGameDropZoneStyle`, and `createDragGhostStyle` are the only approved layout helpers for React components.
 
@@ -346,4 +377,6 @@ Authority: `game/frontend/src/layout/layout.ts`
 - `connected === false` implies `pingStatus === 'offline'`. Connection state transitions must maintain this pair together.
 - `displayedScreen` may lag `screen` only while `screenTransitionPhase === 'fading-out'`; once the phase returns to `visible`, `displayedScreen === screen` must hold.
 - `GameScreen` may call `playCard` only when `isMyTurn === true`, and `isMyTurn` must be false for the entire briscola intro sequence.
+- `GameScreen` has one popup authority lane: at most one among briscola waiting/banner, forfeit confirm, and notification may be active; while lane occupied, interactive play actions stay blocked.
+- Buffered `tableCards` updates must reveal in order with minimum pacing delay; rendering all queued cards in same frame is forbidden.
 - All table-card positioning, collection vectors, card sizes, and lobby shell dimensions originate from `APP_LAYOUT`; component files may consume layout helpers but must not define competing dimension constants.

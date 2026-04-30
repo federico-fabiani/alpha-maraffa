@@ -420,7 +420,7 @@ body::before {
 }
 
 .game-popup-card-interactive:hover {
-  transform: translateY(-2px);
+  translate: 0 -2px;
   box-shadow: 0 24px 44px rgba(0, 0, 0, 0.52);
 }
 

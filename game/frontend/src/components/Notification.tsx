@@ -23,11 +23,16 @@ export default function Notification({
       className="game-popup-overlay pointer-events-none"
       style={{
         zIndex: 30,
+        display: "block",
       }}
     >
       <div
         className="game-popup-card game-popup-card-interactive animate-slide-up cursor-pointer pointer-events-auto"
         style={{
+          position: "absolute",
+          left: "50%",
+          top: "calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + (var(--layout-playing-area-height) / 2))))",
+          transform: "translate(-50%, -50%)",
           padding: `${APP_LAYOUT.notification.paddingY} ${APP_LAYOUT.notification.paddingX}`,
         }}
         onClick={onDismiss}

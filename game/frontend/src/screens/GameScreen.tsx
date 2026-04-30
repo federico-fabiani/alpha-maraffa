@@ -165,12 +165,12 @@ export default function GameScreen() {
     inset: 0,
     zIndex: 30,
     pointerEvents: "none",
-    paddingInline: APP_LAYOUT.game.announcement.paddingX,
+    display: "block",
   } as const;
   const announcementCardStyle = {
     position: "absolute",
     left: "50%",
-    top: `min(50%, calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta) - ${APP_LAYOUT.cards.sizes.md.height} + ${APP_LAYOUT.cards.hand.hoverTranslate} - ${APP_LAYOUT.game.announcement.handClearance} - (${APP_LAYOUT.game.announcement.estimatedCardHeight} / 2)))`,
+    top: "calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + (var(--layout-playing-area-height) / 2))))",
     transform: "translate(-50%, -50%)",
     width: `min(100%, ${APP_LAYOUT.game.announcement.maxWidth})`,
     padding: `${APP_LAYOUT.game.announcement.paddingYCard} ${APP_LAYOUT.game.announcement.paddingXCard}`,
@@ -179,11 +179,13 @@ export default function GameScreen() {
     position: "absolute",
     inset: 0,
     zIndex: 50,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: "block",
   } as const;
   const dialogStyle = {
+    position: "absolute",
+    left: "50%",
+    top: "calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + (var(--layout-playing-area-height) / 2))))",
+    transform: "translate(-50%, -50%)",
     display: "flex",
     flexDirection: "column" as const,
     alignItems: "center",
@@ -432,10 +434,7 @@ export default function GameScreen() {
       )}
 
       {needsBriscola && (
-        <BriscolaModal
-          onSelect={selectBriscola}
-          selectorName={playerBySeat[seat]?.name}
-        />
+        <BriscolaModal onSelect={selectBriscola} />
       )}
 
       {(isWaitingBriscola || briscolaIntro.stage === "banner") && (

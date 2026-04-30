@@ -7,6 +7,7 @@ import ArrowCtaButton from "../components/ArrowCtaButton";
 import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
 import { DEBUG_MODE } from "../config/debug";
 import { useRusticContentRect } from "../hooks/useRusticContentRect";
+import { triggerCrtFlicker } from "../services/visualEffects";
 
 function debugGroupStyle(color: string) {
   return DEBUG_MODE
@@ -71,6 +72,7 @@ export default function LobbyScreen() {
 
   const handleCopyRoomId = () => {
     void navigator.clipboard.writeText(roomId).then(() => {
+      triggerCrtFlicker();
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     });
@@ -97,6 +99,17 @@ export default function LobbyScreen() {
 
     swapSeats(swapPendingSeat, seat);
     setSwapPendingSeat(null);
+    triggerCrtFlicker();
+  };
+
+  const handleStartGameClick = () => {
+    triggerCrtFlicker();
+    startGame();
+  };
+
+  const handleExitClick = () => {
+    triggerCrtFlicker();
+    reset();
   };
 
   const headerReservedHeight = clamp(
@@ -253,7 +266,7 @@ export default function LobbyScreen() {
           <div style={{ ...ctaAreaStyle, ...ctaAreaDebugStyle }}>
             <ArrowCtaButton
               label="Inizia"
-              onClick={startGame}
+              onClick={handleStartGameClick}
               disabled={!isOwner}
               className={`home-menu-item${!isOwner ? " disabled" : ""}`}
               style={ctaStyle}
@@ -262,7 +275,7 @@ export default function LobbyScreen() {
             />
             <ArrowCtaButton
               label="Esci"
-              onClick={reset}
+              onClick={handleExitClick}
               className="home-menu-item"
               style={ctaStyle}
               ariaLabel="Esci"

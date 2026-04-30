@@ -259,6 +259,29 @@ body::before {
   }
 }
 
+@keyframes crt-pulse-flicker {
+  0% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  18% {
+    opacity: 0.84;
+    filter: brightness(1.07);
+  }
+  42% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  67% {
+    opacity: 0.9;
+    filter: brightness(1.05);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
 .crt-overlay {
   position: fixed;
   inset: 0;
@@ -292,6 +315,12 @@ body::before {
     80% 75%,
     auto;
   animation: veil-drift 28s ease-in-out infinite;
+}
+
+.crt-overlay.crt-overlay-pulse {
+  animation:
+    veil-drift 28s ease-in-out infinite,
+    crt-pulse-flicker 0.21s steps(3, end) 1;
 }
 
 .crt-overlay::after {

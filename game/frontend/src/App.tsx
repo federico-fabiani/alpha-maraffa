@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import useGameStore from "./state/gameStore";
 import {
   APP_LAYOUT,
@@ -12,6 +12,7 @@ import GameScreen from "./screens/GameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
 import ConnectionStatus from "./components/ConnectionStatus";
 import backgroundImg from "./assets/homepage/background.jpg";
+import { CRT_FLICKER_EVENT } from "./services/visualEffects";
 
 const screens = {
   home: HomeScreen,
@@ -34,6 +35,8 @@ export default function App() {
     (state) => state.completeScreenTransition,
   );
   const backendStatus = useAppBootstrap();
+  const crtOverlayRef = useRef<HTMLDivElement | null>(null);
+  const crtPulseTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (screen === displayedScreen) {
@@ -54,6 +57,37 @@ export default function App() {
     displayedScreen,
     screen,
   ]);
+
+  useEffect(() => {
+    const handleCrtFlicker = () => {
+      const overlay = crtOverlayRef.current;
+      if (!overlay) {
+        return;
+      }
+
+      overlay.classList.remove("crt-overlay-pulse");
+      void overlay.offsetWidth;
+      overlay.classList.add("crt-overlay-pulse");
+
+      if (crtPulseTimeoutRef.current !== null) {
+        window.clearTimeout(crtPulseTimeoutRef.current);
+      }
+
+      crtPulseTimeoutRef.current = window.setTimeout(() => {
+        overlay.classList.remove("crt-overlay-pulse");
+        crtPulseTimeoutRef.current = null;
+      }, 210);
+    };
+
+    window.addEventListener(CRT_FLICKER_EVENT, handleCrtFlicker);
+
+    return () => {
+      window.removeEventListener(CRT_FLICKER_EVENT, handleCrtFlicker);
+      if (crtPulseTimeoutRef.current !== null) {
+        window.clearTimeout(crtPulseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const showRusticBg =
     displayedScreen === "home" || displayedScreen === "lobby";
@@ -88,7 +122,7 @@ export default function App() {
         />
 
         {/* CRT overlay */}
-        <div className="crt-overlay" />
+        <div ref={crtOverlayRef} className="crt-overlay" />
 
         {/* Screen content */}
         <div

@@ -8,6 +8,7 @@ import ArrowCtaButton from "../components/ArrowCtaButton";
 import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
 import { DEBUG_MODE } from "../config/debug";
 import { useRusticContentRect } from "../hooks/useRusticContentRect";
+import { triggerCrtFlicker } from "../services/visualEffects";
 
 type MenuOption = "nuova_partita" | "cerca_tavolo";
 
@@ -98,6 +99,8 @@ export default function HomeScreen() {
   };
 
   const handleActivateOption = (option: MenuOption) => {
+    triggerCrtFlicker();
+
     if (!canProceed) {
       shakeNameInput();
       return;
@@ -136,6 +139,8 @@ export default function HomeScreen() {
   };
 
   const handleJoinRoom = () => {
+    triggerCrtFlicker();
+
     if (!hasTableCode) {
       return;
     }

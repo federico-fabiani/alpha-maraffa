@@ -72,7 +72,7 @@ Authority: hook-local or component-local view state only.
 - `HomeScreen`
   props: none
   state read: `playerName`, `error`; local `selectedOption`, `showJoinPanel`, `roomCode`
-  actions triggered: `setPlayerName`, `createRoom`, `joinRoom`
+  actions triggered: `setPlayerName`, `createRoom`, `joinRoom`, `triggerCrtFlicker`
   children: `ArrowCtaButton`, `ContentRectDebugOverlay`, `CustomKeyboard`
 
 ### Lobby flow
@@ -80,7 +80,7 @@ Authority: hook-local or component-local view state only.
 - `LobbyScreen`
   props: none
   state read: `roomId`, `mySeat`, `isOwner`, `ownerSeat`, `lobbyPlayers`; local `swapPendingSeat`, `copied`
-  actions triggered: `startGame`, `swapSeats`, `kickPlayer`, `promotePlayer`, `reset`
+  actions triggered: `startGame`, `swapSeats`, `kickPlayer`, `promotePlayer`, `reset`, `triggerCrtFlicker`
   children: `LobbyTableSeats`, `ArrowCtaButton`, `ContentRectDebugOverlay`
 
 - `LobbyTableSeats`

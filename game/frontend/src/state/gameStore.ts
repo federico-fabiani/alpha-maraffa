@@ -219,7 +219,6 @@ const useGameStore = create<GameStore>((set, get) => ({
       case "game_started":
         set({
           screen: "game",
-          lobbyPlayers: data.players as LobbyPlayer[],
           lastTrickCards: [],
         });
         break;

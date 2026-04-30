@@ -1661,8 +1661,40 @@ body::before {
   filter: drop-shadow(0 0 12px rgba(151, 72, 28, 0.38));
 }
 
+@keyframes badge-drop {
+  0%   { transform: translate(-50%, -50%) translateY(-48px) scale(0.82) rotate(-6deg); opacity: 0; }
+  55%  { transform: translate(-50%, -50%) translateY(3px) scale(1.03) rotate(1deg); opacity: 1; }
+  75%  { transform: translate(-50%, -50%) translateY(-1px) scale(0.99); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+@keyframes badge-swap {
+  0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  22%  { transform: translate(-50%, -50%) scale(0.78) rotate(-18deg); opacity: 0.5; }
+  36%  { transform: translate(-50%, -50%) scale(0.75) rotate(-18deg); opacity: 0; }
+  50%  { transform: translate(-50%, -50%) translateY(-38px) scale(0.78) rotate(5deg); opacity: 0; }
+  70%  { transform: translate(-50%, -50%) translateY(3px) scale(1.03) rotate(1deg); opacity: 1; }
+  84%  { transform: translate(-50%, -50%) translateY(-1px) scale(0.99); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+.lobby-seat-badge-shell.is-entering {
+  animation: badge-drop 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transition: none;
+}
+
+.lobby-seat-badge-shell.is-swapping {
+  animation: badge-swap 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transition: none;
+}
+
 .lobby-seat-anchor:hover .lobby-seat-badge-shell {
   transform: translate(-50%, -50%) scale(1.03);
+}
+
+.lobby-seat-anchor:hover .lobby-seat-badge-shell.is-entering,
+.lobby-seat-anchor:hover .lobby-seat-badge-shell.is-swapping {
+  transform: unset;
 }
 
 .lobby-seat-name-block {

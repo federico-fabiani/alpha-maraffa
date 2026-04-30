@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
-import playerBadgesImg from "../assets/lobby/player_badges.png";
+import badgeRooster from "../assets/lobby/badge_rooster.png";
+import badgeKeys from "../assets/lobby/badge_keys.png";
+import badgeGrapes from "../assets/lobby/badge_grapes.png";
+import badgeVase from "../assets/lobby/badge_vase.png";
 import type { LobbyPlayer } from "../types";
 
 // seat order maps to SEAT_AREA index: 0=bottom, 1=right, 2=top, 3=left
@@ -22,33 +26,19 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-// Sprite sheet: 1698×926px, 4 badges in 2×2 grid.
-// Real badge centers measured via pixel scan (not symmetric 25%/75%).
-const SPRITE_W = 1698;
-const SPRITE_H = 926;
-const SPRITE_BADGE_D = 377; // actual badge circle diameter in sprite pixels
-// [col][row] → [centerX, centerY] in sprite pixels
-const SPRITE_BADGE_CENTERS: [number, number][] = [
-  [634, 266],  // 0: top-left
-  [1064, 266], // 1: top-right
-  [634, 660],  // 2: bottom-left
-  [1064, 660], // 3: bottom-right
-];
+const BADGE_IMAGES = [badgeRooster, badgeKeys, badgeGrapes, badgeVase];
 
-function getBadgeStyle(badgeIndex: number, badgeSize: number): CSSProperties {
-  const scale = badgeSize / SPRITE_BADGE_D;
-  const imgW = SPRITE_W * scale;
-  const imgH = SPRITE_H * scale;
-  const [bcX, bcY] = SPRITE_BADGE_CENTERS[badgeIndex] ?? SPRITE_BADGE_CENTERS[0];
-  const cx = bcX * scale;
-  const cy = bcY * scale;
+function getBadgeStyle(badgeIndex: number): CSSProperties {
   return {
-    backgroundImage: `url(${playerBadgesImg})`,
-    backgroundSize: `${imgW}px ${imgH}px`,
-    backgroundPosition: `-${cx - badgeSize / 2}px -${cy - badgeSize / 2}px`,
+    backgroundImage: `url(${BADGE_IMAGES[badgeIndex] ?? BADGE_IMAGES[0]})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
   };
 }
+
+type SeatAnimState = "entering" | "swapping" | null;
+const EMPTY_ANIM: Record<number, SeatAnimState> = { 0: null, 1: null, 2: null, 3: null };
 
 type LobbyTableSeatsProps = {
   bounds: Bounds;
@@ -80,6 +70,54 @@ export default function LobbyTableSeats({
   tableHint,
 }: LobbyTableSeatsProps) {
   const { seat: seatLayout, table: tableLayout } = APP_LAYOUT.lobby;
+
+  // ── Animation tracking ────────────────────────────────────────────────────
+  const prevNamesRef = useRef<Record<number, string | null>>({
+    0: null, 1: null, 2: null, 3: null,
+  });
+  const [seatAnim, setSeatAnim] = useState<Record<number, SeatAnimState>>(EMPTY_ANIM);
+
+  useEffect(() => {
+    const prev = prevNamesRef.current;
+    const curr: Record<number, string | null> = { 0: null, 1: null, 2: null, 3: null };
+    for (let s = 0; s < 4; s++) {
+      const p = playerBySeat[s];
+      curr[s] = p && !p.is_bot ? p.name : null;
+    }
+
+    // Detect seats whose names cross-matched → they swapped
+    const swapping = new Set<number>();
+    for (let a = 0; a < 4; a++) {
+      for (let b = a + 1; b < 4; b++) {
+        if (curr[a] && curr[b] && curr[a] === prev[b] && curr[b] === prev[a]) {
+          swapping.add(a);
+          swapping.add(b);
+        }
+      }
+    }
+
+    const newAnim: Record<number, SeatAnimState> = { 0: null, 1: null, 2: null, 3: null };
+    let hasChange = false;
+
+    for (let s = 0; s < 4; s++) {
+      if (curr[s] !== prev[s]) {
+        hasChange = true;
+        if (swapping.has(s)) {
+          newAnim[s] = "swapping";
+        } else if (curr[s] !== null) {
+          newAnim[s] = "entering";
+        }
+      }
+    }
+
+    prevNamesRef.current = curr;
+
+    if (hasChange) {
+      setSeatAnim(newAnim);
+      const timer = setTimeout(() => setSeatAnim(EMPTY_ANIM), 900);
+      return () => clearTimeout(timer);
+    }
+  }, [playerBySeat]);
 
   // ── Badge size (scales with table width) ─────────────────────────────────
   // Use max badge size to pre-compute reserves without circular dependency.
@@ -124,8 +162,6 @@ export default function LobbyTableSeats({
   };
 
   // ── Name label positioning ─────────────────────────────────────────────
-  // nameSeatGapPx = APP_LAYOUT.lobby.seat.nameSeatGapPx = constant gap
-  // from badge edge to nearest edge of the name label, same for all 4 seats.
   const nameOffset = badgeSize / 2 + seatLayout.nameSeatGapPx;
 
   function getLabelStyle(area: SeatArea): CSSProperties {
@@ -211,11 +247,13 @@ export default function LobbyTableSeats({
       {[0, 1, 2, 3].map((seat) => {
         const area = SEAT_AREA[seat];
         const player = playerBySeat[seat];
-        const badgeIndex = player ? (badgeByName[player.name] ?? 0) : 0;
+        const isHuman = player && !player.is_bot;
+        const badgeIndex = isHuman ? (badgeByName[player.name] ?? 0) : 0;
         const isMe = seat === mySeat;
         const isPending = swapPendingSeat === seat;
         const isVertical = area === "left" || area === "right";
         const anchor = anchors[area];
+        const anim = seatAnim[seat];
 
         return (
           <div
@@ -226,7 +264,14 @@ export default function LobbyTableSeats({
           >
             {/* Badge — centered on anchor via CSS translate(-50%, -50%) */}
             <div
-              className={`lobby-seat-badge-shell${isPending ? " is-pending" : ""}`}
+              className={[
+                "lobby-seat-badge-shell",
+                isPending ? "is-pending" : "",
+                anim === "entering" ? "is-entering" : "",
+                anim === "swapping" ? "is-swapping" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               style={{
                 width: `${badgeSize}px`,
                 height: `${badgeSize}px`,
@@ -234,10 +279,10 @@ export default function LobbyTableSeats({
                   "0 6px 0 rgba(69, 24, 11, 0.16), 0 10px 18px rgba(0, 0, 0, 0.24)",
               }}
             >
-              {player ? (
+              {isHuman ? (
                 <div
                   className="lobby-player-badge"
-                  style={getBadgeStyle(badgeIndex, badgeSize)}
+                  style={getBadgeStyle(badgeIndex)}
                 />
               ) : (
                 <div className="lobby-seat-placeholder" />
@@ -258,7 +303,7 @@ export default function LobbyTableSeats({
                     transform: area === "left" ? "rotate(180deg)" : undefined,
                   }}
                 >
-                  {player && ownerSeat === seat && "♛ "}
+                  {player && ownerSeat === seat && <span className="lobby-crown">♛</span>}
                   {player?.name ?? "IA"}
                 </span>
               ) : (

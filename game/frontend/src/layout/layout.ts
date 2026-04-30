@@ -136,8 +136,8 @@ export const APP_LAYOUT = {
     panelMaxWidth: "30rem",
     panelGap: "0.9rem",
     headerReservedHeight: {
-      ratio: 0.16,
-      minPx: 58,
+      ratio: 0.10,
+      minPx: 20,
       maxPx: 90,
     },
     headerGap: {

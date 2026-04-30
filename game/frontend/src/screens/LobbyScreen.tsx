@@ -222,7 +222,7 @@ export default function LobbyScreen() {
     width: "100%",
     height: "100%",
   } as const;
-  const ctaStyle = { width: "100%" } as const;
+  const ctaStyle = { width: "100%", gridTemplateColumns: "1fr minmax(0, max-content) 1fr" } as const;
   const ctaArrowStyle = { width: `${ctaArrowWidth}px` } as const;
   const tableHint = isOwner
     ? "Clicca su due posti occupati per scambiarli."

@@ -99,7 +99,7 @@ export function useGameScreenController() {
   // Initialize isMyTurn=true so first mount never spuriously triggers delay
   const prevTurnStateRef = useRef({ isMyTurn: true });
 
-  const stageRef = useGameStageLayout();
+  const { stageRef, stageSize } = useGameStageLayout();
   const secsLeft = useTurnCountdown(gameState.turnDeadline);
   const {
     briscolaIntro,
@@ -314,16 +314,16 @@ export function useGameScreenController() {
       return;
     }
 
+    if (!isMyTurn) {
+      return;
+    }
+
     if (!card.playable) {
       showNotification({
         text: "Mossa non valida",
         subtitle: "Questa carta non e giocabile in questo turno.",
         duration: 1400,
       });
-      return;
-    }
-
-    if (!isMyTurn) {
       return;
     }
 
@@ -337,24 +337,9 @@ export function useGameScreenController() {
 
     if (event.pointerType === "touch") {
       lastTouchInteractionAtRef.current = Date.now();
-
-      if (isTouchArmed(card)) {
-        setDrag({
-          card,
-          x: event.clientX,
-          y: event.clientY,
-          startX: event.clientX,
-          startY: event.clientY,
-          source: "touch",
-        });
-        return;
-      }
-
-      setTouchArmedCard({ suit: card.suit, rank: card.rank });
-      return;
+    } else {
+      setTouchArmedCard(null);
     }
-
-    setTouchArmedCard(null);
 
     setDrag({
       card,
@@ -362,7 +347,7 @@ export function useGameScreenController() {
       y: event.clientY,
       startX: event.clientX,
       startY: event.clientY,
-      source: "mouse",
+      source: event.pointerType === "touch" ? "touch" : "mouse",
     });
   };
 
@@ -392,11 +377,17 @@ export function useGameScreenController() {
     const shouldPlayByTouchConfirm =
       drag.source === "touch" &&
       !isActiveDrag &&
+      isTouchArmed(drag.card) &&
       drag.card.playable &&
       isMyTurn;
 
     if (shouldPlayByDrop || shouldPlayByTouchConfirm) {
       playSelectedCard(drag.card);
+    } else if (drag.source === "touch" && !isActiveDrag) {
+      // Tap without drag: arm if not armed, disarm if already armed
+      setTouchArmedCard(
+        isTouchArmed(drag.card) ? null : { suit: drag.card.suit, rank: drag.card.rank },
+      );
     }
 
     setDrag(null);
@@ -475,6 +466,7 @@ export function useGameScreenController() {
     dealGeneration,
     sortedHand,
     stageRef,
+    stageSize,
     tableCards: briscolaIntroActive ? [] : gameState.tableCards,
     touchArmedCard,
     topSeat,

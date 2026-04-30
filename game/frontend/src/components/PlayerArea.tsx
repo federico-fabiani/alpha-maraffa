@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { APP_LAYOUT } from "../layout/layout";
 import { CardBack } from "./Card";
 import type { Declaration, Player } from "../types";
@@ -8,9 +9,10 @@ interface PlayerAreaProps {
   position: "top" | "left" | "right";
   declaration?: Declaration;
   showCards?: boolean;
+  declarationAside?: boolean;
 }
 
-type HandCardBackStyle = React.CSSProperties & Record<"--hand-index", string>;
+type HandCardBackStyle = CSSProperties & Record<"--hand-index", string>;
 
 const TEAM_BADGE: Record<number, string> = {
   1: "border-amber-500/60 text-amber-300",
@@ -23,16 +25,60 @@ const DECLARATION_LABEL: Record<string, string> = {
   volo: "VOLO",
 };
 
+const DECLARATION_BADGE_GAP = "6px";
+
+function getDeclarationBadgeStyle(
+  position: "top" | "left" | "right",
+  aside: boolean,
+): CSSProperties {
+  if (position === "top") {
+    if (aside) {
+      return {
+        position: "absolute",
+        top: "50%",
+        left: "100%",
+        transform: "translateY(-50%)",
+        marginLeft: DECLARATION_BADGE_GAP,
+        whiteSpace: "nowrap",
+      };
+    }
+    return {
+      position: "absolute",
+      top: "100%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      marginTop: DECLARATION_BADGE_GAP,
+      whiteSpace: "nowrap",
+    };
+  }
+  if (position === "left") {
+    return {
+      position: "absolute",
+      top: "100%",
+      right: 0,
+      marginTop: DECLARATION_BADGE_GAP,
+      whiteSpace: "nowrap",
+    };
+  }
+  return {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    marginTop: DECLARATION_BADGE_GAP,
+    whiteSpace: "nowrap",
+  };
+}
+
 export default function PlayerArea({
   player,
   isActive,
   position,
   declaration,
   showCards = true,
+  declarationAside = false,
 }: PlayerAreaProps) {
   const cardCount = player?.cards_count ?? 0;
 
-  // Orientation of the stacked card fan
   const isHorizontal = position === "top";
 
   const team = player ? player.team : null;
@@ -43,9 +89,9 @@ export default function PlayerArea({
   const offsetStyle = isHorizontal
     ? { marginLeft: "var(--layout-opponent-stack-overlap)" }
     : { marginTop: "var(--layout-opponent-stack-overlap)" };
-  const wrapperStyle = {
+  const wrapperStyle: CSSProperties = {
     display: "flex",
-    flexDirection: "column" as const,
+    flexDirection: "column",
     alignItems:
       position === "top"
         ? "center"
@@ -53,6 +99,7 @@ export default function PlayerArea({
           ? "flex-end"
           : "flex-start",
     gap: APP_LAYOUT.playerArea.gap,
+    position: "relative",
   };
   const createCardBackStyle = (index: number): HandCardBackStyle => ({
     ...(index === 0 ? {} : offsetStyle),
@@ -61,14 +108,7 @@ export default function PlayerArea({
 
   return (
     <div style={wrapperStyle}>
-      {/* Declaration badge */}
-      {declaration && (
-        <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300">
-          {DECLARATION_LABEL[declaration] ?? declaration}
-        </div>
-      )}
-
-      {/* Name badge */}
+      {/* Name badge — always first so it never shifts when declaration appears */}
       <div
         className={`
         px-3 py-1 rounded-full text-xs font-medium border bg-felt-900/60
@@ -92,13 +132,23 @@ export default function PlayerArea({
         )}
       </div>
 
+      {/* Declaration badge — absolutely positioned so name never shifts */}
+      {declaration && (
+        <div
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-amber-900/60 border border-amber-500/50 text-amber-300"
+          style={getDeclarationBadgeStyle(position, declarationAside)}
+        >
+          {DECLARATION_LABEL[declaration] ?? declaration}
+        </div>
+      )}
+
       {/* Stacked face-down cards */}
       {showCards && cardCount > 0 && (
         <div style={stackStyles}>
           {Array.from({ length: Math.min(cardCount, 6) }).map((_, i) => (
             <CardBack
               key={i}
-              size={position === "top" ? "sm" : "sm"}
+              size="sm"
               className="opponent-card-back"
               style={createCardBackStyle(i)}
             />

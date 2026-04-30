@@ -59,12 +59,16 @@ export default function GameScreen() {
     showForfeitConfirm,
     sortedHand,
     stageRef,
+    stageSize,
     tableCards,
     topSeat,
     touchArmedCard,
     totalScores,
     turnResultWinnerSeat,
   } = useGameScreenController();
+
+  // On small displays the north declaration badge would overlap the game area rect; show it aside
+  const topDeclarationAside = stageSize.height > 0 && stageSize.height < 400;
 
   const rootStyle = {
     position: "relative",
@@ -265,6 +269,7 @@ export default function GameScreen() {
           position="top"
           declaration={leadSeat === topSeat ? currentDeclaration : null}
           showCards={false}
+          declarationAside={topDeclarationAside}
         />
       </div>
 

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
 
 export function useGameStageLayout() {
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -33,6 +34,8 @@ export function useGameStageLayout() {
       stage.style.setProperty("--bg-render-top", `${renderTop}px`);
       stage.style.setProperty("--bg-render-width", `${renderWidth}px`);
       stage.style.setProperty("--bg-render-height", `${renderHeight}px`);
+
+      setStageSize({ width: stageWidth, height: stageHeight });
     };
 
     updateBackgroundFrame();
@@ -45,5 +48,5 @@ export function useGameStageLayout() {
     };
   }, []);
 
-  return stageRef;
+  return { stageRef, stageSize };
 }

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { createPortal } from "react-dom";
 
 const ROWS: readonly (readonly string[])[] = [
   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
@@ -47,7 +48,7 @@ export default function CustomKeyboard({
     }
   };
 
-  return (
+  const keyboard = (
     <div
       className="custom-keyboard animate-slide-up"
       onPointerDown={(e) => e.stopPropagation()}
@@ -102,4 +103,10 @@ export default function CustomKeyboard({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") {
+    return keyboard;
+  }
+
+  return createPortal(keyboard, document.body);
 }

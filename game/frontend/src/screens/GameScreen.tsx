@@ -14,6 +14,7 @@ import BriscolaSuitGif from "../components/BriscolaSuitGif";
 import BriscolaModal from "../components/BriscolaModal";
 import Notification from "../components/Notification";
 import { useGameScreenController } from "../hooks/useGameScreenController";
+import { DEBUG_MODE } from "../config/debug";
 
 type HandSlotStyle = React.CSSProperties &
   Record<"--hand-index" | "--hand-offset" | "--hand-offset-abs", string>;
@@ -215,7 +216,7 @@ export default function GameScreen() {
       <div className="game-stage-ambient" />
       <div className="game-stage-vignette" />
 
-      {APP_LAYOUT.game.debug.showTableclothOverlay && (
+      {DEBUG_MODE && APP_LAYOUT.game.debug.showTableclothOverlay && (
         <div className="tablecloth-debug-area" />
       )}
 

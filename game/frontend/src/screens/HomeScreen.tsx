@@ -58,12 +58,9 @@ export default function HomeScreen() {
   const playerNameRef = useRef(playerName);
   playerNameRef.current = playerName;
 
-  const [isTouchDevice] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(pointer: coarse)").matches,
-  );
-  const [showCustomKeyboard, setShowCustomKeyboard] = useState(false);
+  const [activeKeyboardField, setActiveKeyboardField] = useState<
+    "name" | "tableCode" | null
+  >(null);
 
   const canProceed = playerName.trim().length > 0;
   const hasTableCode = tableCode.trim().length > 0;
@@ -119,23 +116,61 @@ export default function HomeScreen() {
     }, 40);
   };
 
+  const tableCodeRef = useRef(tableCode);
+  tableCodeRef.current = tableCode;
+
   const handleCustomKey = (key: string) => {
-    if (playerNameRef.current.length < 14)
-      setPlayerName(playerNameRef.current + key);
+    if (activeKeyboardField === "tableCode") {
+      setTableCode((prev) => sanitizeTableCode(prev + key));
+    } else {
+      if (playerNameRef.current.length < 14)
+        setPlayerName(playerNameRef.current + key);
+    }
   };
 
   const handleCustomBackspace = () => {
-    setPlayerName(playerNameRef.current.slice(0, -1));
+    if (activeKeyboardField === "tableCode") {
+      setTableCode((prev) => prev.slice(0, -1));
+    } else {
+      setPlayerName(playerNameRef.current.slice(0, -1));
+    }
   };
 
   const handleCustomEnter = () => {
-    setShowCustomKeyboard(false);
-    if (canProceed) handleActivateOption(selectedOption);
-    else shakeNameInput();
+    if (activeKeyboardField === "tableCode") {
+      setActiveKeyboardField(null);
+      handleJoinRoom();
+    } else {
+      setActiveKeyboardField(null);
+      if (canProceed) handleActivateOption(selectedOption);
+      else shakeNameInput();
+    }
   };
 
   const handleCustomClose = () => {
-    setShowCustomKeyboard(false);
+    setActiveKeyboardField(null);
+  };
+
+  const handleNameInputPointerDown = (
+    event: React.PointerEvent<HTMLInputElement>,
+  ) => {
+    if (event.pointerType !== "touch") {
+      return;
+    }
+
+    event.preventDefault();
+    setActiveKeyboardField("name");
+  };
+
+  const handleTableCodeInputPointerDown = (
+    event: React.PointerEvent<HTMLInputElement>,
+  ) => {
+    if (event.pointerType !== "touch") {
+      return;
+    }
+
+    event.preventDefault();
+    setActiveKeyboardField("tableCode");
   };
 
   const handleJoinRoom = () => {
@@ -596,15 +631,12 @@ export default function HomeScreen() {
                   if (e.key === "Enter" && !showJoinPanel)
                     handleActivateOption(selectedOption);
                 }}
-                onClick={() => {
-                  if (isTouchDevice) setShowCustomKeyboard(true);
-                }}
+                onPointerDown={handleNameInputPointerDown}
                 className="home-name-input"
                 style={{ width: "var(--layout-home-input-width)" }}
                 maxLength={14}
-                autoFocus={!isTouchDevice}
-                readOnly={isTouchDevice}
-                inputMode={isTouchDevice ? "none" : undefined}
+                readOnly={activeKeyboardField === "name"}
+                inputMode={activeKeyboardField === "name" ? "none" : undefined}
               />
 
               <div
@@ -667,9 +699,11 @@ export default function HomeScreen() {
                     setTableCode(sanitizeTableCode(e.target.value))
                   }
                   onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
+                  onPointerDown={handleTableCodeInputPointerDown}
                   className="home-name-input home-table-code-input"
                   style={{ width: "var(--layout-home-join-code-width)" }}
-                  inputMode="text"
+                  inputMode={activeKeyboardField === "tableCode" ? "none" : "text"}
+                  readOnly={activeKeyboardField === "tableCode"}
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
@@ -713,7 +747,7 @@ export default function HomeScreen() {
 
       <ContentRectDebugOverlay rect={contentRect} enabled={DEBUG_MODE} />
 
-      {showCustomKeyboard && (
+      {activeKeyboardField !== null && (
         <CustomKeyboard
           onKey={handleCustomKey}
           onBackspace={handleCustomBackspace}

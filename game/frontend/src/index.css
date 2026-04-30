@@ -1185,6 +1185,17 @@ body::before {
 
 /* ── Custom on-screen keyboard ───────────────────────────────────────────────── */
 
+@keyframes keyboard-slide-up {
+  from {
+    transform: translateX(-50%) translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 .custom-keyboard {
   --ck-size: clamp(24px, 6.4vw, 40px);
   --ck-gap: 3px;
@@ -1196,6 +1207,7 @@ body::before {
   width: calc(100% - 20px);
   max-width: 720px;
   z-index: 9999;
+  animation: keyboard-slide-up 0.25s ease-out;
   background: #1e1008;
   border: 1.5px solid #3a1e08;
   border-radius: 14px;

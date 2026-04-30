@@ -50,7 +50,7 @@ export default function CustomKeyboard({
 
   const keyboard = (
     <div
-      className="custom-keyboard animate-slide-up"
+      className="custom-keyboard"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="custom-keyboard-inner">

@@ -36,6 +36,7 @@ if not exist "node_modules" (
     call npm ci
     if errorlevel 1 goto :error
 )
+set "VITE_DEBUG_MODE=false"
 call npm run build
 if errorlevel 1 goto :error
 

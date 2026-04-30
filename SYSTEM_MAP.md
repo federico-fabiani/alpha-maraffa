@@ -87,6 +87,7 @@ Authority: hook-local or component-local view state only.
   props: `bounds`, `style?`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`
   state read: none
   actions triggered: `onSeatClick`, `onPromotePlayer`, `onKickPlayer`
+  layout notes: table centered in bounds, seats anchored to table edges; `APP_LAYOUT.lobby.seat.nameSeatGapPx` is the single constant controlling gap from badge edge to name label for all 4 seats; east/west names render with `writing-mode: vertical-lr`
   children: none
 
 ### Game flow

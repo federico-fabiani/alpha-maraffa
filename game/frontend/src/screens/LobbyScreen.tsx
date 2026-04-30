@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { APP_LAYOUT } from "../layout/layout";
 import { clamp } from "../layout/rusticBackground";
 import LobbyTableSeats from "../components/LobbyTableSeats";
@@ -119,37 +119,33 @@ export default function LobbyScreen() {
     APP_LAYOUT.lobby.contentPaddingY.minPx,
     APP_LAYOUT.lobby.contentPaddingY.maxPx,
   );
-  const sectionGap = clamp(
-    contentRect.width * APP_LAYOUT.lobby.sectionGap.ratio,
-    APP_LAYOUT.lobby.sectionGap.minPx,
-    APP_LAYOUT.lobby.sectionGap.maxPx,
-  );
   const contentWidth = Math.max(1, contentRect.width - contentPaddingX * 2);
   const contentHeight = Math.max(
     1,
     contentRect.height - contentPaddingY * 2 - headerReservedHeight - headerGap,
   );
-  const tableAreaWidth = clamp(
+  const tableAreaPreferredWidth = clamp(
     contentWidth * APP_LAYOUT.lobby.tableArea.widthRatio,
     APP_LAYOUT.lobby.tableArea.minWidthPx,
     Math.min(
       APP_LAYOUT.lobby.tableArea.maxWidthPx,
       Math.max(
         APP_LAYOUT.lobby.tableArea.minWidthPx,
-        contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx - sectionGap,
+        contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx,
       ),
     ),
   );
-  const ctaAreaWidth = clamp(
-    contentWidth - tableAreaWidth - sectionGap,
-    APP_LAYOUT.lobby.ctaArea.minWidthPx,
-    APP_LAYOUT.lobby.ctaArea.maxWidthPx,
+  const tableAreaWidth = clamp(
+    tableAreaPreferredWidth,
+    APP_LAYOUT.lobby.tableArea.minWidthPx,
+    Math.max(APP_LAYOUT.lobby.tableArea.minWidthPx, contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx),
   );
   const ctaFontSize = clamp(
     contentRect.width * APP_LAYOUT.lobby.ctaFontSize.ratio,
     APP_LAYOUT.lobby.ctaFontSize.minPx,
     APP_LAYOUT.lobby.ctaFontSize.maxPx,
   );
+  const ctaArrowWidth = clamp(ctaFontSize * 1.35, 20, 34);
 
   const panelStyle = {
     position: "absolute",
@@ -180,7 +176,7 @@ export default function LobbyScreen() {
     flexDirection: "row" as const,
     alignItems: "stretch",
     justifyContent: "flex-start",
-    gap: `${sectionGap}px`,
+    gap: 0,
     width: "100%",
     height: `${contentHeight}px`,
     flex: "1 1 auto",
@@ -188,9 +184,7 @@ export default function LobbyScreen() {
   };
   const tableAreaStyle = {
     display: "flex",
-    flex: "0 0 auto",
-    width: `${tableAreaWidth}px`,
-    maxWidth: `${tableAreaWidth}px`,
+    flex: `0 0 ${tableAreaWidth}px`,
     minWidth: 0,
     minHeight: `${contentHeight}px`,
     height: "100%",
@@ -198,32 +192,25 @@ export default function LobbyScreen() {
   const ctaAreaStyle = {
     display: "flex",
     flexDirection: "column" as const,
-    alignItems: "stretch",
+    alignItems: "center",
     justifyContent: "center",
-    flex: "0 0 auto",
-    width: `${ctaAreaWidth}px`,
-    maxWidth: `${ctaAreaWidth}px`,
-    minWidth: 0,
+    gap: `${clamp(ctaFontSize * 0.6, 6, 18)}px`,
+    flex: "1 1 0",
+    minWidth: `${APP_LAYOUT.lobby.ctaArea.minWidthPx}px`,
     minHeight: `${contentHeight}px`,
-  };
+    height: `${contentHeight}px`,
+    "--layout-home-menu-item-font-size": `${ctaFontSize}px`,
+    "--layout-home-menu-item-gap": `${clamp(ctaFontSize * 0.5, 8, 16)}px`,
+    "--layout-home-menu-item-padding": `${clamp(ctaFontSize * 0.14, 2, 5)}px ${clamp(ctaFontSize * 0.28, 4, 10)}px`,
+    "--layout-home-arrow-width": `${ctaArrowWidth}px`,
+  } as React.CSSProperties;
   const rootStyle = {
     position: "relative",
     width: "100%",
     height: "100%",
   } as const;
-  const actionsStyle = {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "0.45rem",
-    width: "100%",
-    alignItems: "center",
-  };
-  const ctaStyle = {
-    fontSize: `${ctaFontSize}px`,
-  } as const;
-  const hintStyle = {
-    maxWidth: "100%",
-  } as const;
+  const ctaStyle = { width: "100%" } as const;
+  const ctaArrowStyle = { width: `${ctaArrowWidth}px` } as const;
   const tableHint = isOwner
     ? "Clicca su due posti occupati per scambiarli."
     : "Attendi altri giocatori o avvio partita.";
@@ -232,7 +219,6 @@ export default function LobbyScreen() {
   const bodyDebugStyle = debugGroupStyle("#10b981");
   const tableAreaDebugStyle = debugGroupStyle("#a855f7");
   const ctaAreaDebugStyle = debugGroupStyle("#e11d48");
-  const actionsDebugStyle = debugGroupStyle("#f59e0b");
 
   return (
     <div ref={rootRef} style={rootStyle}>
@@ -265,30 +251,23 @@ export default function LobbyScreen() {
           />
 
           <div style={{ ...ctaAreaStyle, ...ctaAreaDebugStyle }}>
-            <div className="lobby-actions-panel" style={actionsDebugStyle}>
-              <div style={actionsStyle}>
-                <ArrowCtaButton
-                  label="Inizia"
-                  onClick={startGame}
-                  disabled={!isOwner}
-                  className={`home-menu-item lobby-home-cta${!isOwner ? " disabled" : ""}`}
-                  style={ctaStyle}
-                  ariaLabel="Inizia"
-                />
-                <ArrowCtaButton
-                  label="Esci"
-                  onClick={reset}
-                  className="home-menu-item lobby-home-cta"
-                  style={ctaStyle}
-                  ariaLabel="Esci"
-                />
-              </div>
-              <p className="lobby-hint" style={hintStyle}>
-                {isOwner
-                  ? "I posti liberi verranno riempiti da bot quando inizi."
-                  : "Solo proprietario del tavolo puo avviare partita."}
-              </p>
-            </div>
+            <ArrowCtaButton
+              label="Inizia"
+              onClick={startGame}
+              disabled={!isOwner}
+              className={`home-menu-item${!isOwner ? " disabled" : ""}`}
+              style={ctaStyle}
+              ariaLabel="Inizia"
+              arrowStyle={ctaArrowStyle}
+            />
+            <ArrowCtaButton
+              label="Esci"
+              onClick={reset}
+              className="home-menu-item"
+              style={ctaStyle}
+              ariaLabel="Esci"
+              arrowStyle={ctaArrowStyle}
+            />
           </div>
         </div>
       </div>

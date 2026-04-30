@@ -36,15 +36,15 @@ export default function ArrowCtaButton({
         alt=""
         aria-hidden="true"
         className="home-arrow home-arrow-left home-hover-arrow"
-        style={arrowStyle}
+        style={{ alignSelf: "center", ...arrowStyle }}
       />
-      <span className="home-menu-label" aria-hidden="true" data-label={label} />
+      <span className="home-menu-label" aria-hidden="true" data-label={label} style={{ alignSelf: "center" }} />
       <img
         src={arrowImg}
         alt=""
         aria-hidden="true"
         className="home-arrow home-arrow-right home-hover-arrow"
-        style={arrowStyle}
+        style={{ alignSelf: "center", ...arrowStyle }}
       />
     </button>
   );

@@ -32,6 +32,8 @@
   --animate-pulse-ring: pulse-ring 1.5s ease-out infinite;
   --animate-float: float 3.2s ease-in-out infinite;
   --animate-card-appear: card-appear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --card-deal-in-duration: 0.28s;
+  --animate-card-deal-in: card-deal-in var(--card-deal-in-duration) cubic-bezier(0.16, 1, 0.3, 1) backwards;
   --animate-card-breathe: card-breathe 2.8s ease-in-out infinite;
   --animate-demo-blink: demo-blink 1s step-start infinite;
 
@@ -94,6 +96,33 @@
     scale: 1;
     translate: 0 0;
     opacity: 1;
+  }
+}
+
+@keyframes card-deal-in {
+  from {
+    translate: 38vw 60vh;
+    scale: 0.5;
+    rotate: 20deg;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
+    opacity: 1;
+  }
+}
+
+@keyframes card-flip-reveal {
+  from {
+    transform: rotateY(180deg);
+  }
+  to {
+    transform: rotateY(0deg);
   }
 }
 
@@ -445,7 +474,7 @@ body::before {
   --bg-render-top: 0px;
   --bg-render-width: 100%;
   --bg-render-height: 100%;
-  --hand-playing-area-delta: 0px;
+  --hand-playing-area-delta: var(--layout-hand-playing-area-delta);
   --playing-area-left: var(--layout-playing-area-left);
   --playing-area-top: var(--layout-playing-area-top);
   --playing-area-width: var(--layout-playing-area-width);
@@ -693,6 +722,8 @@ body::before {
   position: relative;
   margin-left: var(--layout-player-hand-overlap);
   transform-origin: bottom center;
+  animation: var(--animate-card-deal-in);
+  animation-delay: calc(var(--hand-index, 0) * 70ms);
   transform: translateY(
       calc(
         var(--layout-player-hand-translate-base) +
@@ -837,6 +868,42 @@ body::before {
 .table-card-slot {
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6))
     drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+}
+
+/* ── Card flip wrapper (deal animation) ─────────────────────────────────────── */
+
+.card-flip-wrapper {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: card-flip-reveal 0.22s ease-in-out backwards;
+  animation-delay: calc(
+    var(--hand-index, 0) * 70ms + var(--card-deal-in-duration) * 0.45
+  );
+}
+
+.card-flip-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  border: 1.5px solid rgba(232, 185, 102, 0.36);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(232, 185, 102, 0.1) 0,
+      rgba(232, 185, 102, 0.1) 2px,
+      transparent 2px,
+      transparent 10px
+    ),
+    radial-gradient(circle at 50% 50%, rgba(173, 25, 57, 0.4), transparent 65%),
+    linear-gradient(135deg, #201125, #5a1431);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.46);
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+}
+
+.card-flip-wrapper > .card-face {
+  backface-visibility: hidden;
 }
 
 /* ── Card back ──────────────────────────────────────────────────────────────── */
@@ -986,23 +1053,6 @@ body::before {
 
 /* ── Responsive tuning ──────────────────────────────────────────────────────── */
 
-@media (max-width: 1100px) {
-  .player-hand {
-    transform: scale(var(--layout-player-hand-tablet-scale));
-    transform-origin: bottom center;
-  }
-}
-
-@media (max-width: 800px) {
-  .player-hand {
-    bottom: 0;
-    transform: scale(var(--layout-player-hand-mobile-scale));
-  }
-
-  .hand-card-slot {
-    margin-left: var(--layout-player-hand-overlap-mobile);
-  }
-}
 
 /* ── Screen transition ───────────────────────────────────────────────────────── */
 

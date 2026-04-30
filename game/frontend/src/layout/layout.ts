@@ -213,6 +213,7 @@ export const APP_LAYOUT = {
       width: 0.437,
       height: 0.51,
     },
+    handPlayingAreaDelta: "max(0px, calc(4vh - 1.5rem))",
     hudInset: "0.75rem",
     opponentInset: {
       top: "1.5rem",
@@ -319,21 +320,18 @@ export const APP_LAYOUT = {
   cards: {
     sizes: {
       sm: { width: "2.5rem", height: "3.5rem" },
-      md: { width: "5.5rem", height: "8.25rem" },
+      md: { width: "min(6.875rem, 9vw)", height: "min(10.3rem, 13.5vw)" },
       lg: { width: "5rem", height: "7rem" },
       table: { width: "8rem", height: "12rem" },
     },
     hand: {
       overlap: "-0.5625rem",
-      overlapMobile: "-0.875rem",
       translateBase: "4px",
       translateOffsetFactor: "2.35px",
       rotateFactor: "3.25deg",
       hoverTranslate: "-14px",
       hoverRotateFactor: "1.4deg",
       hoverScale: 1.04,
-      tabletScale: 0.92,
-      mobileScale: 0.84,
     },
     opponentStackOverlap: "-1.25rem",
     dragGhost: {
@@ -436,6 +434,7 @@ export const layoutCssVariables = {
     APP_LAYOUT.shell.rusticBackgroundCompactLandscapeSize,
   "--layout-shell-rustic-background-position-compact":
     APP_LAYOUT.shell.rusticBackgroundCompactLandscapePosition,
+  "--layout-hand-playing-area-delta": APP_LAYOUT.game.handPlayingAreaDelta,
   "--layout-playing-area-left": `${APP_LAYOUT.game.playingArea.left}`,
   "--layout-playing-area-top": `${APP_LAYOUT.game.playingArea.top}`,
   "--layout-playing-area-width": `${APP_LAYOUT.game.playingArea.width}`,
@@ -484,7 +483,6 @@ export const layoutCssVariables = {
   "--layout-lobby-seat-card-padding-x": APP_LAYOUT.lobby.seatCardPaddingX,
   "--layout-lobby-seat-action-gap": APP_LAYOUT.lobby.seatActionGap,
   "--layout-player-hand-overlap": APP_LAYOUT.cards.hand.overlap,
-  "--layout-player-hand-overlap-mobile": APP_LAYOUT.cards.hand.overlapMobile,
   "--layout-player-hand-translate-base": APP_LAYOUT.cards.hand.translateBase,
   "--layout-player-hand-translate-offset-factor":
     APP_LAYOUT.cards.hand.translateOffsetFactor,
@@ -493,8 +491,6 @@ export const layoutCssVariables = {
   "--layout-player-hand-hover-rotate-factor":
     APP_LAYOUT.cards.hand.hoverRotateFactor,
   "--layout-player-hand-hover-scale": `${APP_LAYOUT.cards.hand.hoverScale}`,
-  "--layout-player-hand-tablet-scale": `${APP_LAYOUT.cards.hand.tabletScale}`,
-  "--layout-player-hand-mobile-scale": `${APP_LAYOUT.cards.hand.mobileScale}`,
   "--layout-opponent-stack-overlap": APP_LAYOUT.cards.opponentStackOverlap,
 } as CSSProperties;
 

@@ -55,6 +55,7 @@ export default function GameScreen() {
     seat,
     secsLeft,
     selectBriscola,
+    dealGeneration,
     showForfeitConfirm,
     sortedHand,
     stageRef,
@@ -408,18 +409,20 @@ export default function GameScreen() {
 
               return (
                 <div
-                  key={`${card.suit}-${card.rank}`}
+                  key={`${card.suit}-${card.rank}-${dealGeneration}`}
                   className={`hand-card-slot ${card.playable ? "playable-hand-slot" : "blocked-hand-slot"} ${isTouchArmed ? "touch-armed" : ""}`.trim()}
                   style={createHandSlotStyle(index, handOffset, handLayer)}
                   onPointerDown={(event) => handleCardPointerDown(event, card)}
                 >
-                  <CardComponent
-                    card={card}
-                    size="md"
-                    briscolaSuit={briscola}
-                    onClick={() => handleCardClick(card)}
-                    className={`${isBeingDragged ? "opacity-0" : ""} ${isBlockedInHand ? "blocked-hand" : ""} ${isTouchArmed ? "selected" : ""}`.trim()}
-                  />
+                  <div className="card-flip-wrapper">
+                    <CardComponent
+                      card={card}
+                      size="md"
+                      briscolaSuit={briscola}
+                      onClick={() => handleCardClick(card)}
+                      className={`${isBeingDragged ? "opacity-0" : ""} ${isBlockedInHand ? "blocked-hand" : ""} ${isTouchArmed ? "selected" : ""}`.trim()}
+                    />
+                  </div>
                 </div>
               );
             })}

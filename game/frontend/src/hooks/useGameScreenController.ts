@@ -144,6 +144,20 @@ export function useGameScreenController() {
       ? (playerBySeat[gameState.currentPlayerSeat]?.name ?? "Un giocatore")
       : "Un giocatore";
 
+  const prevHandRef = useRef<typeof gameState.myHand>([]);
+  const [dealGeneration, setDealGeneration] = useState(0);
+
+  useEffect(() => {
+    const prev = prevHandRef.current;
+    const curr = gameState.myHand;
+    prevHandRef.current = curr;
+    if (curr.length === 0) return;
+    const prevIds = new Set(prev.map((c) => `${c.suit}-${c.rank}`));
+    if (curr.every((c) => !prevIds.has(`${c.suit}-${c.rank}`))) {
+      setDealGeneration((g) => g + 1);
+    }
+  }, [gameState.myHand]);
+
   const sortedHand = gameState.myHand
     .map((card, index) => ({ card, index }))
     .sort((left, right) => {
@@ -458,6 +472,7 @@ export function useGameScreenController() {
     secsLeft,
     selectBriscola,
     showForfeitConfirm,
+    dealGeneration,
     sortedHand,
     stageRef,
     tableCards: briscolaIntroActive ? [] : gameState.tableCards,

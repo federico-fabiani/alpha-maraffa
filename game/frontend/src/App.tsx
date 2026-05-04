@@ -12,6 +12,7 @@ import LobbyScreen from "./screens/LobbyScreen";
 import GameScreen from "./screens/GameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
 import ConnectionStatus from "./components/ConnectionStatus";
+import LoadingOverlay from "./components/LoadingOverlay";
 import backgroundImg from "./assets/homepage/background.jpg";
 import { CRT_FLICKER_EVENT } from "./services/visualEffects";
 
@@ -179,23 +180,7 @@ export default function App() {
         )}
       </div>
 
-      {!backendReady && (
-        <div
-          className="startup-loading-overlay"
-          style={APP_SHELL_LAYOUT_STYLES.startupOverlay}
-        >
-          <div
-            className="startup-loading-card"
-            style={APP_SHELL_LAYOUT_STYLES.startupCard}
-          >
-            <div className="startup-spinner" aria-hidden="true" />
-            <p className="startup-loading-title">Connessione al tavolo</p>
-            <p className="startup-loading-subtitle">
-              Attendo risposta del backend...
-            </p>
-          </div>
-        </div>
-      )}
+      {!backendReady && <LoadingOverlay message="Stai per essere accolto..." />}
     </div>
   );
 }

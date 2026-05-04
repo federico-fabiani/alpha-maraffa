@@ -4,6 +4,7 @@ import { clamp } from "../layout/rusticBackground";
 import LobbyTableSeats from "../components/LobbyTableSeats";
 import useGameStore from "../state/gameStore";
 import ArrowCtaButton from "../components/ArrowCtaButton";
+import LoadingOverlay from "../components/LoadingOverlay";
 import ContentRectDebugOverlay from "../components/ContentRectDebugOverlay";
 import { DEBUG_MODE } from "../config/debug";
 import { useRusticContentRect } from "../hooks/useRusticContentRect";
@@ -48,6 +49,7 @@ export default function LobbyScreen() {
   const promotePlayer = useGameStore((state) => state.promotePlayer);
   const ownerSeat = useGameStore((state) => state.ownerSeat);
   const reset = useGameStore((state) => state.reset);
+  const [isStarting, setIsStarting] = useState(false);
   const { stageRef: rootRef, contentRect } = useRusticContentRect();
   const [swapPendingSeat, setSwapPendingSeat] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -112,6 +114,7 @@ export default function LobbyScreen() {
 
   const handleStartGameClick = () => {
     triggerCrtFlicker();
+    setIsStarting(true);
     startGame();
   };
 
@@ -356,6 +359,7 @@ export default function LobbyScreen() {
       </div>
 
       <ContentRectDebugOverlay rect={contentRect} enabled={DEBUG_MODE} />
+      {isStarting && <LoadingOverlay message="Tavolo in allestimento..." />}
     </div>
   );
 }

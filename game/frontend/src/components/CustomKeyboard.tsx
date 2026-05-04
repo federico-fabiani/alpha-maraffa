@@ -49,10 +49,7 @@ export default function CustomKeyboard({
   };
 
   const keyboard = (
-    <div
-      className="custom-keyboard"
-      onPointerDown={(e) => e.stopPropagation()}
-    >
+    <div className="custom-keyboard" onPointerDown={(e) => e.stopPropagation()}>
       <div className="custom-keyboard-inner">
         <div className="custom-keyboard-main">
           {ROWS.map((row, ri) => (

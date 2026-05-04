@@ -33,6 +33,7 @@ const DECLARATION_OPTIONS: Exclude<Declaration, null>[] = [
 ];
 const MIN_BUFFERED_PLAY_DELAY_MS = 1500;
 const DEFAULT_NOTIFICATION_DURATION_MS = 2500;
+const CARD_DRIP_DELAY_MS = 1200;
 
 interface DragState {
   card: Card;
@@ -93,9 +94,15 @@ export function useGameScreenController() {
   const [activeNotification, setActiveNotification] =
     useState<Notification | null>(null);
   const [isTurnActivationPending, setIsTurnActivationPending] = useState(false);
+  const [visibleTableCards, setVisibleTableCards] = useState<
+    import("../types").TableCard[]
+  >([]);
   const lastTouchInteractionAtRef = useRef(0);
   const notificationTimerRef = useRef<number | null>(null);
   const turnActivationTimerRef = useRef<number | null>(null);
+  const drippingTimersRef = useRef<number[]>([]);
+  const isDrippingRef = useRef(false);
+  const prevBriscolaIntroActiveRef = useRef(false);
   // Initialize isMyTurn=true so first mount never spuriously triggers delay
   const prevTurnStateRef = useRef({ isMyTurn: true });
 
@@ -111,6 +118,49 @@ export function useGameScreenController() {
     briscolaAnnouncement: gameState.briscolaAnnouncement,
     phase: gameState.phase,
   });
+
+  useEffect(() => {
+    const wasActive = prevBriscolaIntroActiveRef.current;
+    prevBriscolaIntroActiveRef.current = briscolaIntroActive;
+
+    if (briscolaIntroActive) {
+      setVisibleTableCards([]);
+      return;
+    }
+
+    if (wasActive) {
+      // Intro just ended: drip-feed buffered cards one at a time
+      drippingTimersRef.current.forEach(clearTimeout);
+      drippingTimersRef.current = [];
+      isDrippingRef.current = true;
+      setVisibleTableCards([]);
+      const cards = gameState.tableCards;
+      cards.forEach((_, i) => {
+        const t = window.setTimeout(
+          () => {
+            setVisibleTableCards(cards.slice(0, i + 1));
+            if (i === cards.length - 1) {
+              isDrippingRef.current = false;
+            }
+          },
+          (i + 1) * CARD_DRIP_DELAY_MS,
+        );
+        drippingTimersRef.current.push(t);
+      });
+      if (cards.length === 0) {
+        isDrippingRef.current = false;
+      }
+      return () => {
+        drippingTimersRef.current.forEach(clearTimeout);
+        drippingTimersRef.current = [];
+        isDrippingRef.current = false;
+      };
+    }
+
+    if (!isDrippingRef.current) {
+      setVisibleTableCards(gameState.tableCards);
+    }
+  }, [briscolaIntroActive, gameState.tableCards]);
 
   const seat = gameState.mySeat ?? 0;
   const topSeat = (seat + 2) % 4;
@@ -251,6 +301,7 @@ export function useGameScreenController() {
       if (notificationTimerRef.current !== null) {
         window.clearTimeout(notificationTimerRef.current);
       }
+      drippingTimersRef.current.forEach(clearTimeout);
     };
   }, []);
 
@@ -386,7 +437,9 @@ export function useGameScreenController() {
     } else if (drag.source === "touch" && !isActiveDrag) {
       // Tap without drag: arm if not armed, disarm if already armed
       setTouchArmedCard(
-        isTouchArmed(drag.card) ? null : { suit: drag.card.suit, rank: drag.card.rank },
+        isTouchArmed(drag.card)
+          ? null
+          : { suit: drag.card.suit, rank: drag.card.rank },
       );
     }
 
@@ -467,7 +520,7 @@ export function useGameScreenController() {
     sortedHand,
     stageRef,
     stageSize,
-    tableCards: briscolaIntroActive ? [] : gameState.tableCards,
+    tableCards: visibleTableCards,
     touchArmedCard,
     topSeat,
     totalScores: gameState.totalScores,

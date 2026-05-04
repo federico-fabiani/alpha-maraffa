@@ -75,6 +75,7 @@ KEY_CARD               = Card(Suit.DENARA, 4)   # holder selects the briscola in
 GAME_WIN_THRESHOLD     = 41
 BOT_PLAY_DELAY         = 1.0    # seconds before a bot plays a card
 BOT_THINK_DELAY        = 0.5    # seconds before a bot selects briscola
+BOT_BRISCOLA_THINK_DELAY = 4.0  # seconds before a bot selects briscola (allows popup to show)
 TURN_RESULT_PAUSE      = 2.0    # seconds to display who won a turn
 ROUND_END_PAUSE        = 3.5    # seconds to display round summary
 HUMAN_TURN_TIMEOUT     = 30.0   # seconds a human has to play before auto-play
@@ -392,7 +393,7 @@ class GameRoom:
         """Wait for the player's briscola choice, or generate one for a bot."""
         slot = self.slots[seat]
         if slot.is_bot:
-            await asyncio.sleep(BOT_THINK_DELAY)
+            await asyncio.sleep(BOT_BRISCOLA_THINK_DELAY)
             ctx = self._build_bot_context(seat)
             return self._get_bot_agent().select_briscola(ctx)
         try:

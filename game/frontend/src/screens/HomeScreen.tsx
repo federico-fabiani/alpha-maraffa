@@ -219,8 +219,7 @@ export default function HomeScreen() {
   const useSideBySideCtas =
     contentRect.height <
       APP_LAYOUT.home.focusLayoutThresholds.sideBySideHeightPx ||
-    contentRect.width <
-      APP_LAYOUT.home.focusLayoutThresholds.sideBySideWidthPx;
+    contentRect.width < APP_LAYOUT.home.focusLayoutThresholds.sideBySideWidthPx;
   const panelPaddingTop = clamp(
     contentRect.height * APP_LAYOUT.home.contentPadding.top.ratio,
     APP_LAYOUT.home.contentPadding.top.minPx,
@@ -702,8 +701,8 @@ export default function HomeScreen() {
                   onPointerDown={handleTableCodeInputPointerDown}
                   className="home-name-input home-table-code-input"
                   style={{ width: "var(--layout-home-join-code-width)" }}
-                  inputMode={activeKeyboardField === "tableCode" ? "none" : "text"}
-                  readOnly={activeKeyboardField === "tableCode"}
+                  inputMode="none"
+                  readOnly={activeKeyboardField !== "tableCode"}
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}

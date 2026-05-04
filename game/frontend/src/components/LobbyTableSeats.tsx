@@ -38,7 +38,12 @@ function getBadgeStyle(badgeIndex: number): CSSProperties {
 }
 
 type SeatAnimState = "entering" | "swapping" | null;
-const EMPTY_ANIM: Record<number, SeatAnimState> = { 0: null, 1: null, 2: null, 3: null };
+const EMPTY_ANIM: Record<number, SeatAnimState> = {
+  0: null,
+  1: null,
+  2: null,
+  3: null,
+};
 
 type LobbyTableSeatsProps = {
   bounds: Bounds;
@@ -53,6 +58,7 @@ type LobbyTableSeatsProps = {
   onPromotePlayer: (seat: number) => void;
   onKickPlayer: (seat: number) => void;
   tableHint: string;
+  nameSeatGapPx?: number;
 };
 
 export default function LobbyTableSeats({
@@ -68,18 +74,29 @@ export default function LobbyTableSeats({
   onPromotePlayer,
   onKickPlayer,
   tableHint,
+  nameSeatGapPx,
 }: LobbyTableSeatsProps) {
   const { seat: seatLayout, table: tableLayout } = APP_LAYOUT.lobby;
+  const resolvedNameSeatGapPx = nameSeatGapPx ?? seatLayout.nameSeatGapPx;
 
   // ── Animation tracking ────────────────────────────────────────────────────
   const prevNamesRef = useRef<Record<number, string | null>>({
-    0: null, 1: null, 2: null, 3: null,
+    0: null,
+    1: null,
+    2: null,
+    3: null,
   });
-  const [seatAnim, setSeatAnim] = useState<Record<number, SeatAnimState>>(EMPTY_ANIM);
+  const [seatAnim, setSeatAnim] =
+    useState<Record<number, SeatAnimState>>(EMPTY_ANIM);
 
   useEffect(() => {
     const prev = prevNamesRef.current;
-    const curr: Record<number, string | null> = { 0: null, 1: null, 2: null, 3: null };
+    const curr: Record<number, string | null> = {
+      0: null,
+      1: null,
+      2: null,
+      3: null,
+    };
     for (let s = 0; s < 4; s++) {
       const p = playerBySeat[s];
       curr[s] = p && !p.is_bot ? p.name : null;
@@ -96,7 +113,12 @@ export default function LobbyTableSeats({
       }
     }
 
-    const newAnim: Record<number, SeatAnimState> = { 0: null, 1: null, 2: null, 3: null };
+    const newAnim: Record<number, SeatAnimState> = {
+      0: null,
+      1: null,
+      2: null,
+      3: null,
+    };
     let hasChange = false;
 
     for (let s = 0; s < 4; s++) {
@@ -123,7 +145,7 @@ export default function LobbyTableSeats({
   // Use max badge size to pre-compute reserves without circular dependency.
   const edgeReserve =
     seatLayout.badgeSizeMaxPx / 2 +
-    seatLayout.nameSeatGapPx +
+    resolvedNameSeatGapPx +
     seatLayout.nameFontSize.maxPx * 2;
 
   // ── Table: fills all available space within bounds ────────────────────────
@@ -156,13 +178,13 @@ export default function LobbyTableSeats({
   // ── Seat anchors: one per table edge ─────────────────────────────────────
   const anchors: Record<SeatArea, Anchor> = {
     bottom: { x: tableLeft + tableWidth / 2, y: tableTop + tableHeight },
-    right:  { x: tableLeft + tableWidth,     y: tableTop + tableHeight / 2 },
-    top:    { x: tableLeft + tableWidth / 2, y: tableTop },
-    left:   { x: tableLeft,                  y: tableTop + tableHeight / 2 },
+    right: { x: tableLeft + tableWidth, y: tableTop + tableHeight / 2 },
+    top: { x: tableLeft + tableWidth / 2, y: tableTop },
+    left: { x: tableLeft, y: tableTop + tableHeight / 2 },
   };
 
   // ── Name label positioning ─────────────────────────────────────────────
-  const nameOffset = badgeSize / 2 + seatLayout.nameSeatGapPx;
+  const nameOffset = badgeSize / 2 + resolvedNameSeatGapPx;
 
   function getLabelStyle(area: SeatArea): CSSProperties {
     switch (area) {
@@ -258,11 +280,11 @@ export default function LobbyTableSeats({
         return (
           <div
             key={seat}
-            className={`lobby-seat-anchor${isOwner ? " cursor-pointer" : ""}`}
+            className="lobby-seat-anchor"
             style={{ left: `${anchor.x}px`, top: `${anchor.y}px` }}
-            onClick={() => onSeatClick(seat)}
           >
             {/* Badge — centered on anchor via CSS translate(-50%, -50%) */}
+            {/* onClick lives here (not on the 0x0 anchor) so iOS hit-testing works */}
             <div
               className={[
                 "lobby-seat-badge-shell",
@@ -277,7 +299,10 @@ export default function LobbyTableSeats({
                 height: `${badgeSize}px`,
                 boxShadow:
                   "0 6px 0 rgba(69, 24, 11, 0.16), 0 10px 18px rgba(0, 0, 0, 0.24)",
+                cursor: isOwner ? "pointer" : "default",
+                touchAction: "manipulation",
               }}
+              onClick={() => onSeatClick(seat)}
             >
               {isHuman ? (
                 <div
@@ -290,7 +315,7 @@ export default function LobbyTableSeats({
             </div>
 
             {/* Name label — north/south: horizontal; east/west: vertical */}
-            <div style={getLabelStyle(area)}>
+            <div style={getLabelStyle(area)} onClick={() => onSeatClick(seat)}>
               {isVertical ? (
                 // Vertical text for east/west to save horizontal space
                 <span
@@ -303,18 +328,25 @@ export default function LobbyTableSeats({
                     transform: area === "left" ? "rotate(180deg)" : undefined,
                   }}
                 >
-                  {player && ownerSeat === seat && <span className="lobby-crown">♛</span>}
+                  {player && ownerSeat === seat && (
+                    <span className="lobby-crown">♛</span>
+                  )}
                   {player?.name ?? "IA"}
                 </span>
               ) : (
                 <div
                   className={`lobby-player-label${player ? "" : " is-ai"}`}
-                  style={{ fontSize: `${nameFontSize}px`, whiteSpace: "nowrap" }}
+                  style={{
+                    fontSize: `${nameFontSize}px`,
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {player && ownerSeat === seat && (
                     <span className="lobby-crown">♛</span>
                   )}
-                  <span className="lobby-player-name">{player?.name ?? "IA"}</span>
+                  <span className="lobby-player-name">
+                    {player?.name ?? "IA"}
+                  </span>
                 </div>
               )}
 

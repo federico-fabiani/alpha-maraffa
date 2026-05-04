@@ -53,7 +53,10 @@ export default function GameOverScreen() {
                   ? "text-amber-400 glow-gold"
                   : "text-blue-400"
             }`}
-            style={{ fontSize: "clamp(1.6rem, 8vmin, 3.5rem)", lineHeight: 1.1 }}
+            style={{
+              fontSize: "clamp(1.6rem, 8vmin, 3.5rem)",
+              lineHeight: 1.1,
+            }}
           >
             {isSpectator
               ? `VINCE TEAM ${gameOverData.winner_team}`
@@ -64,7 +67,10 @@ export default function GameOverScreen() {
           {gameOverData.forfeit_by && (
             <p
               className="text-felt-500 italic"
-              style={{ fontSize: "clamp(0.65rem, 2vmin, 0.8rem)", marginTop: "0.25em" }}
+              style={{
+                fontSize: "clamp(0.65rem, 2vmin, 0.8rem)",
+                marginTop: "0.25em",
+              }}
             >
               {gameOverData.forfeit_by} ha abbandonato la partita
             </p>
@@ -94,7 +100,13 @@ export default function GameOverScreen() {
                 className="flex justify-between items-center border-b border-felt-800 last:border-0"
                 style={{ paddingBlock: "clamp(0.35rem, 1.2vmin, 0.6rem)" }}
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.1em" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.1em",
+                  }}
+                >
                   <span
                     className={`font-semibold ${isWinner ? "text-amber-300" : "text-felt-500"}`}
                     style={{ fontSize: "clamp(0.78rem, 2.8vmin, 0.95rem)" }}
@@ -103,7 +115,9 @@ export default function GameOverScreen() {
                   </span>
                   {names && (
                     <span
-                      className={isWinner ? "text-amber-200/70" : "text-felt-600"}
+                      className={
+                        isWinner ? "text-amber-200/70" : "text-felt-600"
+                      }
                       style={{ fontSize: "clamp(0.6rem, 2vmin, 0.75rem)" }}
                     >
                       {names}

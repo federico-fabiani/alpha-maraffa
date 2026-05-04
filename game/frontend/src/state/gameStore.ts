@@ -18,6 +18,7 @@ import type { GameMessage, GameStore, GameStoreState } from "./storeTypes";
 let connectionController: ReturnType<typeof createGameConnectionController>;
 const INVALID_SESSION_MESSAGE = "Sessione non valida, ricarica la pagina";
 const MAX_PLAYER_NAME_LENGTH = APP_LAYOUT.lobby.seat.maxNameLength;
+const NEW_ROUND_DELAY_MS = 1500;
 
 export const initialState: GameStoreState = {
   connected: false,
@@ -236,20 +237,33 @@ const useGameStore = create<GameStore>((set, get) => ({
           turn_deadline: number | null;
         };
 
-        set((state) => ({
-          phase: payload.phase,
-          briscola: payload.briscola,
-          currentPlayerSeat: payload.current_player_seat,
-          tableCards: payload.table_cards,
-          lastTrickCards:
-            payload.phase === "briscola_selection" ? [] : state.lastTrickCards,
-          turnResultWinnerSeat: null,
-          myHand: payload.my_hand,
-          players: payload.players,
-          totalScores: payload.total_scores,
-          currentDeclaration: payload.current_declaration ?? null,
-          turnDeadline: payload.turn_deadline ?? null,
-        }));
+        const applyGameState = () => {
+          set((state) => ({
+            phase: payload.phase,
+            briscola: payload.briscola,
+            currentPlayerSeat: payload.current_player_seat,
+            tableCards: payload.table_cards,
+            lastTrickCards:
+              payload.phase === "briscola_selection"
+                ? []
+                : state.lastTrickCards,
+            turnResultWinnerSeat: null,
+            myHand: payload.my_hand,
+            players: payload.players,
+            totalScores: payload.total_scores,
+            currentDeclaration: payload.current_declaration ?? null,
+            turnDeadline: payload.turn_deadline ?? null,
+          }));
+        };
+
+        const isNewRound =
+          payload.phase === "briscola_selection" && get().phase === "playing";
+
+        if (isNewRound) {
+          window.setTimeout(applyGameState, NEW_ROUND_DELAY_MS);
+        } else {
+          applyGameState();
+        }
         break;
       }
 
@@ -302,11 +316,39 @@ const useGameStore = create<GameStore>((set, get) => ({
 
       case "round_end": {
         const roundScores = data.round_scores as Record<string, number>;
+        const totalScores = data.total_scores as Record<string, number>;
+        const players = get().players;
+        const team1Players = players.filter((p) => p.team === 1);
+        const team2Players = players.filter((p) => p.team === 2);
+        const nameOrFallback = (
+          p: (typeof players)[0] | undefined,
+          fallback: string,
+        ) => p?.name ?? fallback;
         set({
+          tableCards: [],
+          lastTrickCards: [],
+          turnResultWinnerSeat: null,
           notification: {
             text: `Fine round ${data.round as number}`,
-            subtitle: `Team 1: ${roundScores["1"]} — Team 2: ${roundScores["2"]}`,
             duration: 3500,
+            roundSummary: {
+              team1: {
+                names: [
+                  nameOrFallback(team1Players[0], "—"),
+                  nameOrFallback(team1Players[1], "—"),
+                ],
+                roundScore: roundScores["1"] ?? 0,
+                totalScore: totalScores["1"] ?? 0,
+              },
+              team2: {
+                names: [
+                  nameOrFallback(team2Players[0], "—"),
+                  nameOrFallback(team2Players[1], "—"),
+                ],
+                roundScore: roundScores["2"] ?? 0,
+                totalScore: totalScores["2"] ?? 0,
+              },
+            },
           },
         });
         break;

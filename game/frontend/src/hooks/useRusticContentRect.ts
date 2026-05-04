@@ -13,9 +13,7 @@ export function useRusticContentRect() {
     const stageWidth =
       typeof window === "undefined" ? DEFAULT_STAGE_WIDTH : window.innerWidth;
     const stageHeight =
-      typeof window === "undefined"
-        ? DEFAULT_STAGE_HEIGHT
-        : window.innerHeight;
+      typeof window === "undefined" ? DEFAULT_STAGE_HEIGHT : window.innerHeight;
 
     return computeRusticBackgroundLayout(stageWidth, stageHeight).contentRect;
   });

@@ -44,10 +44,20 @@ export interface LobbyPlayer {
   team: 1 | 2;
 }
 
+export interface RoundTeamSummary {
+  names: [string, string];
+  roundScore: number;
+  totalScore: number;
+}
+
 export interface Notification {
   text: string;
   subtitle?: string;
   duration?: number;
+  roundSummary?: {
+    team1: RoundTeamSummary;
+    team2: RoundTeamSummary;
+  };
 }
 
 export interface BriscolaAnnouncement {

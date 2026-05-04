@@ -441,9 +441,7 @@ export default function GameScreen() {
         </div>
       )}
 
-      {needsBriscola && (
-        <BriscolaModal onSelect={selectBriscola} />
-      )}
+      {needsBriscola && <BriscolaModal onSelect={selectBriscola} />}
 
       {(isWaitingBriscola || briscolaIntro.stage === "banner") && (
         <div className="game-popup-overlay" style={announcementOverlayStyle}>

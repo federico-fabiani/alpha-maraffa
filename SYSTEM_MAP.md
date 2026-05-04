@@ -90,7 +90,7 @@ Authority: hook-local or component-local view state only.
   children: `LobbyTableSeats`, `ArrowCtaButton`, `ContentRectDebugOverlay`
 
 - `LobbyTableSeats`
-  props: `bounds`, `style?`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`
+  props: `bounds`, `style?`, `mySeat`, `ownerSeat`, `isOwner`, `playerBySeat`, `badgeByName`, `swapPendingSeat`, `onSeatClick`, `onPromotePlayer`, `onKickPlayer`, `tableHint`, `nameSeatGapPx?`
   state read: none
   actions triggered: `onSeatClick`, `onPromotePlayer`, `onKickPlayer`
   layout notes: table centered in bounds, seats anchored to table edges; `APP_LAYOUT.lobby.seat.nameSeatGapPx` is the single constant controlling gap from badge edge to name label for all 4 seats; east/west names render with `writing-mode: vertical-lr`
@@ -367,6 +367,7 @@ written by: [`BriscolaSuitGif asset decode effect`]
 Authority: `game/frontend/src/layout/layout.ts`
 
 - `APP_LAYOUT` is the only source of truth for shell insets, playing-area bounds, card sizes, lobby metrics, modal widths, drag/drop sizes, and game-over widths.
+- Lobby responsive behavior (header top inset, table left/up offsets, table-vs-CTA width rebalance, CTA arrow visibility, seat-name gap) must be computed by continuous interpolation from content-rect size using `APP_LAYOUT.lobby.responsive`; `LobbyScreen` may only consume these values.
 - Local declaration-controls placement above the player hand originates from `APP_LAYOUT.game.declarationControls`.
 - Briscola announcement popup size and hand-collision-safe vertical placement originate from `APP_LAYOUT.game.announcement`.
 - `layoutCssVariables` bridges layout values into `game/frontend/src/index.css` for the CSS rules that still need shared dimensions.

@@ -11,8 +11,7 @@ const SUITS: Suit[] = ["bastoni", "denara", "spade", "coppe"];
 export default function BriscolaModal({ onSelect }: BriscolaModalProps) {
   const playingAreaCenterY =
     "calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + (var(--layout-playing-area-height) / 2))))";
-  const maxAllowedCenterY =
-    `calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta) + ${APP_LAYOUT.cards.hand.hoverTranslate} - ${APP_LAYOUT.briscolaModal.handClearance} - (${APP_LAYOUT.briscolaModal.estimatedHeight} / 2))`;
+  const maxAllowedCenterY = `calc(var(--bg-render-top) + (var(--bg-render-height) * (var(--layout-playing-area-top) + var(--layout-playing-area-height))) + var(--hand-playing-area-delta) + ${APP_LAYOUT.cards.hand.hoverTranslate} - ${APP_LAYOUT.briscolaModal.handClearance} - (${APP_LAYOUT.briscolaModal.estimatedHeight} / 2))`;
 
   return (
     <div
@@ -54,15 +53,21 @@ export default function BriscolaModal({ onSelect }: BriscolaModalProps) {
                 key={suit}
                 onClick={() => onSelect(suit)}
                 className="bg-felt-800 hover:bg-felt-700 border border-felt-700 hover:border-current rounded-lg transition-all group"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: APP_LAYOUT.briscolaModal.gridGap,
-                  padding: `${APP_LAYOUT.briscolaModal.buttonPaddingY} ${APP_LAYOUT.briscolaModal.buttonPaddingX}`,
-                  color: meta.color,
-                } as React.CSSProperties}
+                style={
+                  {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: APP_LAYOUT.briscolaModal.gridGap,
+                    padding: `${APP_LAYOUT.briscolaModal.buttonPaddingY} ${APP_LAYOUT.briscolaModal.buttonPaddingX}`,
+                    color: meta.color,
+                  } as React.CSSProperties
+                }
               >
-                <span style={{ fontSize: APP_LAYOUT.briscolaModal.buttonIconSize }}>{meta.symbol}</span>
+                <span
+                  style={{ fontSize: APP_LAYOUT.briscolaModal.buttonIconSize }}
+                >
+                  {meta.symbol}
+                </span>
                 <span
                   className="font-semibold group-hover:text-current transition-colors text-amber-100"
                   style={{ fontSize: APP_LAYOUT.briscolaModal.buttonLabelSize }}

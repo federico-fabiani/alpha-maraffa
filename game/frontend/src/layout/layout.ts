@@ -136,7 +136,7 @@ export const APP_LAYOUT = {
     panelMaxWidth: "30rem",
     panelGap: "0.9rem",
     headerReservedHeight: {
-      ratio: 0.10,
+      ratio: 0.1,
       minPx: 20,
       maxPx: 90,
     },
@@ -169,6 +169,52 @@ export const APP_LAYOUT = {
       minWidthPx: 150,
       maxWidthPx: 220,
     },
+    responsive: {
+      widthRangePx: {
+        relaxed: 920,
+        compressed: 520,
+      },
+      heightRangePx: {
+        relaxed: 520,
+        compressed: 280,
+      },
+      blendWeights: {
+        width: 0.7,
+        height: 0.3,
+      },
+      tableArea: {
+        widthRatio: {
+          relaxed: 0.72,
+          compressed: 0.66,
+        },
+        minWidthPx: {
+          relaxed: 320,
+          compressed: 248,
+        },
+      },
+      ctaArea: {
+        minWidthPx: {
+          relaxed: 150,
+          compressed: 128,
+        },
+        arrowsVisibleWidthPx: {
+          hidden: 160,
+          fullyVisible: 216,
+        },
+      },
+      tableOffsetXPx: {
+        relaxed: 0,
+        compressed: -28,
+      },
+      tableOffsetYPx: {
+        relaxed: 0,
+        compressed: -14,
+      },
+      nameSeatGapPx: {
+        relaxed: 8,
+        compressed: 3,
+      },
+    },
     table: {
       aspectRatio: 400 / 280,
       displayAspectRatio: 1.72,
@@ -181,7 +227,7 @@ export const APP_LAYOUT = {
       badgeSizeMinPx: 42,
       badgeSizeMaxPx: 68,
       /** Fixed gap in px from badge edge to nearest edge of the name label — same for all 4 seats. */
-      nameSeatGapPx: 8,
+      nameSeatGapPx: 2,
       maxNameLength: 12,
       nameFontSize: {
         ratio: 0.032,

@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
+import { useRef } from "react";
 import arrowImg from "../assets/arrow.png";
+
+const LONG_PRESS_MS = 380;
 
 type ArrowCtaButtonProps = {
   label: string;
@@ -22,10 +25,52 @@ export default function ArrowCtaButton({
   type = "button",
   arrowStyle,
 }: ArrowCtaButtonProps) {
+  const longPressTimerRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+      return;
+    }
+
+    suppressClickRef.current = false;
+    clearLongPressTimer();
+    longPressTimerRef.current = window.setTimeout(() => {
+      suppressClickRef.current = true;
+      longPressTimerRef.current = null;
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePointerUpOrCancel = () => {
+    clearLongPressTimer();
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (suppressClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClickRef.current = false;
+      return;
+    }
+
+    onClick();
+  };
+
   return (
     <button
       type={type}
-      onClick={onClick}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUpOrCancel}
+      onPointerCancel={handlePointerUpOrCancel}
+      onPointerLeave={handlePointerUpOrCancel}
       className={className}
       style={style}
       aria-label={ariaLabel}
@@ -38,7 +83,12 @@ export default function ArrowCtaButton({
         className="home-arrow home-arrow-left home-hover-arrow"
         style={{ alignSelf: "center", ...arrowStyle }}
       />
-      <span className="home-menu-label" aria-hidden="true" data-label={label} style={{ alignSelf: "center" }} />
+      <span
+        className="home-menu-label"
+        aria-hidden="true"
+        data-label={label}
+        style={{ alignSelf: "center" }}
+      />
       <img
         src={arrowImg}
         alt=""

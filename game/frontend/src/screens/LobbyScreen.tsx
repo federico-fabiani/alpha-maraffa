@@ -29,6 +29,14 @@ function hashString(value: string) {
   return hash;
 }
 
+function clampUnit(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function lerp(from: number, to: number, factor: number) {
+  return from + (to - from) * factor;
+}
+
 export default function LobbyScreen() {
   const roomId = useGameStore((state) => state.roomId);
   const mySeat = useGameStore((state) => state.mySeat);
@@ -112,6 +120,41 @@ export default function LobbyScreen() {
     reset();
   };
 
+  const widthCompression = clampUnit(
+    (APP_LAYOUT.lobby.responsive.widthRangePx.relaxed - contentRect.width) /
+      (APP_LAYOUT.lobby.responsive.widthRangePx.relaxed -
+        APP_LAYOUT.lobby.responsive.widthRangePx.compressed),
+  );
+  const heightCompression = clampUnit(
+    (APP_LAYOUT.lobby.responsive.heightRangePx.relaxed - contentRect.height) /
+      (APP_LAYOUT.lobby.responsive.heightRangePx.relaxed -
+        APP_LAYOUT.lobby.responsive.heightRangePx.compressed),
+  );
+  const responsiveFactor = clampUnit(
+    widthCompression * APP_LAYOUT.lobby.responsive.blendWeights.width +
+      heightCompression * APP_LAYOUT.lobby.responsive.blendWeights.height,
+  );
+  const tableAreaWidthRatio = lerp(
+    APP_LAYOUT.lobby.responsive.tableArea.widthRatio.relaxed,
+    APP_LAYOUT.lobby.responsive.tableArea.widthRatio.compressed,
+    responsiveFactor,
+  );
+  const tableAreaMinWidthPx = lerp(
+    APP_LAYOUT.lobby.responsive.tableArea.minWidthPx.relaxed,
+    APP_LAYOUT.lobby.responsive.tableArea.minWidthPx.compressed,
+    responsiveFactor,
+  );
+  const ctaAreaMinWidthPx = lerp(
+    APP_LAYOUT.lobby.responsive.ctaArea.minWidthPx.relaxed,
+    APP_LAYOUT.lobby.responsive.ctaArea.minWidthPx.compressed,
+    responsiveFactor,
+  );
+  const nameSeatGapPx = lerp(
+    APP_LAYOUT.lobby.responsive.nameSeatGapPx.relaxed,
+    APP_LAYOUT.lobby.responsive.nameSeatGapPx.compressed,
+    responsiveFactor,
+  );
+
   const headerReservedHeight = clamp(
     contentRect.height * APP_LAYOUT.lobby.headerReservedHeight.ratio,
     APP_LAYOUT.lobby.headerReservedHeight.minPx,
@@ -135,23 +178,40 @@ export default function LobbyScreen() {
   const contentWidth = Math.max(1, contentRect.width - contentPaddingX * 2);
   const contentHeight = Math.max(
     1,
-    contentRect.height - contentPaddingY * 2 - headerReservedHeight - headerGap,
+    contentRect.height -
+      contentPaddingY * 2 -
+      headerReservedHeight -
+      headerGap,
   );
   const tableAreaPreferredWidth = clamp(
-    contentWidth * APP_LAYOUT.lobby.tableArea.widthRatio,
-    APP_LAYOUT.lobby.tableArea.minWidthPx,
+    contentWidth * tableAreaWidthRatio,
+    tableAreaMinWidthPx,
     Math.min(
       APP_LAYOUT.lobby.tableArea.maxWidthPx,
-      Math.max(
-        APP_LAYOUT.lobby.tableArea.minWidthPx,
-        contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx,
-      ),
+      Math.max(tableAreaMinWidthPx, contentWidth - ctaAreaMinWidthPx),
     ),
   );
   const tableAreaWidth = clamp(
     tableAreaPreferredWidth,
-    APP_LAYOUT.lobby.tableArea.minWidthPx,
-    Math.max(APP_LAYOUT.lobby.tableArea.minWidthPx, contentWidth - APP_LAYOUT.lobby.ctaArea.minWidthPx),
+    tableAreaMinWidthPx,
+    Math.max(tableAreaMinWidthPx, contentWidth - ctaAreaMinWidthPx),
+  );
+  const ctaAreaWidth = Math.max(1, contentWidth - tableAreaWidth);
+  const ctaArrowSizingFactor = clampUnit(
+    (ctaAreaWidth -
+      APP_LAYOUT.lobby.responsive.ctaArea.arrowsVisibleWidthPx.hidden) /
+      (APP_LAYOUT.lobby.responsive.ctaArea.arrowsVisibleWidthPx.fullyVisible -
+        APP_LAYOUT.lobby.responsive.ctaArea.arrowsVisibleWidthPx.hidden),
+  );
+  const tableAreaOffsetX = lerp(
+    APP_LAYOUT.lobby.responsive.tableOffsetXPx.relaxed,
+    APP_LAYOUT.lobby.responsive.tableOffsetXPx.compressed,
+    responsiveFactor,
+  );
+  const tableAreaOffsetY = lerp(
+    APP_LAYOUT.lobby.responsive.tableOffsetYPx.relaxed,
+    APP_LAYOUT.lobby.responsive.tableOffsetYPx.compressed,
+    responsiveFactor,
   );
   const ctaFontSize = clamp(
     contentRect.width * APP_LAYOUT.lobby.ctaFontSize.ratio,
@@ -159,6 +219,12 @@ export default function LobbyScreen() {
     APP_LAYOUT.lobby.ctaFontSize.maxPx,
   );
   const ctaArrowWidth = clamp(ctaFontSize * 1.35, 20, 34);
+  const ctaArrowScale = lerp(0.72, 1, ctaArrowSizingFactor);
+  const ctaItemGap = clamp(
+    ctaFontSize * lerp(0.2, 0.5, ctaArrowSizingFactor),
+    2,
+    16,
+  );
 
   const panelStyle = {
     position: "absolute",
@@ -201,6 +267,7 @@ export default function LobbyScreen() {
     minWidth: 0,
     minHeight: `${contentHeight}px`,
     height: "100%",
+    transform: `translate(${tableAreaOffsetX}px, ${tableAreaOffsetY}px)`,
   };
   const ctaAreaStyle = {
     display: "flex",
@@ -209,11 +276,11 @@ export default function LobbyScreen() {
     justifyContent: "center",
     gap: `${clamp(ctaFontSize * 0.6, 6, 18)}px`,
     flex: "1 1 0",
-    minWidth: `${APP_LAYOUT.lobby.ctaArea.minWidthPx}px`,
+    minWidth: `${ctaAreaMinWidthPx}px`,
     minHeight: `${contentHeight}px`,
     height: `${contentHeight}px`,
     "--layout-home-menu-item-font-size": `${ctaFontSize}px`,
-    "--layout-home-menu-item-gap": `${clamp(ctaFontSize * 0.5, 8, 16)}px`,
+    "--layout-home-menu-item-gap": `${ctaItemGap}px`,
     "--layout-home-menu-item-padding": `${clamp(ctaFontSize * 0.14, 2, 5)}px ${clamp(ctaFontSize * 0.28, 4, 10)}px`,
     "--layout-home-arrow-width": `${ctaArrowWidth}px`,
   } as React.CSSProperties;
@@ -222,8 +289,10 @@ export default function LobbyScreen() {
     width: "100%",
     height: "100%",
   } as const;
-  const ctaStyle = { width: "100%", gridTemplateColumns: "1fr minmax(0, max-content) 1fr" } as const;
-  const ctaArrowStyle = { width: `${ctaArrowWidth}px` } as const;
+  const ctaStyle = { width: "100%" } as const;
+  const ctaArrowStyle: React.CSSProperties = {
+    width: `${ctaArrowWidth * ctaArrowScale}px`,
+  };
   const tableHint = isOwner
     ? "Clicca su due posti occupati per scambiarli."
     : "Attendi altri giocatori o avvio partita.";
@@ -260,6 +329,7 @@ export default function LobbyScreen() {
             onPromotePlayer={promotePlayer}
             onKickPlayer={kickPlayer}
             tableHint={tableHint}
+            nameSeatGapPx={nameSeatGapPx}
             style={{ ...tableAreaStyle, ...tableAreaDebugStyle }}
           />
 
